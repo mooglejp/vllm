@@ -1,6 +1,10 @@
 # TurboQuant gfx1201 K8/V4 D=256 GQA=6 fused decode + MTP implementation plan
 
-Status: implementation plan and inert scaffold
+Status: implementation plan; opt-in single- and multi-token path implemented
+
+The target route is currently gated by ``VLLM_TQ_GFX1201_K8V4``. Numerical
+coverage is in place; gfx1201 tuning, graph replay validation, and end-to-end
+MTP acceptance/performance measurements remain open exit gates.
 
 Target branch: `feat/turboquant-gfx1201-k8v4-mtp`
 
@@ -32,7 +36,8 @@ The existing SoA Triton implementation is the closest functional reference for t
 
 At present, `TurboQuantAttentionImpl._soa_store` follows FlyDSL availability. On gfx1201 FlyDSL is unavailable, so the current safe path normally remains AoS. A gfx1201 fast kernel may choose SoA, but the layout selection must be made once, before cache population, and remain stable for the lifetime of the layer/cache. Never dynamically switch an already-populated cache between AoS and SoA readers.
 
-The current `TurboQuantMetadataBuilder` uses `supports_spec_as_decode=False`. This must remain false until the new decode implementation accepts multiple query tokens per request correctly. Enabling it early changes the meaning of the decode batch: `num_decode_tokens` can become larger than `num_decodes`, invalidating one-token-per-request assumptions and current workspace sizing.
+The target builder conditionally enables `supports_spec_as_decode=True` only for
+the exact profile with the native multi-token decoder. Other TurboQuant profiles remain single-token builders. Enabling this capability changes the meaning of the decode batch: `num_decode_tokens` can become larger than `num_decodes`, so the token/request distinction must remain explicit in metadata and workspace sizing.
 
 The current thin SoA decode adapter synthesizes `[0, 1, ..., B]` using `torch.arange` on every invocation. The gfx1201 fast path must not use that adapter. It should consume `attn_metadata.query_start_loc` directly; this is required for MTP anyway and also removes an avoidable per-layer launch/allocation in the one-token case.
 
@@ -62,7 +67,9 @@ Anchors:
 - `TurboQuantAttentionImpl._prefill_attention`: continuation-prefill must continue to use a reader matching the selected cache layout. Do not route continuation through the new kernel until its causal multi-token behavior is explicitly validated.
 - `TurboQuantAttentionImpl._dispatch_decode_soa`: keep as the safety fallback for an SoA-selected layer. The dedicated fast path should not pay its `inspect.signature()` overhead.
 
-An inert backend scaffold is added at `vllm/v1/attention/backends/turboquant_gfx1201_k8v4_mtp.py`. It exists to pin the exact eligibility contract and integration anchors. It must not be imported by production code until Phase 2/3 implementation begins.
+`vllm/v1/attention/backends/turboquant_gfx1201_k8v4_mtp.py` pins the exact
+eligibility contract. Production integration lives in `turboquant_attn.py` and
+selects the SoA layout before cache population when the opt-in is enabled.
 
 ### Kernel implementation
 

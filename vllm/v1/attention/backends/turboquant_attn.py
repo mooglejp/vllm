@@ -68,7 +68,7 @@ from vllm.v1.attention.ops.triton_turboquant_decode import (
     triton_turboquant_decode_attention,
 )
 from vllm.v1.attention.ops.triton_turboquant_store import triton_turboquant_store
-from vllm.v1.kv_cache_interface import AttentionSpec, KVCacheLayout
+from vllm.v1.kv_cache_interface import AttentionSpec, KVCacheLayout, KVQuantMode
 from vllm.v1.worker.workspace import (
     current_workspace_manager,
     is_workspace_manager_initialized,
@@ -126,6 +126,35 @@ def _should_use_gfx1201_fast_path(
         block_size=block_size,
         has_sinks=has_sinks,
         sliding_window=sliding_window,
+    )
+
+
+def _supports_gfx1201_spec_decode(
+    kv_cache_spec: AttentionSpec,
+    vllm_config: Any,
+) -> bool:
+    """Return whether this cache group can receive MTP-shaped decode batches."""
+    spec_config = getattr(vllm_config, "speculative_config", None)
+    if getattr(spec_config, "num_speculative_tokens", None) is None:
+        return False
+    if kv_cache_spec.kv_quant_mode != KVQuantMode.TURBOQUANT_K8V4:
+        return False
+    try:
+        num_query_heads = vllm_config.model_config.get_num_attention_heads(
+            vllm_config.parallel_config
+        )
+    except (AttributeError, TypeError):
+        return False
+    if num_query_heads % kv_cache_spec.num_kv_heads != 0:
+        return False
+    return _should_use_gfx1201_fast_path(
+        head_size=kv_cache_spec.head_size,
+        num_kv_groups=num_query_heads // kv_cache_spec.num_kv_heads,
+        key_fp8=True,
+        value_quant_bits=4,
+        block_size=kv_cache_spec.block_size,
+        has_sinks=False,
+        sliding_window=getattr(kv_cache_spec, "sliding_window", None),
     )
 
 
@@ -266,7 +295,12 @@ class TurboQuantMetadataBuilder(AttentionMetadataBuilder[TurboQuantMetadata]):
 
     def __init__(self, kv_cache_spec, layer_names, vllm_config, device):
         super().__init__(kv_cache_spec, layer_names, vllm_config, device)
-        self._init_reorder_batch_threshold(1, supports_spec_as_decode=False)
+        self._supports_spec_as_decode = _supports_gfx1201_spec_decode(
+            kv_cache_spec, vllm_config
+        )
+        self._init_reorder_batch_threshold(
+            1, supports_spec_as_decode=self._supports_spec_as_decode
+        )
         self._reserve_workspace()
 
     def _reserve_workspace(self) -> None:
@@ -278,6 +312,8 @@ class TurboQuantMetadataBuilder(AttentionMetadataBuilder[TurboQuantMetadata]):
         parallel_config = self.vllm_config.parallel_config
 
         max_num_reqs = scheduler_config.max_num_seqs
+        max_query_len = self.reorder_batch_threshold or 1
+        max_decode_tokens = max_num_reqs * max_query_len
         num_heads = model_config.get_num_attention_heads(parallel_config)
         num_kv_heads = self.kv_cache_spec.num_kv_heads
         head_size = self.kv_cache_spec.head_size
@@ -286,9 +322,12 @@ class TurboQuantMetadataBuilder(AttentionMetadataBuilder[TurboQuantMetadata]):
         )
 
         current_workspace_manager().get_simultaneous(
-            ((max_num_reqs, num_heads, max_num_splits, head_size + 1), torch.float32),
-            ((max_num_reqs, num_heads, head_size), model_config.dtype),
-            ((max_num_reqs, num_heads), torch.float32),
+            (
+                (max_decode_tokens, num_heads, max_num_splits, head_size + 1),
+                torch.float32,
+            ),
+            ((max_decode_tokens, num_heads, head_size), model_config.dtype),
+            ((max_decode_tokens, num_heads), torch.float32),
         )
 
         reserve_continuation_prefill = (
@@ -335,7 +374,7 @@ class TurboQuantMetadataBuilder(AttentionMetadataBuilder[TurboQuantMetadata]):
             num_actual_tokens=cam.num_actual_tokens,
             max_query_len=cam.max_query_len,
             max_seq_len=cam.max_seq_len,
-            is_prefill=(cam.max_query_len > 1),
+            is_prefill=(num_prefills > 0),
             num_decodes=num_decodes,
             num_decode_tokens=num_decode_tokens,
             query_start_loc_cpu=cam.query_start_loc_cpu,
@@ -425,6 +464,19 @@ class TurboQuantAttentionImpl(AttentionImpl["TurboQuantMetadata"]):
         )
         # SoA storage is required by both the FlyDSL and gfx1201 readers.
         self._soa_store = self._use_flydsl or self._use_gfx1201_fast
+        self._max_decode_query_len = 1
+        spec_config = getattr(vllm_config, "speculative_config", None)
+        if self._use_gfx1201_fast and spec_config is not None:
+            num_speculative_tokens = getattr(
+                spec_config, "num_speculative_tokens", None
+            )
+            if num_speculative_tokens is not None:
+                multiplier = (
+                    2 if getattr(spec_config, "parallel_drafting", False) else 1
+                )
+                self._max_decode_query_len = 1 + multiplier * int(
+                    num_speculative_tokens
+                )
 
     def _flash_attn_varlen(
         self,
@@ -495,7 +547,7 @@ class TurboQuantAttentionImpl(AttentionImpl["TurboQuantMetadata"]):
                 is_workspace_manager_initialized()
                 and not current_workspace_manager().is_locked()
             ):
-                B_max = self._max_capture_batch_size()
+                B_max = self._max_capture_batch_size() * self._max_decode_query_len
                 D = self.head_size
                 Hq = self.num_heads
                 S = self.max_num_kv_splits
@@ -630,9 +682,10 @@ class TurboQuantAttentionImpl(AttentionImpl["TurboQuantMetadata"]):
         # num_decodes/num_decode_tokens from metadata give the split point.
         num_decodes = attn_metadata.num_decodes
         num_decode_tokens = attn_metadata.num_decode_tokens
+        num_reqs = attn_metadata.query_start_loc.shape[0] - 1
 
-        if not attn_metadata.is_prefill:
-            # Pure decode batch — fast path
+        if num_decodes == num_reqs:
+            # Pure decode batch — including packed speculative queries.
             attn_out = self._decode_attention(
                 q, kv_cache, attn_metadata, Pi, centroids, PiT, layer
             )
@@ -659,6 +712,12 @@ class TurboQuantAttentionImpl(AttentionImpl["TurboQuantMetadata"]):
 
             # --- Decode portion (first num_decodes requests) ---
             # Use full-batch max_seq_len as safe upper bound (no GPU sync).
+            decode_max_query_len = (
+                1 if num_decode_tokens == num_decodes else attn_metadata.max_query_len
+            )
+            if attn_metadata.query_start_loc_cpu is not None:
+                decode_qsl = attn_metadata.query_start_loc_cpu[: num_decodes + 1]
+                decode_max_query_len = int((decode_qsl[1:] - decode_qsl[:-1]).max())
             decode_meta = TurboQuantMetadata(
                 seq_lens=attn_metadata.seq_lens[:num_decodes],
                 slot_mapping=attn_metadata.slot_mapping[:num_decode_tokens],
@@ -670,9 +729,11 @@ class TurboQuantAttentionImpl(AttentionImpl["TurboQuantMetadata"]):
                     else None
                 ),
                 num_actual_tokens=num_decode_tokens,
-                max_query_len=1,
+                max_query_len=decode_max_query_len,
                 max_seq_len=attn_metadata.max_seq_len,
                 is_prefill=False,
+                num_decodes=num_decodes,
+                num_decode_tokens=num_decode_tokens,
             )
             attn_out[:num_decode_tokens] = self._decode_attention(
                 q[:num_decode_tokens], kv_cache, decode_meta, Pi, centroids, PiT, layer
@@ -1190,15 +1251,31 @@ class TurboQuantAttentionImpl(AttentionImpl["TurboQuantMetadata"]):
                 )
             )
 
-        if self._use_gfx1201_fast and attn_metadata.max_query_len == 1:
-            # The specialized launcher consumes query_start_loc directly.
-            # It is intentionally reached only for the one-token phase;
-            # supports_spec_as_decode remains false until the native MTP
-            # workspace and causal path are implemented.
+        if self._use_gfx1201_fast:
+            # The specialized launchers consume query_start_loc directly.
+            # The packed-query entry point keeps MTP rows in their original
+            # request order and applies the causal mask inside stage 1.
             from vllm.v1.attention.ops.turboquant_soa.triton_turboquant_decode_gfx1201_k8v4 import (  # noqa: E501
                 triton_turboquant_decode_gfx1201_k8v4,
+                triton_turboquant_decode_gfx1201_k8v4_multi_token,
             )
 
+            if attn_metadata.max_query_len > 1:
+                return triton_turboquant_decode_gfx1201_k8v4_multi_token(
+                    query=query,
+                    kv_cache=kv_cache,
+                    block_table=attn_metadata.block_table,
+                    seq_lens=attn_metadata.seq_lens,
+                    query_start_loc=attn_metadata.query_start_loc,
+                    query_start_loc_cpu=attn_metadata.query_start_loc_cpu,
+                    scale=self.scale,
+                    output=output_buf,
+                    mid_o_buf=mid_o_buf,
+                    lse_buf=lse_buf,
+                    max_num_kv_splits=self.max_num_kv_splits,
+                    max_seq_len=attn_metadata.max_seq_len,
+                    max_query_len=attn_metadata.max_query_len,
+                )
             return triton_turboquant_decode_gfx1201_k8v4(
                 query=query,
                 kv_cache=kv_cache,
