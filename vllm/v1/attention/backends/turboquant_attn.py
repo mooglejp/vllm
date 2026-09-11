@@ -1126,16 +1126,19 @@ class TurboQuantAttentionImpl(AttentionImpl["TurboQuantMetadata"]):
                 )
             )
 
-        if self._use_flydsl:
+        if self._use_flydsl or self._soa_store:
             # FlyDSL decode (gfx950, MSE-key, HEAD_SIZE=128, GQA in {6, 8, 16}).
-            # GQA-6 routes to the MiniMax sibling kernel. Ineligible layers fall
-            # back to SoA Triton decode.
+            # GQA-6 routes to the MiniMax sibling kernel. Ineligible layers, or
+            # any future SoA layout without FlyDSL, fall back to SoA Triton
+            # decode. The cache layout—not decoder availability—must determine
+            # how the cache is read.
             _gqa = self.num_kv_groups
             flydsl_gqa_ok = (_gqa in (8, 16)) or (
                 _gqa == 6 and is_flydsl_gqa6_available()
             )
             flydsl_eligible = (
-                not self.tq_config.key_fp8
+                self._use_flydsl
+                and not self.tq_config.key_fp8
                 and self.tq_config.key_mse_bits == 4
                 and self.tq_config.effective_value_quant_bits == 4
                 and self.head_size == 128
