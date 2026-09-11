@@ -25,6 +25,7 @@ from typing import Any, ClassVar
 import torch
 import torch.nn.functional as F
 
+import vllm.envs as envs
 from vllm.config import get_current_vllm_config
 from vllm.config.cache import CacheDType
 from vllm.logger import init_logger
@@ -47,6 +48,9 @@ from vllm.v1.attention.backend import (
 from vllm.v1.attention.backends.fa_utils import (
     get_flash_attn_version,
     is_flash_attn_varlen_func_available,
+)
+from vllm.v1.attention.backends.turboquant_gfx1201_k8v4_mtp import (
+    is_target_profile,
 )
 from vllm.v1.attention.backends.utils import split_decodes_and_prefills
 
@@ -82,6 +86,47 @@ if _HAS_FLASH_ATTN:
 # kernel can read them efficiently. This avoids O(cached_len) dequant work
 # per continuation, eliminating the O(N²/chunk_size) collapse at long context.
 _CONTINUATION_DECODE_THRESHOLD = 128
+
+
+def _runtime_rocm_arch() -> str | None:
+    """Return the exact ROCm arch without probing CUDA on other platforms."""
+    from vllm.platforms import current_platform
+
+    if not current_platform.is_rocm():
+        return None
+    try:
+        from vllm.platforms.rocm import _GCN_ARCH
+    except (ImportError, AttributeError):
+        return None
+    return _GCN_ARCH
+
+
+def _should_use_gfx1201_fast_path(
+    *,
+    head_size: int,
+    num_kv_groups: int,
+    key_fp8: bool,
+    value_quant_bits: int,
+    block_size: int | None,
+    has_sinks: bool,
+    sliding_window: int | None,
+) -> bool:
+    """Make the static, opt-in decision for the target decode specialization."""
+    if not envs.VLLM_TQ_GFX1201_K8V4 or block_size is None:
+        return False
+    rocm_arch = _runtime_rocm_arch()
+    if rocm_arch is None:
+        return False
+    return is_target_profile(
+        rocm_arch=rocm_arch,
+        head_size=head_size,
+        num_kv_groups=num_kv_groups,
+        key_fp8=key_fp8,
+        value_quant_bits=value_quant_bits,
+        block_size=block_size,
+        has_sinks=has_sinks,
+        sliding_window=sliding_window,
+    )
 
 
 def _soa_imports():
@@ -358,16 +403,28 @@ class TurboQuantAttentionImpl(AttentionImpl["TurboQuantMetadata"]):
             vllm_config.attention_config.tq_max_kv_splits_for_cuda_graph
         )
 
-        # FlyDSL decode state. Auto-enabled on gfx950 when FlyDSL is available.
+        # All layout decisions are made before the first cache write. The
+        # gfx1201 path is opt-in until its tuning/correctness gates are
+        # complete; unsupported configurations remain on the existing route.
         self.sliding_window = sliding_window
         self.sinks = kwargs.get("sinks")
         # Cache max_model_len now (config is available at __init__ but NOT
         # during CUDA-graph capture when _ensure_on_device is re-entered).
         self._max_model_len = vllm_config.model_config.max_model_len
-        # SoA store is required by the FlyDSL decode/continuation path, so it
-        # tracks FlyDSL availability (single switch for the whole pipeline).
+        cache_config = getattr(vllm_config, "cache_config", None)
+        block_size = getattr(cache_config, "block_size", None)
         self._use_flydsl = is_flydsl_available()
-        self._soa_store = self._use_flydsl
+        self._use_gfx1201_fast = _should_use_gfx1201_fast_path(
+            head_size=head_size,
+            num_kv_groups=self.num_kv_groups,
+            key_fp8=self.tq_config.key_fp8,
+            value_quant_bits=self.tq_config.effective_value_quant_bits,
+            block_size=block_size,
+            has_sinks=self.sinks is not None,
+            sliding_window=sliding_window,
+        )
+        # SoA storage is required by both the FlyDSL and gfx1201 readers.
+        self._soa_store = self._use_flydsl or self._use_gfx1201_fast
 
     def _flash_attn_varlen(
         self,
@@ -455,21 +512,23 @@ class TurboQuantAttentionImpl(AttentionImpl["TurboQuantMetadata"]):
         if not hasattr(layer, "_tq_cached"):
             D = self.head_size
 
-            # Pure Hadamard: orthonormal + symmetric (H = H^T), enabling
-            # in-kernel butterfly fusion and trivial inverse for continuation.
-            H = _build_hadamard(D, str(device))
-            layer._tq_PiT = H
-            layer._tq_Pi = H
-            # fp16 copy for rotation in continuation prefill path
-            layer._tq_Pi_half = H.to(torch.float16)
-
-            # Centroids for Lloyd-Max quantization.
-            layer._tq_centroids = get_centroids(D, self.tq_config.centroid_bits).to(
-                device=device, dtype=torch.float32
-            )
-
-            c_sorted, _ = layer._tq_centroids.sort()
-            layer._tq_midpoints = (c_sorted[:-1] + c_sorted[1:]) / 2
+            if self.tq_config.key_fp8:
+                dummy = torch.empty(1, device=device, dtype=torch.float32)
+                layer._tq_PiT = None
+                layer._tq_Pi = None
+                layer._tq_Pi_half = None
+                layer._tq_centroids = dummy
+                layer._tq_midpoints = dummy
+            else:
+                H = _build_hadamard(D, str(device))
+                layer._tq_PiT = H
+                layer._tq_Pi = H
+                layer._tq_Pi_half = H.to(torch.float16)
+                layer._tq_centroids = get_centroids(D, self.tq_config.centroid_bits).to(
+                    device=device, dtype=torch.float32
+                )
+                c_sorted, _ = layer._tq_centroids.sort()
+                layer._tq_midpoints = (c_sorted[:-1] + c_sorted[1:]) / 2
             layer._tq_cached = True
 
     def _max_capture_batch_size(self) -> int:
@@ -1124,6 +1183,29 @@ class TurboQuantAttentionImpl(AttentionImpl["TurboQuantMetadata"]):
                     ((B, Hq, D), query.dtype),
                     ((B, Hq), torch.float32),
                 )
+            )
+
+        if self._use_gfx1201_fast and attn_metadata.max_query_len == 1:
+            # The specialized launcher consumes query_start_loc directly.
+            # It is intentionally reached only for the one-token phase;
+            # supports_spec_as_decode remains false until the native MTP
+            # workspace and causal path are implemented.
+            from vllm.v1.attention.ops.turboquant_soa.triton_turboquant_decode_gfx1201_k8v4 import (  # noqa: E501
+                triton_turboquant_decode_gfx1201_k8v4,
+            )
+
+            return triton_turboquant_decode_gfx1201_k8v4(
+                query=query,
+                kv_cache=kv_cache,
+                block_table=attn_metadata.block_table,
+                seq_lens=attn_metadata.seq_lens,
+                query_start_loc=attn_metadata.query_start_loc,
+                scale=self.scale,
+                output=output_buf,
+                mid_o_buf=mid_o_buf,
+                lse_buf=lse_buf,
+                max_num_kv_splits=self.max_num_kv_splits,
+                max_seq_len=attn_metadata.max_seq_len,
             )
 
         if self._use_flydsl or self._soa_store:

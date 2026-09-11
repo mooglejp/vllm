@@ -148,6 +148,7 @@ if TYPE_CHECKING:
     VLLM_ROCM_USE_AITER_FP4BMM: bool = True
     VLLM_ROCM_USE_AITER_UNIFIED_ATTENTION: bool = False
     VLLM_ROCM_USE_AITER_FUSION_SHARED_EXPERTS: bool = False
+    VLLM_TQ_GFX1201_K8V4: bool = False
     VLLM_ROCM_USE_AITER_TRITON_GEMM: bool = True
     VLLM_ROCM_USE_SKINNY_GEMM: bool = True
     VLLM_ROCM_FP8_PADDING: bool = True
@@ -1345,6 +1346,10 @@ environment_variables: dict[str, Callable[[], Any]] = {
     "VLLM_ROCM_USE_AITER_UNIFIED_ATTENTION": lambda: (
         os.getenv("VLLM_ROCM_USE_AITER_UNIFIED_ATTENTION", "False").lower()
         in ("true", "1")
+    ),
+    # Experimental opt-in for the gfx1201 TurboQuant K8/V4 decode path.
+    "VLLM_TQ_GFX1201_K8V4": lambda: (
+        os.getenv("VLLM_TQ_GFX1201_K8V4", "False").lower() in ("true", "1")
     ),
     # Whether to use aiter fusion shared experts ops.
     # By default is disabled.

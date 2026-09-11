@@ -1,16 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-"""Inert backend-integration scaffold for gfx1201 TurboQuant K8/V4 + MTP.
+"""Eligibility contract for the gfx1201 TurboQuant K8/V4 fast path.
 
-Production TurboQuant routing still lives in ``turboquant_attn.py``. This file
-is intentionally not imported. It exists so an implementation agent has one
-unambiguous contract for the target gate and the exact backend anchors to edit.
-
-See ``docs/design/turboquant_gfx1201_k8v4_mtp.md`` before wiring this in.
+The single-token route is wired in ``turboquant_attn.py`` behind an explicit
+opt-in. The multi-token/MTP route remains intentionally disabled until its
+query-start-location and workspace contracts are implemented.
 """
 
 from __future__ import annotations
-
 
 TARGET_ARCH = "gfx1201"
 TARGET_HEAD_SIZE = 256
@@ -49,7 +46,7 @@ def is_target_profile(
 
 
 # ---------------------------------------------------------------------------
-# PLACEHOLDER: production integration anchors in turboquant_attn.py
+# Remaining MTP integration anchors in turboquant_attn.py
 # ---------------------------------------------------------------------------
 #
 # Phase 3 -- after the single-token kernel is correct:

@@ -277,6 +277,89 @@ class TestHybridAttentionIndices:
         assert _get_full_attention_layer_indices(mc) == []
 
 
+class TestGfx1201TargetProfile:
+    @staticmethod
+    def _profile() -> dict:
+        return {
+            "rocm_arch": "gfx1201",
+            "head_size": 256,
+            "num_kv_groups": 6,
+            "key_fp8": True,
+            "value_quant_bits": 4,
+            "block_size": 16,
+            "has_sinks": False,
+            "sliding_window": None,
+        }
+
+    def test_accepts_exact_profile(self):
+        from vllm.v1.attention.backends.turboquant_gfx1201_k8v4_mtp import (
+            is_target_profile,
+        )
+
+        assert is_target_profile(**self._profile())
+
+    @pytest.mark.parametrize(
+        ("field", "value"),
+        [
+            ("rocm_arch", "gfx1200"),
+            ("head_size", 128),
+            ("num_kv_groups", 8),
+            ("key_fp8", False),
+            ("value_quant_bits", 3),
+            ("block_size", 64),
+            ("has_sinks", True),
+            ("sliding_window", 128),
+        ],
+    )
+    def test_rejects_unsupported_profile_field(self, field, value):
+        from vllm.v1.attention.backends.turboquant_gfx1201_k8v4_mtp import (
+            is_target_profile,
+        )
+
+        profile = self._profile()
+        profile[field] = value
+        assert not is_target_profile(**profile)
+
+    def test_backend_gate_requires_opt_in_and_exact_profile(self, monkeypatch):
+        from vllm.v1.attention.backends import turboquant_attn
+
+        profile = self._profile()
+        monkeypatch.setattr(
+            turboquant_attn,
+            "_runtime_rocm_arch",
+            lambda: profile["rocm_arch"],
+        )
+        monkeypatch.setattr(
+            turboquant_attn.envs,
+            "VLLM_TQ_GFX1201_K8V4",
+            False,
+        )
+        assert not turboquant_attn._should_use_gfx1201_fast_path(
+            head_size=profile["head_size"],
+            num_kv_groups=profile["num_kv_groups"],
+            key_fp8=profile["key_fp8"],
+            value_quant_bits=profile["value_quant_bits"],
+            block_size=profile["block_size"],
+            has_sinks=profile["has_sinks"],
+            sliding_window=profile["sliding_window"],
+        )
+
+        monkeypatch.setattr(
+            turboquant_attn.envs,
+            "VLLM_TQ_GFX1201_K8V4",
+            True,
+        )
+        assert turboquant_attn._should_use_gfx1201_fast_path(
+            head_size=profile["head_size"],
+            num_kv_groups=profile["num_kv_groups"],
+            key_fp8=profile["key_fp8"],
+            value_quant_bits=profile["value_quant_bits"],
+            block_size=profile["block_size"],
+            has_sinks=profile["has_sinks"],
+            sliding_window=profile["sliding_window"],
+        )
+
+
 class TestTurboQuantKVCacheSpec:
     @pytest.mark.parametrize("preset", ALL_PRESETS)
     def test_kv_cache_spec_sets_kv_quant_mode(self, preset):
@@ -582,6 +665,14 @@ GPGPU_AVAILABLE = torch.cuda.is_available() or torch.xpu.is_available()
 DEVICE_TYPE = current_platform.device_type
 
 
+def _on_gfx1201() -> bool:
+    if not current_platform.is_rocm():
+        return False
+    from vllm.platforms.rocm import _GCN_ARCH
+
+    return _GCN_ARCH == "gfx1201"
+
+
 def generate_rotation_matrix(d: int, seed: int, device: str = "cpu") -> torch.Tensor:
     """Haar-distributed random orthogonal matrix via QR (test/benchmark only)."""
     gen = torch.Generator(device="cpu")
@@ -780,3 +871,128 @@ class TestStoreDecodeRoundTrip:
             assert cos_sim > threshold, (
                 f"Preset {preset} head {h}: cosine_sim={cos_sim:.4f} < {threshold}"
             )
+
+
+@pytest.mark.skipif(
+    not GPGPU_AVAILABLE or not _on_gfx1201(),
+    reason="requires a ROCm gfx1201 device",
+)
+class TestGfx1201K8V4Decode:
+    @pytest.mark.parametrize("block_size", [16, 32])
+    def test_specialized_decode_matches_safe_soa(self, block_size):
+        from vllm.v1.attention.ops.turboquant_soa.triton_turboquant_decode_gfx1201_k8v4 import (  # noqa: E501
+            triton_turboquant_decode_gfx1201_k8v4,
+        )
+        from vllm.v1.attention.ops.turboquant_soa.triton_turboquant_store import (
+            triton_turboquant_store,
+        )
+        from vllm.v1.attention.ops.turboquant_soa.triton_turboquant_unified_attention import (  # noqa: E501
+            triton_turboquant_decode_attention_soa,
+        )
+
+        cfg = TurboQuantConfig.from_cache_dtype("turboquant_k8v4", head_dim=256)
+        device = torch.device(DEVICE_TYPE)
+        batch = 3
+        num_kv_heads = 2
+        num_query_heads = num_kv_heads * 6
+        seq_lengths = [block_size + 1, 2 * block_size + 1, block_size - 3]
+        block_table_cpu = torch.tensor(
+            [[5, 1, 0], [4, 2, 3], [0, 0, 0]], dtype=torch.int32
+        )
+        block_table = block_table_cpu.to(device)
+        seq_lens = torch.tensor(seq_lengths, device=device, dtype=torch.int32)
+
+        torch.manual_seed(1201 + block_size)
+        num_tokens = sum(seq_lengths)
+        key = torch.randn(
+            num_tokens,
+            num_kv_heads,
+            cfg.head_dim,
+            device=device,
+            dtype=torch.float16,
+        )
+        value = torch.randn_like(key)
+        query = torch.randn(
+            batch,
+            num_query_heads,
+            cfg.head_dim,
+            device=device,
+            dtype=torch.float16,
+        )
+
+        slot_mapping_cpu = []
+        for req_idx, seq_len in enumerate(seq_lengths):
+            for pos in range(seq_len):
+                physical_block = block_table_cpu[req_idx, pos // block_size].item()
+                slot_mapping_cpu.append(physical_block * block_size + pos % block_size)
+        assert len(slot_mapping_cpu) == num_tokens
+        slot_mapping = torch.tensor(slot_mapping_cpu, device=device, dtype=torch.int32)
+
+        kv_cache = torch.zeros(
+            6,
+            block_size,
+            num_kv_heads,
+            cfg.slot_size_aligned,
+            device=device,
+            dtype=torch.uint8,
+        )
+        centroids = get_centroids(cfg.head_dim, cfg.centroid_bits).to(device)
+        triton_turboquant_store(
+            key=key,
+            value=value,
+            kv_cache=kv_cache,
+            slot_mapping=slot_mapping,
+            PiT=centroids,
+            midpoints=centroids[:-1],
+            mse_bits=cfg.key_mse_bits,
+            key_packed_size=cfg.key_packed_size,
+            value_quant_bits=cfg.effective_value_quant_bits,
+            key_fp8=cfg.key_fp8,
+        )
+
+        scale = 1.0 / math.sqrt(cfg.head_dim)
+        qsl = torch.arange(batch + 1, device=device, dtype=torch.int32)
+        mid_o = torch.empty(
+            batch,
+            num_query_heads,
+            4,
+            cfg.head_dim + 1,
+            device=device,
+            dtype=torch.float32,
+        )
+        output_buffer = torch.empty_like(query)
+        lse = torch.empty(batch, num_query_heads, device=device, dtype=torch.float32)
+        fast_output = triton_turboquant_decode_gfx1201_k8v4(
+            query=query,
+            kv_cache=kv_cache,
+            block_table=block_table,
+            seq_lens=seq_lens,
+            query_start_loc=qsl,
+            scale=scale,
+            output=output_buffer,
+            mid_o_buf=mid_o,
+            lse_buf=lse,
+            max_num_kv_splits=4,
+            max_seq_len=max(seq_lengths),
+        )
+        safe_output = triton_turboquant_decode_attention_soa(
+            query=query,
+            kv_cache=kv_cache,
+            block_table=block_table,
+            seq_lens=seq_lens,
+            Pi=centroids,
+            centroids=centroids,
+            scale=scale,
+            mse_bits=cfg.key_mse_bits,
+            key_packed_size=cfg.key_packed_size,
+            value_quant_bits=cfg.effective_value_quant_bits,
+            value_packed_size=cfg.value_packed_size,
+            key_fp8=cfg.key_fp8,
+            norm_correction=cfg.norm_correction,
+            max_seq_len=max(seq_lengths),
+            max_num_kv_splits=4,
+        )
+
+        assert fast_output.data_ptr() == output_buffer.data_ptr()
+        assert torch.isfinite(fast_output).all().item()
+        torch.testing.assert_close(fast_output, safe_output, atol=2e-2, rtol=2e-2)
