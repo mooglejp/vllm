@@ -664,6 +664,11 @@ class TurboQuantAttentionImpl(AttentionImpl["TurboQuantMetadata"]):
                 slot_mapping=attn_metadata.slot_mapping[:num_decode_tokens],
                 block_table=attn_metadata.block_table[:num_decodes],
                 query_start_loc=attn_metadata.query_start_loc[: num_decodes + 1],
+                query_start_loc_cpu=(
+                    attn_metadata.query_start_loc_cpu[: num_decodes + 1]
+                    if attn_metadata.query_start_loc_cpu is not None
+                    else None
+                ),
                 num_actual_tokens=num_decode_tokens,
                 max_query_len=1,
                 max_seq_len=attn_metadata.max_seq_len,
@@ -1200,6 +1205,7 @@ class TurboQuantAttentionImpl(AttentionImpl["TurboQuantMetadata"]):
                 block_table=attn_metadata.block_table,
                 seq_lens=attn_metadata.seq_lens,
                 query_start_loc=attn_metadata.query_start_loc,
+                query_start_loc_cpu=attn_metadata.query_start_loc_cpu,
                 scale=self.scale,
                 output=output_buf,
                 mid_o_buf=mid_o_buf,

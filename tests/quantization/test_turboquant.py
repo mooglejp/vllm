@@ -298,6 +298,22 @@ class TestGfx1201TargetProfile:
 
         assert is_target_profile(**self._profile())
 
+    def test_host_mirror_enforces_single_token_contract(self):
+        from vllm.v1.attention.ops.turboquant_soa.triton_turboquant_decode_gfx1201_k8v4 import (  # noqa: E501
+            _validate_single_token_inputs,
+        )
+
+        with pytest.raises(ValueError, match="single-token"):
+            _validate_single_token_inputs(
+                query=torch.empty(1, 6, 256, dtype=torch.float16),
+                kv_cache=torch.empty(1, 16, 1, 388, dtype=torch.uint8),
+                block_table=torch.zeros(1, 1, dtype=torch.int32),
+                seq_lens=torch.ones(1, dtype=torch.int32),
+                query_start_loc=torch.tensor([0, 1], dtype=torch.int32),
+                max_num_kv_splits=1,
+                query_start_loc_cpu=torch.tensor([0, 2], dtype=torch.int32),
+            )
+
     @pytest.mark.parametrize(
         ("field", "value"),
         [
@@ -879,7 +895,10 @@ class TestStoreDecodeRoundTrip:
 )
 class TestGfx1201K8V4Decode:
     @pytest.mark.parametrize("block_size", [16, 32])
-    def test_specialized_decode_matches_safe_soa(self, block_size):
+    @pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16])
+    @pytest.mark.parametrize("context_len", [1024, 4096, 32768])
+    def test_specialized_decode_matches_safe_soa(self, block_size, dtype, context_len):
+        from vllm.config.attention import AttentionConfig
         from vllm.v1.attention.ops.turboquant_soa.triton_turboquant_decode_gfx1201_k8v4 import (  # noqa: E501
             triton_turboquant_decode_gfx1201_k8v4,
         )
@@ -892,24 +911,38 @@ class TestGfx1201K8V4Decode:
 
         cfg = TurboQuantConfig.from_cache_dtype("turboquant_k8v4", head_dim=256)
         device = torch.device(DEVICE_TYPE)
-        batch = 3
-        num_kv_heads = 2
+        batch = 2
+        num_kv_heads = 8
         num_query_heads = num_kv_heads * 6
-        seq_lengths = [block_size + 1, 2 * block_size + 1, block_size - 3]
-        block_table_cpu = torch.tensor(
-            [[5, 1, 0], [4, 2, 3], [0, 0, 0]], dtype=torch.int32
+        seq_lengths = [context_len, context_len - 3]
+        num_blocks_per_request = [
+            math.ceil(seq_len / block_size) for seq_len in seq_lengths
+        ]
+        num_blocks = sum(num_blocks_per_request)
+        max_num_blocks = max(num_blocks_per_request)
+        block_table_cpu = torch.full((batch, max_num_blocks), -1, dtype=torch.int32)
+        logical_block_ids = torch.arange(num_blocks, dtype=torch.int32)
+        physical_block_ids = torch.cat(
+            (logical_block_ids[::2], logical_block_ids[1::2])
         )
+        block_offset = 0
+        for request_idx, request_blocks in enumerate(num_blocks_per_request):
+            block_table_cpu[request_idx, :request_blocks] = physical_block_ids[
+                block_offset : block_offset + request_blocks
+            ]
+            block_offset += request_blocks
+        assert block_offset == num_blocks
         block_table = block_table_cpu.to(device)
         seq_lens = torch.tensor(seq_lengths, device=device, dtype=torch.int32)
 
-        torch.manual_seed(1201 + block_size)
+        torch.manual_seed(1201 + block_size + context_len)
         num_tokens = sum(seq_lengths)
         key = torch.randn(
             num_tokens,
             num_kv_heads,
             cfg.head_dim,
             device=device,
-            dtype=torch.float16,
+            dtype=dtype,
         )
         value = torch.randn_like(key)
         query = torch.randn(
@@ -917,7 +950,7 @@ class TestGfx1201K8V4Decode:
             num_query_heads,
             cfg.head_dim,
             device=device,
-            dtype=torch.float16,
+            dtype=dtype,
         )
 
         slot_mapping_cpu = []
@@ -929,7 +962,7 @@ class TestGfx1201K8V4Decode:
         slot_mapping = torch.tensor(slot_mapping_cpu, device=device, dtype=torch.int32)
 
         kv_cache = torch.zeros(
-            6,
+            num_blocks,
             block_size,
             num_kv_heads,
             cfg.slot_size_aligned,
@@ -952,10 +985,12 @@ class TestGfx1201K8V4Decode:
 
         scale = 1.0 / math.sqrt(cfg.head_dim)
         qsl = torch.arange(batch + 1, device=device, dtype=torch.int32)
+        qsl_cpu = torch.arange(batch + 1, dtype=torch.int32)
+        max_num_kv_splits = AttentionConfig().tq_max_kv_splits_for_cuda_graph
         mid_o = torch.empty(
             batch,
             num_query_heads,
-            4,
+            max_num_kv_splits,
             cfg.head_dim + 1,
             device=device,
             dtype=torch.float32,
@@ -968,12 +1003,13 @@ class TestGfx1201K8V4Decode:
             block_table=block_table,
             seq_lens=seq_lens,
             query_start_loc=qsl,
+            query_start_loc_cpu=qsl_cpu,
             scale=scale,
             output=output_buffer,
             mid_o_buf=mid_o,
             lse_buf=lse,
-            max_num_kv_splits=4,
-            max_seq_len=max(seq_lengths),
+            max_num_kv_splits=max_num_kv_splits,
+            max_seq_len=context_len,
         )
         safe_output = triton_turboquant_decode_attention_soa(
             query=query,
@@ -989,8 +1025,8 @@ class TestGfx1201K8V4Decode:
             value_packed_size=cfg.value_packed_size,
             key_fp8=cfg.key_fp8,
             norm_correction=cfg.norm_correction,
-            max_seq_len=max(seq_lengths),
-            max_num_kv_splits=4,
+            max_seq_len=context_len,
+            max_num_kv_splits=max_num_kv_splits,
         )
 
         assert fast_output.data_ptr() == output_buffer.data_ptr()

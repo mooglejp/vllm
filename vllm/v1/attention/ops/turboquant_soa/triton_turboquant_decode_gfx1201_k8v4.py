@@ -224,8 +224,13 @@ def _validate_single_token_inputs(
     seq_lens: torch.Tensor,
     query_start_loc: torch.Tensor,
     max_num_kv_splits: int,
+    query_start_loc_cpu: torch.Tensor | None = None,
 ) -> tuple[int, int, int]:
-    """Validate the fixed specialization before launching any Triton code."""
+    """Validate the fixed specialization before launching any Triton code.
+
+    GPU-resident query-start locations are consumed without a host sync. When
+    available, ``query_start_loc_cpu`` provides the host-side contract check.
+    """
     if query.ndim != 3:
         raise ValueError(f"query must have shape [B, Hq, D], got {query.shape}")
     batch, num_query_heads, head_size = query.shape
@@ -274,12 +279,21 @@ def _validate_single_token_inputs(
     if max_num_kv_splits < 1:
         raise ValueError("max_num_kv_splits must be positive")
 
-    # The first phase is intentionally single-token only. The backend keeps
-    # this path behind supports_spec_as_decode=False, but validate CPU metadata
-    # here as well so direct callers fail closed instead of silently using the
-    # first query token of an MTP request.
-    if query_start_loc.device.type == "cpu":
-        qsl = query_start_loc.tolist()
+    # The first phase is intentionally single-token only. The kernel consumes
+    # GPU query_start_loc directly and cannot inspect its values without a
+    # host sync. The backend supplies the CPU mirror when available; otherwise
+    # callers must guarantee the [0, 1, ..., B] contract themselves.
+    qsl_for_validation = query_start_loc_cpu
+    if qsl_for_validation is None and query_start_loc.device.type == "cpu":
+        qsl_for_validation = query_start_loc
+    if qsl_for_validation is not None:
+        if qsl_for_validation.device.type != "cpu":
+            raise ValueError("query_start_loc_cpu must be a CPU tensor")
+        if qsl_for_validation.ndim != 1 or qsl_for_validation.shape[0] != batch + 1:
+            raise ValueError(
+                "query_start_loc_cpu must have shape [B + 1] for validation"
+            )
+        qsl = qsl_for_validation.tolist()
         if qsl != list(range(batch + 1)):
             raise ValueError(
                 "gfx1201 single-token decode requires query_start_loc="
@@ -296,6 +310,7 @@ def triton_turboquant_decode_gfx1201_k8v4(
     query_start_loc: torch.Tensor,
     scale: float,
     *,
+    query_start_loc_cpu: torch.Tensor | None = None,
     output: torch.Tensor | None = None,
     mid_o_buf: torch.Tensor | None = None,
     lse_buf: torch.Tensor | None = None,
@@ -311,7 +326,11 @@ def triton_turboquant_decode_gfx1201_k8v4(
         block_table: Physical block table with shape [B, max_blocks].
         seq_lens: Number of visible KV entries for each request.
         query_start_loc: Query cumulative starts. In this phase it must be
-            [0, 1, ..., B] and is passed directly to stage 1.
+            [0, 1, ..., B] and is passed directly to stage 1. GPU values are
+            not copied back for validation.
+        query_start_loc_cpu: Optional CPU mirror of query_start_loc. When
+            provided, it is checked for the single-token contract without a
+            device-to-host synchronization.
         scale: Attention scale, normally 1 / sqrt(256).
         output: Optional final output buffer with shape [B, Hq, 256].
         mid_o_buf: Optional reusable fp32 stage-1 buffer with shape at least
@@ -335,6 +354,7 @@ def triton_turboquant_decode_gfx1201_k8v4(
         seq_lens,
         query_start_loc,
         max_num_kv_splits,
+        query_start_loc_cpu=query_start_loc_cpu,
     )
     _, _, head_size = query.shape
     num_kv_heads = kv_cache.shape[2]
