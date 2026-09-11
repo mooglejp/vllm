@@ -3,8 +3,43 @@
 Status: implementation plan; opt-in single- and multi-token path implemented
 
 The target route is currently gated by ``VLLM_TQ_GFX1201_K8V4``. Numerical
-coverage is in place; gfx1201 tuning, graph replay validation, and end-to-end
-MTP acceptance/performance measurements remain open exit gates.
+coverage and backend-level HIP graph replay validation are in place.
+End-to-end MTP acceptance/performance measurements remain open exit gates;
+single-token tuning and default-route replacement are deferred.
+
+Validation follow-up (2026-09-11, gfx1201 / ROCm 7.2):
+
+- TurboQuant explicitly opts out of device/CPU query-length mismatch because
+  non-target speculative queries still use CPU-planned prefill paths. Adaptive
+  verification remains unsupported by the backend.
+- The target decode grid uses the configured speculative query-length bound.
+  Packed stage 2 skips device-side padding before looking up the request.
+  Host validation allows trailing padding and never reads device `seq_lens`.
+- GPU regressions cover FP16/BF16, block sizes 16/32, ragged query lengths,
+  empty requests, untouched padded output/LSE rows, and mixed MTP decode plus
+  raw-KV prefill. A BF16/block-16 backend graph with query bound 5 replays with
+  changed query/context lengths and all-padding input using a locked workspace
+  with unchanged base pointers. This is not a full-model serving graph test.
+- `tests/quantization/test_turboquant.py`: 169 passed, 2 skipped using
+  `/tmp/tq-mtp-fixes/.venv/bin/python -m pytest tests/quantization/test_turboquant.py -q`
+  inside the prepared `tq-rocm-ab` container. The isolated environment was
+  created with `uv venv --system-site-packages --python /usr/bin/python`.
+
+Workspace capacity is capped by `max_num_batched_tokens`; capture sizes already
+count tokens and are not multiplied by the speculative query bound again.
+Measured persistent GPU buffer sizes for Hq=24, D=256, split count 32, BF16,
+256 maximum requests and query bound 5 are:
+
+| Scheduler token budget | Largest capture (tokens) | Reserved decode tokens | GPU workspace |
+| --- | --- | --- | --- |
+| 256 | 256 | 256 | 195.8 MiB |
+| 512 | 512 | 512 | 391.5 MiB |
+| 2048 | 512 | 1280 | 978.9 MiB |
+
+Builder reservation and implementation prewarm allocate the same exact aligned
+shapes; all three measurements retained the same buffer size and pointer after
+prewarm. A configuration that can actually schedule 1280 verification tokens
+still needs nearly 1 GiB of split-K workspace.
 
 Target branch: `feat/turboquant-gfx1201-k8v4-mtp`
 

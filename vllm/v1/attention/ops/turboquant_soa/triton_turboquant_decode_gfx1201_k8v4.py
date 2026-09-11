@@ -283,6 +283,9 @@ def _gfx1201_k8v4_stage2(
     """
     token_idx = tl.program_id(0)
     head_idx = tl.program_id(1)
+    total_query_tokens = tl.load(Query_start_loc_ptr + num_requests)
+    if token_idx >= total_query_tokens:
+        return
     request_idx = _find_request_for_token(
         Query_start_loc_ptr, token_idx, num_requests
     ).to(tl.int64)
@@ -479,18 +482,12 @@ def _validate_multi_token_inputs(
         if qsl_for_validation.ndim != 1 or qsl_for_validation.shape[0] != batch + 1:
             raise ValueError("query_start_loc_cpu must have shape [num_requests + 1]")
         qsl = qsl_for_validation.tolist()
-        if qsl[0] != 0 or qsl[-1] != num_tokens:
+        if qsl[0] != 0 or not 0 <= qsl[-1] <= num_tokens:
             raise ValueError(
-                "query_start_loc must start at zero and end at the query token count"
+                "query_start_loc must start at zero and end within the query buffer"
             )
         if any(end < start for start, end in zip(qsl, qsl[1:])):
             raise ValueError("query_start_loc must be nondecreasing")
-        query_lens = [end - start for start, end in zip(qsl, qsl[1:])]
-        if any(
-            query_len > 0 and query_len > int(seq_lens[i])
-            for i, query_len in enumerate(query_lens)
-        ):
-            raise ValueError("seq_lens must include every query token")
     return batch, num_query_heads, block_size
 
 
@@ -711,8 +708,8 @@ def triton_turboquant_decode_gfx1201_k8v4_multi_token(
         query_start_loc: Device cumulative query starts with shape
             [num_requests + 1].
         scale: Attention scale, normally 1 / sqrt(256).
-        query_start_loc_cpu: Optional CPU mirror used for validation and
-            compile-time query tiling.
+        query_start_loc_cpu: Optional CPU mirror used for host validation.
+            Must match device boundaries if max_query_len is omitted.
         output: Optional reusable output buffer with shape
             [num_query_tokens, Hq, 256].
         mid_o_buf: Optional reusable fp32 buffer with shape at least
@@ -721,7 +718,8 @@ def triton_turboquant_decode_gfx1201_k8v4_multi_token(
             [num_query_tokens, Hq].
         max_num_kv_splits: Fixed compile-time split count.
         max_seq_len: Retained for backend API parity.
-        max_query_len: Host-known maximum query length in the batch.
+        max_query_len: Host-known upper bound on device query lengths, fixed
+            across graph replays. Defaults to the CPU mirror's maximum.
 
     Returns:
         Attention output with shape [num_query_tokens, Hq, 256].
@@ -741,9 +739,6 @@ def triton_turboquant_decode_gfx1201_k8v4_multi_token(
         max_num_kv_splits,
         query_start_loc_cpu=query_start_loc_cpu,
     )
-    actual_max_query_len = _max_query_len_from_cpu(query_start_loc_cpu, query_start_loc)
-    if actual_max_query_len > max_query_len:
-        raise ValueError("max_query_len must cover every packed request query length")
     num_tokens = query.shape[0]
     head_size = query.shape[2]
     num_kv_heads = kv_cache.shape[2]

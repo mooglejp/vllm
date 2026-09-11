@@ -314,13 +314,14 @@ class TestGfx1201TargetProfile:
                 query_start_loc_cpu=torch.tensor([0, 2], dtype=torch.int32),
             )
 
-    def test_host_mirror_accepts_ragged_multi_token_contract(self):
+    @pytest.mark.parametrize("num_tokens", [6, 8])
+    def test_host_mirror_accepts_ragged_multi_token_contract(self, num_tokens):
         from vllm.v1.attention.ops.turboquant_soa.triton_turboquant_decode_gfx1201_k8v4 import (  # noqa: E501
             _validate_multi_token_inputs,
         )
 
         result = _validate_multi_token_inputs(
-            query=torch.empty(6, 12, 256, dtype=torch.float16),
+            query=torch.empty(num_tokens, 12, 256, dtype=torch.float16),
             kv_cache=torch.empty(4, 16, 2, 388, dtype=torch.uint8),
             block_table=torch.zeros(3, 3, dtype=torch.int32),
             seq_lens=torch.tensor([20, 31, 33], dtype=torch.int32),
@@ -336,16 +337,23 @@ class TestGfx1201TargetProfile:
             _validate_multi_token_inputs,
         )
 
-        with pytest.raises(ValueError, match="end at the query token count"):
+        with pytest.raises(ValueError, match="end within the query buffer"):
             _validate_multi_token_inputs(
                 query=torch.empty(6, 12, 256, dtype=torch.float16),
                 kv_cache=torch.empty(4, 16, 2, 388, dtype=torch.uint8),
                 block_table=torch.zeros(2, 3, dtype=torch.int32),
                 seq_lens=torch.tensor([20, 31], dtype=torch.int32),
-                query_start_loc=torch.tensor([0, 2, 5], dtype=torch.int32),
+                query_start_loc=torch.tensor([0, 2, 7], dtype=torch.int32),
                 max_num_kv_splits=4,
-                query_start_loc_cpu=torch.tensor([0, 2, 5], dtype=torch.int32),
+                query_start_loc_cpu=torch.tensor([0, 2, 7], dtype=torch.int32),
             )
+
+    def test_backend_opts_out_of_adaptive_query_boundaries(self):
+        from vllm.v1.attention.backends.turboquant_attn import (
+            TurboQuantAttentionBackend,
+        )
+
+        assert not TurboQuantAttentionBackend.supports_device_cpu_query_lens_mismatch()
 
     @pytest.mark.parametrize(
         ("field", "value"),
@@ -454,6 +462,7 @@ class TestTurboQuantWorkspaceReservation:
         max_num_kv_splits: int = 4,
         num_attention_heads: int = 8,
         speculative_config=None,
+        capture_sizes=None,
     ):
         return SimpleNamespace(
             scheduler_config=SimpleNamespace(
@@ -474,6 +483,8 @@ class TestTurboQuantWorkspaceReservation:
                 tq_max_kv_splits_for_cuda_graph=max_num_kv_splits
             ),
             speculative_config=speculative_config,
+            compilation_config=SimpleNamespace(cudagraph_capture_sizes=capture_sizes),
+            cache_config=SimpleNamespace(block_size=16),
         )
 
     @staticmethod
@@ -489,7 +500,13 @@ class TestTurboQuantWorkspaceReservation:
             state_content_bytes=102,
         )
 
-    def test_target_spec_decode_reserves_by_query_token(self, monkeypatch):
+    @pytest.mark.parametrize(
+        ("token_budget", "capture_sizes", "expected_tokens"),
+        [(4096, None, 15), (8, [8], 8), (32, [16], 16)],
+    )
+    def test_target_spec_decode_reserves_by_query_token(
+        self, monkeypatch, token_budget, capture_sizes, expected_tokens
+    ):
         from vllm.v1.attention.backends import turboquant_attn
         from vllm.v1.kv_cache_interface import FullAttentionSpec, KVQuantMode
 
@@ -526,6 +543,8 @@ class TestTurboQuantWorkspaceReservation:
             layer_names=["layers.0.self_attn.attn"],
             vllm_config=self._fake_vllm_config(
                 max_num_seqs=3,
+                max_num_batched_tokens=token_budget,
+                capture_sizes=capture_sizes,
                 num_attention_heads=24,
                 speculative_config=SimpleNamespace(
                     num_speculative_tokens=2,
@@ -537,9 +556,9 @@ class TestTurboQuantWorkspaceReservation:
 
         assert builder.reorder_batch_threshold == 5
         assert calls[0] == (
-            ((15, 24, 4, 257), torch.float32),
-            ((15, 24, 256), torch.float16),
-            ((15, 24), torch.float32),
+            ((expected_tokens, 24, 4, 257), torch.float32),
+            ((expected_tokens, 24, 256), torch.float16),
+            ((expected_tokens, 24), torch.float32),
         )
 
     def test_metadata_builder_reserves_decode_and_continuation_prefill_workspace(
@@ -1129,6 +1148,7 @@ class TestGfx1201K8V4Decode:
         [
             ([2, 4], [17, 33]),
             ([6, 1, 2], [20, 31, 33]),
+            ([2, 0, 1], [17, 0, 33]),
         ],
     )
     def test_multi_token_decode_matches_safe_soa(
@@ -1172,8 +1192,10 @@ class TestGfx1201K8V4Decode:
             num_tokens, num_kv_heads, cfg.head_dim, device=device, dtype=dtype
         )
         value = torch.randn_like(key)
+        num_query_tokens = sum(query_lengths)
+        padded_tokens = num_query_tokens + 3
         query = torch.randn(
-            sum(query_lengths),
+            padded_tokens,
             num_query_heads,
             cfg.head_dim,
             device=device,
@@ -1220,16 +1242,16 @@ class TestGfx1201K8V4Decode:
         qsl_cpu = torch.tensor(query_start_loc_cpu, dtype=torch.int32)
         max_num_kv_splits = AttentionConfig().tq_max_kv_splits_for_cuda_graph
         mid_o = torch.empty(
-            sum(query_lengths),
+            padded_tokens,
             num_query_heads,
             max_num_kv_splits,
             cfg.head_dim + 1,
             device=device,
             dtype=torch.float32,
         )
-        output_buffer = torch.empty_like(query)
-        lse = torch.empty(
-            sum(query_lengths), num_query_heads, device=device, dtype=torch.float32
+        output_buffer = torch.full_like(query, 42)
+        lse = torch.full(
+            (padded_tokens, num_query_heads), 42, device=device, dtype=torch.float32
         )
         fast_output = triton_turboquant_decode_gfx1201_k8v4(
             query=query,
@@ -1245,7 +1267,7 @@ class TestGfx1201K8V4Decode:
             max_num_kv_splits=max_num_kv_splits,
         )
         safe_output = triton_turboquant_unified_attention(
-            query=query,
+            query=query[:num_query_tokens],
             kv_cache=kv_cache,
             block_table=block_table,
             seq_lens=seq_lens,
@@ -1268,4 +1290,227 @@ class TestGfx1201K8V4Decode:
 
         assert fast_output.data_ptr() == output_buffer.data_ptr()
         assert torch.isfinite(fast_output).all().item()
-        torch.testing.assert_close(fast_output, safe_output, atol=2e-2, rtol=2e-2)
+        torch.testing.assert_close(
+            fast_output[:num_query_tokens],
+            safe_output[:num_query_tokens],
+            atol=2e-2,
+            rtol=2e-2,
+        )
+        assert (output_buffer[num_query_tokens:] == 42).all()
+        assert (lse[num_query_tokens:] == 42).all()
+
+    @pytest.fixture
+    def mtp_backend(self, monkeypatch):
+        from vllm.config.attention import AttentionConfig
+        from vllm.v1.attention.backends import turboquant_attn
+        from vllm.v1.kv_cache_interface import FullAttentionSpec, KVQuantMode
+        from vllm.v1.worker.workspace import WorkspaceManager
+
+        device = torch.device(DEVICE_TYPE)
+        config = TestTurboQuantWorkspaceReservation._fake_vllm_config(
+            max_num_seqs=3,
+            max_num_batched_tokens=32,
+            max_model_len=64,
+            enable_chunked_prefill=False,
+            dtype=torch.bfloat16,
+            num_attention_heads=12,
+            max_num_kv_splits=AttentionConfig().tq_max_kv_splits_for_cuda_graph,
+            speculative_config=SimpleNamespace(
+                num_speculative_tokens=4, parallel_drafting=False
+            ),
+            capture_sizes=[16],
+        )
+        manager = WorkspaceManager(device)
+        monkeypatch.setattr(turboquant_attn, "get_current_vllm_config", lambda: config)
+        monkeypatch.setattr(
+            turboquant_attn, "current_workspace_manager", lambda: manager
+        )
+        monkeypatch.setattr(
+            turboquant_attn, "is_workspace_manager_initialized", lambda: True
+        )
+        monkeypatch.setattr(turboquant_attn, "is_flydsl_available", lambda: False)
+        monkeypatch.setattr(turboquant_attn, "_HAS_FLASH_ATTN", False)
+        monkeypatch.setattr(turboquant_attn.envs, "VLLM_TQ_GFX1201_K8V4", True)
+        spec = FullAttentionSpec(
+            block_size=16,
+            num_kv_heads=2,
+            head_size=256,
+            dtype=torch.uint8,
+            kv_quant_mode=KVQuantMode.TURBOQUANT_K8V4,
+            state_content_bytes=388,
+        )
+        builder = turboquant_attn.TurboQuantMetadataBuilder(
+            spec, ["attn"], config, device
+        )
+        impl = turboquant_attn.TurboQuantAttentionImpl(
+            num_heads=12,
+            head_size=256,
+            scale=1 / 16,
+            num_kv_heads=2,
+            kv_cache_dtype="turboquant_k8v4",
+        )
+        assert impl._use_gfx1201_fast
+        layer = SimpleNamespace()
+        block_table_cpu = torch.tensor(
+            [[8, 2, 5], [7, 1, 4], [6, 0, 3]], dtype=torch.int32
+        )
+        block_table = block_table_cpu.to(device)
+        kv_cache = torch.zeros(
+            9, 16, 2, 388, device=device, dtype=torch.uint8
+        ).transpose(1, 2)
+        torch.manual_seed(1201)
+        key = torch.randn(3, 33, 2, 256, device=device, dtype=config.model_config.dtype)
+        value = torch.randn_like(key)
+        slots = torch.tensor(
+            [
+                int(block_table_cpu[r, p // 16]) * 16 + p % 16
+                for r in range(3)
+                for p in range(33)
+            ],
+            device=device,
+            dtype=torch.int64,
+        )
+        impl.do_kv_cache_update(
+            layer, key.flatten(0, 1), value.flatten(0, 1), kv_cache, slots
+        )
+        manager.lock()
+        return SimpleNamespace(
+            impl=impl,
+            builder=builder,
+            layer=layer,
+            manager=manager,
+            block_table=block_table,
+            kv_cache=kv_cache,
+            key=key,
+            value=value,
+        )
+
+    @staticmethod
+    def _mtp_common_metadata(data, query_lengths, seq_lengths, num_tokens):
+        from vllm.v1.attention.backend import CommonAttentionMetadata
+
+        qsl_cpu = torch.tensor([0, *query_lengths], dtype=torch.int32).cumsum(0).int()
+        seq_lens_cpu = torch.tensor(seq_lengths, dtype=torch.int32)
+        device = data.kv_cache.device
+        return CommonAttentionMetadata(
+            query_start_loc=qsl_cpu.to(device),
+            query_start_loc_cpu=qsl_cpu,
+            seq_lens=seq_lens_cpu.to(device),
+            seq_lens_cpu_upper_bound=seq_lens_cpu,
+            num_reqs=3,
+            num_actual_tokens=num_tokens,
+            max_query_len=max(query_lengths),
+            max_seq_len=max(seq_lengths),
+            block_table_tensor=data.block_table,
+            slot_mapping=torch.full(
+                (num_tokens,), -1, device=device, dtype=torch.int64
+            ),
+        )
+
+    @staticmethod
+    def _mtp_reference(data, query, metadata):
+        from vllm.v1.attention.ops.turboquant_soa.triton_turboquant_unified_attention import (  # noqa: E501
+            triton_turboquant_unified_attention,
+        )
+
+        cfg = data.impl.tq_config
+        return triton_turboquant_unified_attention(
+            query=query,
+            kv_cache=data.kv_cache.transpose(1, 2),
+            block_table=metadata.block_table_tensor,
+            seq_lens=metadata.seq_lens,
+            query_start_loc=metadata.query_start_loc,
+            Pi=data.layer._tq_centroids,
+            centroids=data.layer._tq_centroids,
+            scale=data.impl.scale,
+            mse_bits=cfg.key_mse_bits,
+            key_packed_size=cfg.key_packed_size,
+            value_quant_bits=cfg.effective_value_quant_bits,
+            value_packed_size=cfg.value_packed_size,
+            key_fp8=True,
+            output=torch.empty_like(query),
+            max_query_len=metadata.max_query_len,
+            max_seq_len=metadata.max_seq_len,
+            num_kv_splits=data.impl.max_num_kv_splits,
+            tile_size=16,
+        )
+
+    def test_mixed_mtp_forward_matches_decode_and_prefill_references(self, mtp_backend):
+        """Packed decode offsets must not shift the subsequent raw-KV prefill."""
+        data = mtp_backend
+        common = self._mtp_common_metadata(data, [4, 2, 8], [33, 21, 8], 14)
+        metadata = data.builder.build(0, common)
+        assert (metadata.num_decodes, metadata.num_decode_tokens) == (2, 6)
+        query = torch.randn(14, 12, 256, device=data.key.device, dtype=data.key.dtype)
+        key = torch.cat([data.key[0, 29:33], data.key[1, 19:21], data.key[2, :8]])
+        value = torch.cat(
+            [data.value[0, 29:33], data.value[1, 19:21], data.value[2, :8]]
+        )
+        output = torch.empty_like(query)
+        result = data.impl.forward(
+            data.layer, query, key, value, data.kv_cache, metadata, output=output
+        )
+        expected = self._mtp_reference(data, query, common)
+        expected[6:] = torch.nn.functional.scaled_dot_product_attention(
+            query[6:].transpose(0, 1),
+            key[6:].transpose(0, 1),
+            value[6:].transpose(0, 1),
+            is_causal=True,
+            scale=data.impl.scale,
+            enable_gqa=True,
+        ).transpose(0, 1)
+        assert result.data_ptr() == output.data_ptr()
+        torch.testing.assert_close(result, expected, atol=2e-2, rtol=2e-2)
+
+    def test_mtp_forward_graph_replay_updates_device_boundaries(self, mtp_backend):
+        """Replay a padded graph with changing lengths and zero-query requests."""
+        data = mtp_backend
+        common = self._mtp_common_metadata(data, [5, 5, 5], [33, 31, 20], 16)
+        metadata = data.builder.build_for_cudagraph_capture(common)
+        torch.testing.assert_close(
+            metadata.seq_lens, torch.full_like(metadata.seq_lens, 5)
+        )
+        query = torch.randn(16, 12, 256, device=data.key.device, dtype=data.key.dtype)
+        output = torch.empty_like(query)
+        workspace = data.manager._current_workspaces[0]
+        workspace_ptr = workspace.data_ptr()
+
+        def forward():
+            return data.impl.forward(
+                data.layer,
+                query,
+                data.key,
+                data.value,
+                data.kv_cache,
+                metadata,
+                output=output,
+            )
+
+        stream = torch.cuda.Stream()
+        stream.wait_stream(torch.cuda.current_stream())
+        with torch.cuda.stream(stream):
+            for _ in range(3):
+                forward()
+        torch.cuda.current_stream().wait_stream(stream)
+        graph = torch.cuda.CUDAGraph()
+        with torch.cuda.graph(graph, stream=stream):
+            forward()
+
+        for query_lengths, seq_lengths in [
+            ([2, 4, 0], [17, 33, 0]),
+            ([5, 1, 2], [32, 21, 33]),
+            ([0, 0, 0], [0, 0, 0]),
+        ]:
+            updated = self._mtp_common_metadata(data, query_lengths, seq_lengths, 16)
+            metadata.query_start_loc.copy_(updated.query_start_loc)
+            metadata.seq_lens.copy_(updated.seq_lens)
+            query.normal_()
+            graph.replay()
+            num_real_tokens = sum(query_lengths)
+            if num_real_tokens:
+                expected = self._mtp_reference(data, query[:num_real_tokens], updated)
+                torch.testing.assert_close(
+                    output[:num_real_tokens], expected, atol=2e-2, rtol=2e-2
+                )
+            torch.accelerator.synchronize()
+            assert data.manager._current_workspaces[0].data_ptr() == workspace_ptr

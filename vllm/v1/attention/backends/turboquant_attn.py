@@ -16,7 +16,6 @@ Per-head per-position slot layout:
   For turboquant_k3v4_nc head_dim=256: [100 bytes key | 512 bytes value] = 612
 """
 
-import contextlib
 import functools
 import math
 from dataclasses import dataclass, replace
@@ -86,6 +85,17 @@ if _HAS_FLASH_ATTN:
 # kernel can read them efficiently. This avoids O(cached_len) dequant work
 # per continuation, eliminating the O(N²/chunk_size) collapse at long context.
 _CONTINUATION_DECODE_THRESHOLD = 128
+
+
+def _max_decode_token_capacity(vllm_config: Any, max_query_len: int) -> int:
+    scheduler = vllm_config.scheduler_config
+    compilation = getattr(vllm_config, "compilation_config", None)
+    capture_sizes = getattr(compilation, "cudagraph_capture_sizes", None) or []
+    # Capture sizes already count tokens, including graph padding.
+    return min(
+        scheduler.max_num_batched_tokens,
+        max(scheduler.max_num_seqs * max_query_len, max(capture_sizes, default=0)),
+    )
 
 
 def _runtime_rocm_arch() -> str | None:
@@ -246,6 +256,11 @@ class TurboQuantAttentionBackend(AttentionBackend):
     def supports_per_head_quant_scales(cls) -> bool:
         return False
 
+    @classmethod
+    def supports_device_cpu_query_lens_mismatch(cls) -> bool:
+        # Non-target speculative queries still use CPU-planned prefill paths.
+        return False
+
     @staticmethod
     def get_impl_cls() -> type["TurboQuantAttentionImpl"]:
         return TurboQuantAttentionImpl
@@ -275,7 +290,7 @@ class TurboQuantMetadata(AttentionMetadata):
     slot_mapping: torch.Tensor  # (num_tokens,) — cache slot for each token
     block_table: torch.Tensor  # (num_reqs, max_num_blocks)
     query_start_loc: torch.Tensor  # (num_reqs + 1,) — cu_seqlens for queries
-    num_actual_tokens: int = 0  # actual tokens (excluding padding)
+    num_actual_tokens: int = 0  # query token count, possibly including padding
     max_query_len: int = 0  # longest query in batch
     max_seq_len: int = 0  # longest context in batch
     is_prefill: bool = False
@@ -311,9 +326,8 @@ class TurboQuantMetadataBuilder(AttentionMetadataBuilder[TurboQuantMetadata]):
         model_config = self.vllm_config.model_config
         parallel_config = self.vllm_config.parallel_config
 
-        max_num_reqs = scheduler_config.max_num_seqs
         max_query_len = self.reorder_batch_threshold or 1
-        max_decode_tokens = max_num_reqs * max_query_len
+        max_decode_tokens = _max_decode_token_capacity(self.vllm_config, max_query_len)
         num_heads = model_config.get_num_attention_heads(parallel_config)
         num_kv_heads = self.kv_cache_spec.num_kv_heads
         head_size = self.kv_cache_spec.head_size
@@ -349,16 +363,17 @@ class TurboQuantMetadataBuilder(AttentionMetadataBuilder[TurboQuantMetadata]):
         self, common_attn_metadata: CommonAttentionMetadata
     ) -> TurboQuantMetadata:
         attn_metadata = self.build(0, common_attn_metadata)
-        # Set seq_lens to 1 so CUDA graph capture is fast
-        # (real seq_lens are filled at replay time).
-        attn_metadata.seq_lens.fill_(1)
+        # Keep capture cheap while giving every speculative query a visible KV.
+        attn_metadata.seq_lens.copy_(
+            attn_metadata.query_start_loc[1:] - attn_metadata.query_start_loc[:-1]
+        )
         return attn_metadata
 
     def build(self, common_prefix_len, common_attn_metadata, fast_build=False):
         """Build TurboQuantMetadata from common attention metadata."""
         cam = common_attn_metadata
 
-        # With reorder_batch_threshold=1, the model runner guarantees
+        # With reorder_batch_threshold set, the model runner guarantees
         # decodes come first in the batch. split_decodes_and_prefills
         # finds the boundary (operates on CPU tensors — no GPU sync).
         assert self.reorder_batch_threshold is not None
@@ -477,6 +492,10 @@ class TurboQuantAttentionImpl(AttentionImpl["TurboQuantMetadata"]):
                 self._max_decode_query_len = 1 + multiplier * int(
                     num_speculative_tokens
                 )
+        self._max_decode_tokens = _max_decode_token_capacity(
+            vllm_config, self._max_decode_query_len
+        )
+        self._query_dtype = vllm_config.model_config.dtype
 
     def _flash_attn_varlen(
         self,
@@ -547,19 +566,15 @@ class TurboQuantAttentionImpl(AttentionImpl["TurboQuantMetadata"]):
                 is_workspace_manager_initialized()
                 and not current_workspace_manager().is_locked()
             ):
-                B_max = self._max_capture_batch_size() * self._max_decode_query_len
+                B_max = self._max_decode_tokens
                 D = self.head_size
                 Hq = self.num_heads
                 S = self.max_num_kv_splits
-                _pre_warm_bytes = (
-                    B_max * Hq * (S * (D + 1) + D) * 4  # fp32 mid_o + fp32 lse
-                    + B_max * Hq * D * 2  # query-dtype output (bf16 = 2 B)
-                    + 512  # alignment padding
+                current_workspace_manager().get_simultaneous(
+                    ((B_max, Hq, S, D + 1), torch.float32),
+                    ((B_max, Hq, D), self._query_dtype),
+                    ((B_max, Hq), torch.float32),
                 )
-                with contextlib.suppress(AssertionError):
-                    current_workspace_manager().get_simultaneous(
-                        ((_pre_warm_bytes,), torch.uint8)
-                    )
 
         if not hasattr(layer, "_tq_cached"):
             D = self.head_size
@@ -582,29 +597,6 @@ class TurboQuantAttentionImpl(AttentionImpl["TurboQuantMetadata"]):
                 c_sorted, _ = layer._tq_centroids.sort()
                 layer._tq_midpoints = (c_sorted[:-1] + c_sorted[1:]) / 2
             layer._tq_cached = True
-
-    def _max_capture_batch_size(self) -> int:
-        """Largest decode batch we might see at runtime (for workspace pre-warm).
-
-        Take max(cudagraph_capture_sizes, scheduler.max_num_seqs): a forward
-        pass exceeding the largest captured graph size falls back to eager,
-        but the workspace is locked and that eager path can still hit batch
-        sizes up to max_num_seqs. Falls back to 1024 if config is unavailable.
-        """
-        try:
-            cfg = get_current_vllm_config()
-            candidates: list[int] = []
-            sizes = cfg.compilation_config.cudagraph_capture_sizes
-            if sizes:
-                candidates.append(int(max(sizes)))
-            sched = getattr(cfg, "scheduler_config", None)
-            if sched is not None and getattr(sched, "max_num_seqs", None):
-                candidates.append(int(sched.max_num_seqs))
-            if candidates:
-                return max(candidates)
-        except Exception:  # noqa: BLE001
-            pass
-        return 1024
 
     def do_kv_cache_update(
         self,
@@ -678,7 +670,7 @@ class TurboQuantAttentionImpl(AttentionImpl["TurboQuantMetadata"]):
         centroids = tq_layer._tq_centroids
 
         # Compute attention (KV cache was already updated by do_kv_cache_update)
-        # With reorder_batch_threshold=1, decodes come first in the batch.
+        # Decodes come first in the reordered batch.
         # num_decodes/num_decode_tokens from metadata give the split point.
         num_decodes = attn_metadata.num_decodes
         num_decode_tokens = attn_metadata.num_decode_tokens
@@ -712,12 +704,6 @@ class TurboQuantAttentionImpl(AttentionImpl["TurboQuantMetadata"]):
 
             # --- Decode portion (first num_decodes requests) ---
             # Use full-batch max_seq_len as safe upper bound (no GPU sync).
-            decode_max_query_len = (
-                1 if num_decode_tokens == num_decodes else attn_metadata.max_query_len
-            )
-            if attn_metadata.query_start_loc_cpu is not None:
-                decode_qsl = attn_metadata.query_start_loc_cpu[: num_decodes + 1]
-                decode_max_query_len = int((decode_qsl[1:] - decode_qsl[:-1]).max())
             decode_meta = TurboQuantMetadata(
                 seq_lens=attn_metadata.seq_lens[:num_decodes],
                 slot_mapping=attn_metadata.slot_mapping[:num_decode_tokens],
@@ -729,7 +715,7 @@ class TurboQuantAttentionImpl(AttentionImpl["TurboQuantMetadata"]):
                     else None
                 ),
                 num_actual_tokens=num_decode_tokens,
-                max_query_len=decode_max_query_len,
+                max_query_len=self._max_decode_query_len,
                 max_seq_len=attn_metadata.max_seq_len,
                 is_prefill=False,
                 num_decodes=num_decodes,
@@ -1260,7 +1246,7 @@ class TurboQuantAttentionImpl(AttentionImpl["TurboQuantMetadata"]):
                 triton_turboquant_decode_gfx1201_k8v4_multi_token,
             )
 
-            if attn_metadata.max_query_len > 1:
+            if self._max_decode_query_len > 1:
                 return triton_turboquant_decode_gfx1201_k8v4_multi_token(
                     query=query,
                     kv_cache=kv_cache,
@@ -1274,7 +1260,7 @@ class TurboQuantAttentionImpl(AttentionImpl["TurboQuantMetadata"]):
                     lse_buf=lse_buf,
                     max_num_kv_splits=self.max_num_kv_splits,
                     max_seq_len=attn_metadata.max_seq_len,
-                    max_query_len=attn_metadata.max_query_len,
+                    max_query_len=self._max_decode_query_len,
                 )
             return triton_turboquant_decode_gfx1201_k8v4(
                 query=query,
