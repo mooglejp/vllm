@@ -38,6 +38,12 @@ def should_ignore_layer(
     if layer_name is None:
         return False
 
+    # Quark checkpoints may exclude weight parameters instead of module names.
+    ignore = [
+        target if target.startswith("re:") else target.removesuffix(".weight")
+        for target in ignore
+    ]
+
     # MoE layers are currently all-or-nothing: if any child is ignored,
     # the parent layer must be ignored as well. For example, the
     # amd/GLM-5.2-MXFP4 config ignores children like

@@ -193,3 +193,41 @@ def test_quark_and_compressed_tensors_ignore_fused_layers_identically(patterns):
 
     assert should_ignore_layer(layer_name, patterns, fused_mapping)
     assert quark_should_ignore_layer(layer_name, patterns, fused_mapping)
+
+
+@pytest.mark.parametrize(
+    "layer_name,ignored_weights",
+    [
+        ("fc", ["fc.weight"]),
+        ("qkv_proj", ["q_proj.weight", "k_proj.weight", "v_proj.weight"]),
+        ("qkv_proj", ["q_proj", "k_proj.weight", "v_proj.weight"]),
+        ("gate_up_proj", ["gate_proj.weight", "up_proj.weight"]),
+    ],
+)
+def test_quark_excludes_bf16_weights_by_parameter_name(layer_name, ignored_weights):
+    fused_mapping = {
+        "qkv_proj": ["q_proj", "k_proj", "v_proj"],
+        "gate_up_proj": ["gate_proj", "up_proj"],
+    }
+    ignored_weights = [f"mtp.{name}" for name in ignored_weights]
+
+    assert quark_should_ignore_layer(
+        f"mtp.{layer_name}", ignored_weights, fused_mapping
+    )
+    assert not quark_should_ignore_layer(
+        f"model.{layer_name}", ignored_weights, fused_mapping
+    )
+
+
+def test_quark_rejects_partially_excluded_fused_weights():
+    with pytest.raises(ValueError, match="different quantization schemes"):
+        quark_should_ignore_layer(
+            "mtp.qkv_proj",
+            ["mtp.q_proj.weight"],
+            {"qkv_proj": ["q_proj", "k_proj", "v_proj"]},
+        )
+
+
+@pytest.mark.parametrize("pattern", [r"re:mtp.*\.weight", "mtp.fc.bias"])
+def test_quark_does_not_treat_other_exclusions_as_weight_names(pattern):
+    assert not quark_should_ignore_layer("mtp.fc", [pattern])

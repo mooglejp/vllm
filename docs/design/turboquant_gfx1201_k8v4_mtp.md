@@ -4,8 +4,10 @@ Status: implementation plan; opt-in single- and multi-token path implemented
 
 The target route is currently gated by ``VLLM_TQ_GFX1201_K8V4``. Numerical
 coverage and backend-level HIP graph replay validation are in place.
-End-to-end MTP acceptance/performance measurements remain open exit gates;
-single-token tuning and default-route replacement are deferred.
+Initial eager-mode MTP acceptance/performance measurements are available below.
+Output-equivalence investigation, wider-context and full-model graph
+measurements, single-token tuning, and default-route replacement remain open
+exit gates.
 
 Validation follow-up (2026-09-11, gfx1201 / ROCm 7.2):
 
@@ -40,6 +42,60 @@ Builder reservation and implementation prewarm allocate the same exact aligned
 shapes; all three measurements retained the same buffer size and pointer after
 prewarm. A configuration that can actually schedule 1280 verification tokens
 still needs nearly 1 GiB of split-K workspace.
+
+Quark checkpoint loading follow-up (2026-09-11):
+
+- The local `amd/Qwen3.8-27B-Quark-AWQ-MXFP4` checkpoint stores all 15 MTP
+  tensors in BF16. Its Quark exclusion list names parameters such as
+  `mtp.layers.0.self_attn.q_proj.weight`, while vLLM checks module names.
+  Literal `.weight` exclusions are now normalized before fused-layer matching;
+  regexes retain their existing meaning and partial fused exclusions still fail.
+- With the checkpoint unchanged, MTP FC/QKV/gate-up dispatch to
+  `UnquantizedLinearMethod`, while the main decoder retains Quark MXFP4.
+  The real model now loads and generates successfully with two MTP draft tokens.
+- Configuration utility tests: 26 passed. Five new regression cases fail without
+  the fix. The separate `test_quark.py` suite could not be collected in the test
+  environment because the optional `lm_eval` dependency was absent.
+
+Real-model evaluation uses ROCm 7.2 on gfx1201, TP=1, the V2 model runner,
+`turboquant_k8v4`, `VLLM_TQ_GFX1201_K8V4=true`, requested block size 16, max model
+length and scheduler token budget 4096, and four maximum requests. Hybrid cache
+alignment produces physical pages of 2096 tokens with MTP versus 2080 without
+MTP, resolving to kernel blocks of 16 and 32 respectively. RunAI loading uses
+CPU staging (`distributed=false`, `memory_limit=3221225472`) to avoid the
+draft-loader's extra GPU clone. This is an eager-mode run with Quark's MXFP4
+emulation, forced SDPA prefill, and generic kernel warmup disabled; per-shape
+inference warmups are excluded from measurements. It is not comparable to the
+earlier 29.5/17.7 tok/s baseline from a different serving runtime.
+
+The workload is one request at a time, deterministic sampling, 64 output tokens,
+and a prefix-caching explanation prompt padded to 128, 1024, or 3072 tokens.
+Each point has one warmup followed by three measured repeats. Acceptance means
+accepted draft tokens divided by proposed draft tokens; the mean acceptance
+length includes the bonus token. Decode throughput excludes the first streamed
+token and prefill, while end-to-end throughput includes them. Cross-request
+prefix reuse is absent: the current runner warns that draft-group identification
+disables it for MTP; baseline requests use unique cache salts.
+
+| Prompt tokens | MTP draft acceptance | Mean acceptance length | MTP decode tok/s | MTP end-to-end tok/s |
+| --- | --- | --- | --- | --- |
+| 128 | 71.15% | 2.423 | 7.822 | 7.609 |
+| 1024 | 78.00% | 2.560 | 8.106 | 7.096 |
+| 3072 | 66.67% | 2.333 | 7.396 | 5.225 |
+
+| Prompt tokens | No-MTP decode tok/s | No-MTP end-to-end tok/s | First output mismatch (1-based) |
+| --- | --- | --- | --- |
+| 128 | 3.505 | 3.492 | 32 |
+| 1024 | 3.496 | 3.377 | 16 |
+| 3072 | 3.483 | 2.987 | 17 |
+
+Rates are medians; MTP uses two draft tokens with adaptive verification disabled.
+All repeats within each mode/context returned the same token IDs, but MTP and
+non-MTP greedy outputs are not identical. The cause has not been isolated, so
+these measurements do not establish output equivalence or task accuracy and
+must not be treated as a correctness-qualified speedup. The gfx1201 route remains
+opt-in. Sampled GPU states were 3144 MHz / 287 W with MTP and 3035 MHz / 308 W
+without MTP, both at 100% utilization; clocks were not fixed.
 
 Target branch: `feat/turboquant-gfx1201-k8v4-mtp`
 
