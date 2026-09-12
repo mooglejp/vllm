@@ -5,13 +5,19 @@ Status: implementation plan; opt-in single- and multi-token path implemented
 The target route is currently gated by ``VLLM_TQ_GFX1201_K8V4``. Numerical
 coverage and backend-level HIP graph replay validation are in place.
 Initial eager-mode MTP acceptance/performance measurements are available below.
-Output-equivalence investigation, wider-context and full-model graph
-measurements, single-token tuning, and default-route replacement remain open
-exit gates.
+The execution-shape diagnosis and small task-accuracy gate are complete.
+Wider-context and full-model graph measurements, single-token tuning, and
+default-route replacement remain open exit gates.
 
 The [greedy-output diagnosis](turboquant_gfx1201_greedy_diagnosis.md) records
 controlled comparisons of query width, split boundaries, GDN decode, and prefill
 chunking. It changes no production defaults or performance parameters.
+
+Follow-ups (2026-09-12): the
+[small accuracy gate](turboquant_gfx1201_accuracy_gate.md) finds no aggregate
+quality regression over 104 seeded cases, and the
+[stage-1 tuning](turboquant_gfx1201_performance_tuning.md) records a
+correctness-preserving `num_stages=2` improvement for multi-token decode.
 
 Validation follow-up (2026-09-11, gfx1201 / ROCm 7.2):
 
@@ -95,11 +101,13 @@ disables it for MTP; baseline requests use unique cache salts.
 
 Rates are medians; MTP uses two draft tokens with adaptive verification disabled.
 All repeats within each mode/context returned the same token IDs, but MTP and
-non-MTP greedy outputs are not identical. The cause has not been isolated, so
-these measurements do not establish output equivalence or task accuracy and
-must not be treated as a correctness-qualified speedup. The gfx1201 route remains
-opt-in. Sampled GPU states were 3144 MHz / 287 W with MTP and 3035 MHz / 308 W
-without MTP, both at 100% utilization; clocks were not fixed.
+non-MTP greedy outputs are not identical. These measurements were initially not
+correctness-qualified. The linked execution-shape diagnosis and small task suite
+now find no MTP-kernel error or aggregate quality regression in the tested cases,
+qualifying the speedup for this opt-in configuration. They do not establish
+bitwise shape invariance, broad model quality, or readiness for default enablement.
+Sampled GPU states were 3144 MHz / 287 W with MTP and 3035 MHz / 308 W without
+MTP, both at 100% utilization; clocks were not fixed.
 
 Target branch: `feat/turboquant-gfx1201-k8v4-mtp`
 

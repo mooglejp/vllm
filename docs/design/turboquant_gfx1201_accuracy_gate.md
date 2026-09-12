@@ -3,6 +3,11 @@
 Date: 2026-09-12. Source: `7700b69453`. The model, kernel, and serving
 defaults are unchanged by this evaluation.
 
+Performance follow-up: the
+[stage-1 tuning](turboquant_gfx1201_performance_tuning.md) changes only the
+multi-token launch pipeline depth, preserves all checked outputs, and records
+the resulting kernel and end-to-end measurements.
+
 ## Result
 
 The small model-quality gate passes for the opt-in gfx1201 TurboQuant MTP

@@ -969,5 +969,5 @@ def _launch_multi_token_stage1(
         QUERY_BLOCK_SIZE=query_block_size,
         NUM_QUERY_BLOCKS=num_query_blocks,
         num_warps=4,
-        num_stages=1,
+        num_stages=2,
     )
