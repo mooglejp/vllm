@@ -61,7 +61,7 @@ tile with FP32 accumulation and writes the full BF16 logits tensor. Candidate
 output buffers are allocated before timing. Measurements use three warmups,
 15 samples, a 64 MiB L2 flush, and rotating operation order.
 
-| Rows | Existing `wvSplitK` | Best Triton | Existing / Triton |
+| Rows | Existing `wvSplitK` | Best Triton | Triton / Existing latency |
 | ---: | ---: | ---: | ---: |
 | 1 | 4069.8 us | 4116.5 us | 1.011x |
 | 3 | 4094.1 us | 4139.9 us | 1.011x |
