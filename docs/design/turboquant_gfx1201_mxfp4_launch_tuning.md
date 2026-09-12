@@ -32,10 +32,12 @@ The updated benchmark reports two distinct operations:
   warmup and timing;
 - fused_wrapper retains wrapper-level timing, including output allocation.
 
-All direct candidates consume the same QDQ-complete activation, packed weight,
-and scale tensors. Compilation, allocation, and correctness checks are outside
-the direct timing interval. Each timed operation follows a 64 MiB device-side
-L2 flush. Operation order rotates every sample so one candidate does not always
+The public shape sweep feeds every direct candidate the same generated BF16
+activation, packed weight, and scale tensors. It does not run activation QDQ.
+A separate captured-input check uses the QDQ-complete activation observed in
+the model. Compilation, allocation, and correctness checks are outside the
+direct timing interval. Each timed operation follows a 64 MiB device-side L2
+flush. Operation order rotates every sample so one candidate does not always
 occupy the same order position.
 
 ## Production shape weights
@@ -155,3 +157,6 @@ iteration intentionally excludes Split-K, a different MXFP4 decoding formula,
 weight reordering, activation-QDQ fusion, prefill changes, and the 96-wide
 fallback. The next independent decode target remains the shared target/drafter
 vocabulary projection.
+
+That follow-up is recorded in the
+[full-vocabulary projection audit](turboquant_gfx1201_vocab_projection.md).

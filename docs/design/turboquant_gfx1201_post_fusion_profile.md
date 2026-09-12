@@ -148,3 +148,8 @@ capture/analysis helpers, and `summary.json` are preserved under
 `/tmp/tq-post-fusion-profile.nzulGs`. The summary audit checks all token hashes,
 counter ratios, kernel counts, complete correlations, and agreement between
 the exclusive cells and phase totals. The profiling server is stopped.
+
+The subsequent
+[full-vocabulary projection audit](turboquant_gfx1201_vocab_projection.md)
+finds that the shared BF16 head is already bounded by R9700 memory bandwidth,
+so it retains the existing `wvSplitK` implementation.
