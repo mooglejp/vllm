@@ -9,6 +9,10 @@ Output-equivalence investigation, wider-context and full-model graph
 measurements, single-token tuning, and default-route replacement remain open
 exit gates.
 
+The [greedy-output diagnosis](turboquant_gfx1201_greedy_diagnosis.md) records
+controlled comparisons of query width, split boundaries, GDN decode, and prefill
+chunking. It changes no production defaults or performance parameters.
+
 Validation follow-up (2026-09-11, gfx1201 / ROCm 7.2):
 
 - TurboQuant explicitly opts out of device/CPU query-length mismatch because
