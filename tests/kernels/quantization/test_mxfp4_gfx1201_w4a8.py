@@ -128,6 +128,25 @@ def test_mxfp4_reference_rejects_invalid_geometry():
         dequantize_mxfp4_weight_reference(packed, wrong_scale)
 
 
-def test_w4a8_reference_remains_unregistered():
+def test_w4a8_candidate_accepts_only_decode_shapes():
     x = torch.zeros((1, 32), dtype=torch.bfloat16)
-    assert not is_gfx1201_w4a8_candidate(x=x, bias=None)
+    assert is_gfx1201_w4a8_candidate(x=x, bias=None)
+    assert not is_gfx1201_w4a8_candidate(
+        x=torch.empty((1, 0), dtype=torch.bfloat16), bias=None
+    )
+    assert not is_gfx1201_w4a8_candidate(
+        x=torch.zeros((32, 1), dtype=torch.bfloat16).expand(32, 32), bias=None
+    )
+    assert not is_gfx1201_w4a8_candidate(
+        x=torch.zeros((5, 32), dtype=torch.bfloat16), bias=None
+    )
+    assert not is_gfx1201_w4a8_candidate(
+        x=torch.zeros((1, 24), dtype=torch.bfloat16), bias=None
+    )
+    assert not is_gfx1201_w4a8_candidate(
+        x=torch.zeros((1, 32), dtype=torch.float16), bias=None
+    )
+    assert not is_gfx1201_w4a8_candidate(
+        x=torch.zeros((1, 32), dtype=torch.bfloat16),
+        bias=torch.zeros(1, dtype=torch.bfloat16),
+    )

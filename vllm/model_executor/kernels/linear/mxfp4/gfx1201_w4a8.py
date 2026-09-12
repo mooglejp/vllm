@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-"""Inert scaffold for an opt-in gfx1201 MXFP4/W4A8 linear backend.
+"""Opt-in gfx1201 MXFP4/W4A8 reference and decode backend.
 
 Implementation plan: docs/design/gfx1201_radiance_selective_port.md, workstream A.
 
-This module is intentionally not imported or registered.  It must not change
-runtime behavior until the numerical reference, provenance/license gate, and
-phase-A adoption gates are implemented.
+The reference path is independent of the Triton decode kernel.  The decode
+backend is selected only by its explicit environment opt-in and strict shape
+and dtype checks.
 """
 
 from dataclasses import dataclass
@@ -15,10 +15,121 @@ from typing import Final
 import torch
 import torch.nn.functional as F
 
+import vllm.envs as envs
+from vllm.model_executor.kernels.linear.mxfp4.base import (
+    MxFp4LinearKernel,
+    MxFp4LinearLayerConfig,
+)
+from vllm.model_executor.kernels.linear.mxfp4.emulation import (
+    EmulationMxfp4LinearKernel,
+)
+from vllm.model_executor.layers.quantization.utils.quant_utils import kMxfp4Dynamic
+from vllm.platforms import current_platform
+from vllm.triton_utils import tl, triton
+from vllm.utils.import_utils import has_quark
+
 RADIANCE_REFERENCE_COMMIT: Final = "adf9e1f1c9529dd6c971b223a961833376dbd524"
 MXFP4_GROUP_SIZE: Final = 32
 FP8_E4M3_MAX: Final = 448.0
 _E2M1_VALUES: Final = (0.0, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0)
+
+
+@triton.jit
+def _e2m1_to_fp32(nibble):
+    magnitude = nibble & 0x07
+    sign = (nibble >> 3) & 1
+    bits = 0x3F000000 + (magnitude.to(tl.int32) << 22)
+    value = bits.to(tl.float32, bitcast=True)
+    value = tl.where(magnitude == 0, 0.0, value)
+    value = tl.where(magnitude == 1, 0.5, value)
+    return tl.where(sign == 1, -value, value)
+
+
+def _on_gfx1201() -> bool:
+    if not current_platform.is_rocm():
+        return False
+    from vllm.platforms.rocm import on_gfx1201
+
+    return on_gfx1201()
+
+
+@triton.jit
+def _gfx1201_w4a8_decode_kernel(
+    x_ptr,
+    x_scale_ptr,
+    weight_ptr,
+    weight_scale_ptr,
+    out_ptr,
+    m,
+    n,
+    k,
+    stride_xm,
+    stride_xk,
+    stride_wn,
+    stride_wk,
+    stride_sn,
+    stride_sk,
+    stride_om,
+    stride_on,
+    BLOCK_M: tl.constexpr,
+    BLOCK_N: tl.constexpr,
+    BLOCK_K: tl.constexpr,
+):
+    tl.static_assert(BLOCK_K % 32 == 0)
+    pid_m = tl.program_id(0)
+    pid_n = tl.program_id(1)
+    offs_m = (pid_m * BLOCK_M + tl.arange(0, BLOCK_M)).to(tl.int64)
+    offs_n = (pid_n * BLOCK_N + tl.arange(0, BLOCK_N)).to(tl.int64)
+    offs_k = tl.arange(0, BLOCK_K).to(tl.int64)
+    offs_k_packed = tl.arange(0, BLOCK_K // 2).to(tl.int64)
+    offs_k_scale = tl.arange(0, BLOCK_K // 32).to(tl.int64)
+    accumulator = tl.zeros((BLOCK_M, BLOCK_N), dtype=tl.float32)
+
+    for k_block in range(0, tl.cdiv(k, BLOCK_K)):
+        k_start = k_block * BLOCK_K
+        x = tl.load(
+            x_ptr
+            + offs_m[:, None] * stride_xm
+            + (k_start + offs_k[None, :]) * stride_xk,
+            mask=(offs_m[:, None] < m) & (k_start + offs_k[None, :] < k),
+            other=0.0,
+        ).to(tl.bfloat16)
+        packed = tl.load(
+            weight_ptr
+            + offs_n[:, None] * stride_wn
+            + (k_start // 2 + offs_k_packed[None, :]) * stride_wk,
+            mask=(offs_n[:, None] < n)
+            & (k_start // 2 + offs_k_packed[None, :] < k // 2),
+            other=0,
+        )
+        low = _e2m1_to_fp32(packed & 0x0F)
+        high = _e2m1_to_fp32((packed >> 4) & 0x0F)
+        raw_scale = tl.load(
+            weight_scale_ptr
+            + offs_n[:, None] * stride_sn
+            + (k_start // 32 + offs_k_scale[None, :]) * stride_sk,
+            mask=(offs_n[:, None] < n)
+            & (k_start // 32 + offs_k_scale[None, :] < k // 32),
+            other=0,
+        )
+        scale_bits = raw_scale.to(tl.int32) << 23
+        scale_bits = tl.where(raw_scale == 0, 0x00400000, scale_bits)
+        scale_bits = tl.where(raw_scale == 255, 0x7FC00000, scale_bits)
+        scale = scale_bits.to(tl.float32, bitcast=True)
+        scale = tl.reshape(
+            tl.broadcast_to(scale[:, :, None], (BLOCK_N, BLOCK_K // 32, 32)),
+            (BLOCK_N, BLOCK_K),
+        )
+        decoded = tl.interleave(low, high)
+        weight = tl.trans((decoded * scale).to(tl.bfloat16))
+        accumulator = tl.dot(x, weight, acc=accumulator)
+    row_scale = tl.load(x_scale_ptr + offs_m, mask=offs_m < m, other=0.0)
+    output = (accumulator * row_scale[:, None]).to(tl.bfloat16)
+    tl.store(
+        out_ptr + offs_m[:, None] * stride_om + offs_n[None, :] * stride_on,
+        output,
+        mask=(offs_m[:, None] < m) & (offs_n[None, :] < n),
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,14 +143,18 @@ class Gfx1201W4A8Contract:
 
 
 def is_gfx1201_w4a8_candidate(*, x: torch.Tensor, bias: torch.Tensor | None) -> bool:
-    """Return False until workstream A installs and validates the backend.
+    """Return whether an activation is eligible for the decode prototype."""
 
-    Luna: replace this inert result only in the functional W4A8 commit, and keep
-    architecture/opt-in/config checks in the owning `MxFp4LinearKernel` class.
-    """
-
-    del x, bias
-    return False
+    if (
+        bias is not None
+        or x.ndim < 2
+        or x.dtype != torch.bfloat16
+        or not x.is_contiguous()
+    ):
+        return False
+    k = x.shape[-1]
+    rows = x.numel() // k if k else 0
+    return 0 < rows <= 4 and k % MXFP4_GROUP_SIZE == 0
 
 
 def quantize_activation_fp8_reference(
@@ -179,10 +294,104 @@ def launch_gfx1201_w4a8_decode(
     packed_weight: torch.Tensor,
     weight_scale: torch.Tensor,
 ) -> torch.Tensor:
-    """Planned small-M W4A8 launch entry point (A3)."""
+    """Launch the row-major small-M W4A8 decode kernel."""
 
-    del x, packed_weight, weight_scale
-    raise NotImplementedError("gfx1201 W4A8 decode kernel is not implemented")
+    if x.ndim != 2 or x.dtype != torch.bfloat16:
+        raise TypeError("gfx1201 W4A8 decode expects a 2D BF16 activation")
+    if packed_weight.ndim != 2 or packed_weight.dtype != torch.uint8:
+        raise TypeError("gfx1201 W4A8 decode expects packed uint8 weights")
+    if weight_scale.ndim != 2 or weight_scale.dtype != torch.uint8:
+        raise TypeError("gfx1201 W4A8 decode expects uint8 weight scales")
+
+    m, k = x.shape
+    n, packed_k = packed_weight.shape
+    if k != packed_k * 2:
+        raise ValueError(
+            f"activation K={k} does not match packed weight K={packed_k * 2}"
+        )
+    if k % MXFP4_GROUP_SIZE != 0:
+        raise ValueError(f"logical K={k} must be divisible by {MXFP4_GROUP_SIZE}")
+    if tuple(weight_scale.shape) != (n, k // MXFP4_GROUP_SIZE):
+        raise ValueError(
+            "weight scales must have shape "
+            f"{(n, k // MXFP4_GROUP_SIZE)}, got {tuple(weight_scale.shape)}"
+        )
+    if not (x.device == packed_weight.device == weight_scale.device):
+        raise ValueError("activation, weights, and scales must be on the same device")
+
+    quantized_x, activation_scale = quantize_activation_fp8_reference(x)
+    quantized_x = quantized_x.contiguous()
+    activation_scale = activation_scale.contiguous()
+    packed_weight = packed_weight.contiguous()
+    weight_scale = weight_scale.contiguous()
+    output = torch.empty((m, n), dtype=torch.bfloat16, device=x.device)
+    _gfx1201_w4a8_decode_kernel[(triton.cdiv(m, 16), triton.cdiv(n, 64))](
+        quantized_x,
+        activation_scale,
+        packed_weight,
+        weight_scale,
+        output,
+        m,
+        n,
+        k,
+        *quantized_x.stride(),
+        *packed_weight.stride(),
+        *weight_scale.stride(),
+        *output.stride(),
+        BLOCK_M=16,
+        BLOCK_N=64,
+        BLOCK_K=128,
+        num_warps=4,
+        num_stages=1,
+    )
+    return output
+
+
+class Gfx1201Mxfp4W4A8LinearKernel(MxFp4LinearKernel):
+    """Opt-in small-M W4A8 decode backend for ROCm gfx1201."""
+
+    def __init__(self, config: MxFp4LinearLayerConfig) -> None:
+        super().__init__(config)
+        self.emulation = EmulationMxfp4LinearKernel(config)
+
+    @classmethod
+    def is_supported(
+        cls, compute_capability: int | None = None
+    ) -> tuple[bool, str | None]:
+        if not envs.VLLM_ROCM_USE_GFX1201_MXFP4_W4A8:
+            return False, "VLLM_ROCM_USE_GFX1201_MXFP4_W4A8 is not enabled"
+        if not _on_gfx1201():
+            return False, "only supports ROCm gfx1201"
+        if not has_quark():
+            return False, "requires amd-quark for the fallback MXFP4 path"
+        return True, None
+
+    @classmethod
+    def can_implement(cls, config: MxFp4LinearLayerConfig) -> tuple[bool, str | None]:
+        if config.activation_quant_key != kMxfp4Dynamic:
+            return False, "only supports dynamic MXFP4 activation metadata"
+        return True, None
+
+    def process_weights_after_loading(self, layer: torch.nn.Module) -> None:
+        self.emulation.process_weights_after_loading(layer)
+
+    def apply_weights(
+        self,
+        layer: torch.nn.Module,
+        x: torch.Tensor,
+        bias: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        if not is_gfx1201_w4a8_candidate(x=x, bias=bias):
+            return self.emulation.apply_weights(layer, x, bias)
+
+        rows = x.numel() // x.shape[-1]
+        x_2d = x.reshape(rows, x.shape[-1])
+        output = launch_gfx1201_w4a8_decode(
+            x_2d,
+            layer.weight,
+            layer.weight_scale,
+        )
+        return output.reshape(*x.shape[:-1], layer.weight.shape[0])
 
 
 def launch_gfx1201_w4a8_prefill(

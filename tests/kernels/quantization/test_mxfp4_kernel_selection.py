@@ -14,6 +14,7 @@ from vllm.model_executor.kernels.linear import (
     AiterMxfp4LinearKernel,
     EmulationMxfp4LinearKernel,
     FlashInferMxFp4LinearKernel,
+    Gfx1201Mxfp4W4A8LinearKernel,
     HummingMxFp4LinearKernel,
     MarlinMxFp4LinearKernel,
     MxFp4LinearKernel,
@@ -200,6 +201,40 @@ def test_gfx1201_kernel_requires_opt_in_and_target_architecture():
         patch(f"{module}.has_quark", return_value=True),
     ):
         is_supported, reason = TritonGfx1201Mxfp4LinearKernel.is_supported()
+    assert is_supported
+    assert reason is None
+
+
+def test_gfx1201_w4a8_kernel_requires_opt_in_and_target_architecture():
+    module = "vllm.model_executor.kernels.linear.mxfp4.gfx1201_w4a8"
+    with patch(f"{module}.envs.VLLM_ROCM_USE_GFX1201_MXFP4_W4A8", False):
+        is_supported, reason = Gfx1201Mxfp4W4A8LinearKernel.is_supported()
+    assert not is_supported
+    assert "not enabled" in reason
+
+    with (
+        patch(f"{module}.envs.VLLM_ROCM_USE_GFX1201_MXFP4_W4A8", True),
+        patch(f"{module}._on_gfx1201", return_value=False),
+    ):
+        is_supported, reason = Gfx1201Mxfp4W4A8LinearKernel.is_supported()
+    assert not is_supported
+    assert "gfx1201" in reason
+
+    with (
+        patch(f"{module}.envs.VLLM_ROCM_USE_GFX1201_MXFP4_W4A8", True),
+        patch(f"{module}._on_gfx1201", return_value=True),
+        patch(f"{module}.has_quark", return_value=False),
+    ):
+        is_supported, reason = Gfx1201Mxfp4W4A8LinearKernel.is_supported()
+    assert not is_supported
+    assert "amd-quark" in reason
+
+    with (
+        patch(f"{module}.envs.VLLM_ROCM_USE_GFX1201_MXFP4_W4A8", True),
+        patch(f"{module}._on_gfx1201", return_value=True),
+        patch(f"{module}.has_quark", return_value=True),
+    ):
+        is_supported, reason = Gfx1201Mxfp4W4A8LinearKernel.is_supported()
     assert is_supported
     assert reason is None
 

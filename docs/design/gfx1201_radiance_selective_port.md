@@ -1,6 +1,7 @@
 # gfx1201 Radiance selective-port implementation plan
 
-Status: phase 2 reference and tests complete; production dispatch remains inert
+Status: phase 3 decode prototype complete; A3 speed gate failed; production
+adoption stopped
 
 Base revision: `ef9433f1156ab44d8b2445778b83011605a9892f`
 
@@ -400,6 +401,41 @@ non-registration. The phase-2 test gate passes on the target environment. No
 production import, dispatch, environment variable, model integration, cache
 layout, or default behavior is changed. Phase 3 remains a separate decode-only
 step and must satisfy the A3 adoption gate before any later phase is started.
+
+Phase 3 gate record (2026-09-12): the opt-in row-major Triton W4A8 decode
+prototype was compiled and checked on a Radeon AI PRO R9700 (gfx1201) in the
+`tq-e2e-current` ROCm container (`torch 2.12.0+git6bbd260`, HIP
+`7.2.53211`). The direct kernel uses preallocated outputs and compares against
+the independent reference bitwise for M in `{1, 2, 3, 4}` and `(N,K)` in
+`{(5,64), (67,128), (65,160)}`; all
+cases were finite and exact. The six production dense shapes were then timed
+at M=3 with 5 warmups, 30 round-robin samples, a 64 MiB cache flush, and
+`BLOCK_M=16, BLOCK_N=64, BLOCK_K=128, num_warps=4, num_stages=1`:
+
+| N | K | W4A8 median (us) | MXFP4 median (us) | MXFP4/W4A8 |
+| ---: | ---: | ---: | ---: | ---: |
+| 5120 | 6144 | 147.50 | 106.64 | 0.723 |
+| 34816 | 5120 | 496.02 | 377.06 | 0.760 |
+| 5120 | 17408 | 365.84 | 270.82 | 0.740 |
+| 16384 | 5120 | 246.12 | 198.46 | 0.806 |
+| 96 | 5120 | 78.82 | 51.60 | 0.655 |
+| 14336 | 5120 | 218.68 | 188.78 | 0.863 |
+
+The six-shape unweighted geometric mean was 0.755x and the aggregate median
+latency ratio was 0.768x, so the required 1.10x production-call-weighted
+kernel speed gate failed. The raw JSONL artifact is `/tmp/tq-w4a8-a3.jsonl`;
+the reproducible command was:
+
+```text
+docker exec tq-e2e-current bash -lc 'cd /workspace/vllm && /tmp/tq-venv/bin/python benchmarks/kernels/benchmark_gfx1201_w4a8.py --output /tmp/tq-w4a8-a3.jsonl --rows 3 --warmups 5 --samples 30'
+```
+
+The prototype remains behind the new default-off
+`VLLM_ROCM_USE_GFX1201_MXFP4_W4A8` opt-in and falls back per call for
+unsupported inputs. Because the A3 speed gate failed, no model-quality gate,
+same-load E2E claim, fragment-order/non-temporal-load work (A4), or prefill
+work (A5) was started. Disable the opt-in, or remove the prototype
+registration, to return to the existing MXFP4 backend.
 
 Use this sequence unless a phase fails its gate:
 
