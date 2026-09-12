@@ -21,10 +21,13 @@ Each invocation uses the fused path only when all of the following hold:
 - activation dtype is BF16;
 - no bias is present.
 
-Every other case delegates to `EmulationMxfp4LinearKernel`, including prefill,
-larger batches, the model's 96-wide projection, other activation formats, and
-weight-only configurations. Native-MXFP4 platforms continue to select their
-existing higher-priority backend.
+Calls outside these limits delegate to `EmulationMxfp4LinearKernel`, including
+normal large-M prefill with more than four rows and the model's 96-wide
+projection. Dispatch depends on row count, not the prefill/decode phase: a
+prefill or chunk tail with one to four rows can use the fused path. Other
+activation formats and weight-only configurations retain their existing
+backends. Native-MXFP4 platforms continue to select their existing
+higher-priority backend.
 
 On the fixed 64-output-token MTP workload, median decode throughput improves
 from 7.44--8.13 tok/s to 16.21--18.00 tok/s, a 2.18--2.23x increase. Every
@@ -115,15 +118,18 @@ continuous batching or graph capture.
 The matched optimized trace reduces the 14 target scopes from 4.212 s to
 2.071 s of profiler-reported CUDA time. Correlated target dispatches fall from
 3561.00 ms to 1007.03 ms, or 3.54x. The fused kernel contributes 765.92 ms over
-3,584 calls. Activation QDQ contributes 24.40 ms; the old 4,256 target weight
-dequantizations and 3,584 large BF16 GEMMs are absent.
+3,584 calls. Activation QDQ contributes 24.40 ms. The eligible large weight
+dequantizations and their 3,584 BF16 GEMMs are replaced by the fused kernel;
+the 48 small, 96-wide projections per target forward still use emulation.
 
 Prefill remains effectively unchanged at 3.390 s versus 3.376 s because its row
 count selects emulation. The remaining model-level gap comes from prefill,
 Python/kernel-launch overhead, the separately executed MTP drafter, GDN, and
 the fused kernel itself. Further attention tuning is still not justified by the
-profile. If this software-emulation route is tuned again, the fused MXFP4
-kernel is now the first target.
+profile. The subsequent
+[whole-decode profile](turboquant_gfx1201_post_fusion_profile.md) includes the
+drafter and target sampling, and confirms the next kernel target using their
+shares of total decode device work.
 
 ## Correctness and validation
 
@@ -131,7 +137,7 @@ Correctness is established at four levels:
 
 - GPU unit tests compare packed decoding plus GEMM against Quark-style
   dequantization followed by `F.linear`, exactly, for M=1/3/4, masked N/K
-  boundaries, and raw E8M0 values 0, 1, 127, 254, and 255;
+  boundaries including N=513, and raw E8M0 values 0, 1, 127, 254, and 255;
 - the six real model dimensions at M=1 and M=3 are bitwise exact in the tracked
   benchmark;
 - fixed model outputs and MTP acceptance counters match the prior backend;
