@@ -3,6 +3,11 @@
 Date: 2026-09-11. Source: `6de0a3e8526164282082fa64d24e58ccfe9361c5`.
 This investigation changes no production kernel, default, or tuning parameter.
 
+Follow-up (2026-09-12): the [layerwise diagnosis](turboquant_gfx1201_layerwise_diagnosis.md)
+locates the remaining 3K difference in layer 20's post-attention RMSNorm and
+records a successful norm-only ablation. Findings below describe the original
+investigation before that follow-up.
+
 ## Result
 
 The original mismatch is not explained by a tiny final-logit margin. However,
