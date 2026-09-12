@@ -129,7 +129,7 @@ def triton_mxfp4_small_m_linear(
     m, k = x.shape
     n = weight.shape[0]
     out = torch.empty((m, n), dtype=x.dtype, device=x.device)
-    _mxfp4_small_m_kernel[(triton.cdiv(m, 16), triton.cdiv(n, 32))](
+    _mxfp4_small_m_kernel[(triton.cdiv(m, 16), triton.cdiv(n, 64))](
         x,
         weight,
         weight_scale,
@@ -142,9 +142,9 @@ def triton_mxfp4_small_m_linear(
         *weight_scale.stride(),
         *out.stride(),
         BLOCK_M=16,
-        BLOCK_N=32,
+        BLOCK_N=64,
         BLOCK_K=128,
-        num_warps=2,
+        num_warps=4,
         num_stages=1,
     )
     return out

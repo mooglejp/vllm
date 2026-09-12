@@ -112,6 +112,9 @@ runtime remain non-comparable.
 
 The follow-up software-fused decode linear and its new bottleneck profile are
 documented in [gfx1201 software-fused MXFP4 decode linear](turboquant_gfx1201_mxfp4_fusion.md).
+Its [launch-configuration follow-up](turboquant_gfx1201_mxfp4_launch_tuning.md)
+uses fixed-output timing and shape-count weighting to select the production
+tile.
 
 ## Artifacts and decision
 

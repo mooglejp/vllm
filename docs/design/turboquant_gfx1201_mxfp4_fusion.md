@@ -56,19 +56,21 @@ for 88.4% of the correlated target device work. The corresponding profiler
 annotation reports 4.212 s of target CUDA time. Prefill reports 3.376 s and is
 outside the small-row optimization.
 
-## Kernel geometry and fixed-buffer result
+## Kernel geometry and original benchmark result
 
-The selected launch uses a 16x32 output tile, K block 128, two wave32 warps, and
-one pipeline stage. Packed nibbles and one E8M0 scale per 32 values are loaded
-directly. K values that are not multiples of 128 and N values that are not
-multiples of 32 are masked. The OCP edge encodings are explicit: raw E8M0 zero
-is `2^-127`, while raw 255 is NaN.
+The initially selected launch used a 16x32 output tile, K block 128, two wave32
+warps, and one pipeline stage. Packed nibbles and one E8M0 scale per 32 values
+are loaded directly. K values that are not multiples of 128 and N values that
+are not multiples of 32 are masked. The OCP edge encodings are explicit: raw
+E8M0 zero is `2^-127`, while raw 255 is NaN.
 
-The tracked benchmark uses the six dense dimensions observed in the
-Qwen3.5-27B checkpoint. Inputs, packed weights, scales, and the 64 MiB L2 flush
-buffer are fixed before timing. Compilation, allocation, correctness checking,
-and synchronization setup are outside each HIP-event interval. Each result is
-the median of 50 cold-L2 samples after ten untimed launches.
+The table below came from the original wrapper-level benchmark over the six
+dense dimensions observed in the Qwen3.5-27B checkpoint. Inputs, packed weights,
+scales, and the 64 MiB L2 flush buffer were fixed before timing, but the
+linear wrapper allocated its output tensor inside each HIP-event interval. The
+result is still sufficient to establish the large fusion benefit, but it is not
+a fixed-output kernel-only measurement suitable for selecting small
+launch-configuration differences.
 
 | N x K | M=1 speedup | M=3 speedup | Correctness |
 | ---: | ---: | ---: | --- |
@@ -83,10 +85,16 @@ The 96-wide result is measured to validate the dispatch boundary, but
 production deliberately retains emulation there. The fused path is beneficial
 for every eligible model shape.
 
-Generated gfx1201 ISA uses wave32 and no private segment. It declares 132 live
-VGPR indices and 105 live SGPR indices; rocprof reports allocation-rounded
-counts of 136 VGPRs and 128 SGPRs, zero scratch, and zero dynamic LDS for the
-dispatch. The Triton launch metadata reports 4096 bytes of shared staging.
+The subsequent
+[launch-configuration tuning](turboquant_gfx1201_mxfp4_launch_tuning.md)
+separates wrapper timing from direct launches into preallocated outputs,
+measures candidates in round-robin order, and updates the production geometry.
+
+The initial generated gfx1201 ISA uses wave32 and no private segment. It
+declares 132 live VGPR indices and 105 live SGPR indices; rocprof reports
+allocation-rounded counts of 136 VGPRs and 128 SGPRs, zero scratch, and zero
+dynamic LDS for the dispatch. The Triton launch metadata reports 4096 bytes of
+shared staging.
 
 ## End-to-end model result
 

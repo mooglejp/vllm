@@ -43,7 +43,13 @@ def _dequantize_reference(
 @pytest.mark.skipif(not _on_gfx1201(), reason="requires ROCm gfx1201")
 @pytest.mark.parametrize(
     ("m", "n", "k"),
-    [(1, 512, 128), (3, 544, 160), (3, 513, 160), (4, 512, 96)],
+    [
+        (1, 512, 128),
+        (2, 512, 128),
+        (3, 544, 160),
+        (3, 513, 160),
+        (4, 512, 96),
+    ],
 )
 def test_small_m_matches_dequantize_then_linear(m: int, n: int, k: int):
     """Guard packed nibble order, E8M0 groups, and boundary masks."""
