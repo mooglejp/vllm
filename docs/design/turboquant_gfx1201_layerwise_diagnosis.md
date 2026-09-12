@@ -4,6 +4,12 @@ Date: 2026-09-12. The preceding diagnosis and immutable-cache harness were
 committed as `232547a6dc`. Production model and kernel code remains unchanged
 from `6de0a3e852` throughout this follow-up.
 
+Accuracy follow-up (2026-09-12): the
+[small accuracy gate](turboquant_gfx1201_accuracy_gate.md) finds no aggregate
+quality regression in 104 seeded reasoning, code, and MMLU cases, extends
+target-only B/C equality to 768 full-logit vectors, and adds four real-QKV
+attention replays.
+
 ## Result
 
 The residual beginning at output token 26 in the previous controlled 3K run

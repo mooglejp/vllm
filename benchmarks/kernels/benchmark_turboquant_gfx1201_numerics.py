@@ -178,6 +178,64 @@ def evaluate(query, cache, block_table, seq_len, splits, asm_dir=None):
     return results
 
 
+def evaluate_snapshot(path: Path, asm_dir=None):
+    saved = torch.load(path, map_location="cpu", weights_only=True)
+    required = {
+        "block_table",
+        "cache",
+        "query",
+        "query_start_loc",
+        "scale",
+        "seq_len",
+        "splits",
+    }
+    missing = required - saved.keys()
+    if missing:
+        raise ValueError(f"{path} is missing snapshot fields: {sorted(missing)}")
+
+    query, cache, block_table = (
+        saved[key].cuda() for key in ("query", "cache", "block_table")
+    )
+    expected_scale = query.shape[-1] ** -0.5
+    if saved["scale"] != expected_scale:
+        raise ValueError(
+            f"{path} has scale {saved['scale']}, expected {expected_scale}"
+        )
+    record = {
+        "snapshot": path.name,
+        "query_shape": list(query.shape),
+        "seq_len": saved["seq_len"],
+        "splits": saved["splits"],
+        "positions": saved.get("positions"),
+        "metrics": evaluate(
+            query,
+            cache,
+            block_table,
+            saved["seq_len"],
+            saved["splits"],
+            asm_dir,
+        ),
+    }
+    if "output" in saved:
+        qsl_cpu = saved["query_start_loc"]
+        seq_lens = torch.tensor(
+            [saved["seq_len"]], dtype=torch.int32, device=query.device
+        )
+        replay = specialized.triton_turboquant_decode_gfx1201_k8v4_multi_token(
+            query,
+            cache,
+            block_table,
+            seq_lens,
+            qsl_cpu.to(query.device),
+            saved["scale"],
+            query_start_loc_cpu=qsl_cpu,
+            max_num_kv_splits=saved["splits"],
+            max_query_len=query.shape[0],
+        )
+        record["replay_vs_live"] = error_metrics(replay.cpu(), saved["output"])
+    return record
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
@@ -191,9 +249,24 @@ def main():
     parser.add_argument("--splits", type=int, nargs="+", default=[1, 32])
     parser.add_argument("--dtypes", nargs="+", default=["bfloat16", "float16"])
     parser.add_argument("--query-scales", type=float, nargs="+", default=[1.0, 4.0])
+    parser.add_argument(
+        "--snapshots",
+        type=Path,
+        nargs="+",
+        help="Replay saved real-Q/KV snapshots instead of generated inputs",
+    )
     args = parser.parse_args()
     if args.asm_dir:
         args.asm_dir.mkdir(parents=True, exist_ok=True)
+    if args.snapshots:
+        with args.output.open("x") as results_file:
+            for path in args.snapshots:
+                record = evaluate_snapshot(path, args.asm_dir)
+                encoded = json.dumps(record)
+                results_file.write(encoded + "\n")
+                results_file.flush()
+                print(encoded, flush=True)
+        return
     cfg = TurboQuantConfig.from_cache_dtype("turboquant_k8v4", 256)
     with args.output.open("x") as results_file:
         for dtype_name in args.dtypes:
