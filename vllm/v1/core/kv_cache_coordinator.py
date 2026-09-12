@@ -321,12 +321,17 @@ class KVCacheCoordinator(ABC):
         at ``num_tokens - 1`` (its last token is recomputed for logits), a
         longer sibling matches the final aligned block. They differ only on a
         block-aligned prompt, where retaining just the higher one collapses the
-        resend's hit to 0. The alignment is the scheduler block size, not the
-        finer hash granularity, which would over-estimate the reach.
+        resend's hit to 0. Fine-grained partial-hit groups use the hash unit so
+        every manager can publish the exact replay boundary; other groups use
+        the scheduler block size.
         """
         if not self.eagle_group_ids:
             return (request.num_prompt_tokens - 1,)
-        block = self.scheduler_block_size
+        block = (
+            getattr(self, "hash_block_size", self.scheduler_block_size)
+            if self.enable_partial_hash_hits
+            else self.scheduler_block_size
+        )
         resend = (request.num_prompt_tokens - 1) // block * block
         extension = request.num_prompt_tokens // block * block
         return tuple(sorted({max(resend - block, 0), max(extension - block, 0)}))

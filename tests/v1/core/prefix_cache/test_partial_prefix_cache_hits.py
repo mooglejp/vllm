@@ -219,6 +219,34 @@ def test_mamba_align_split_partial_tail_schedule(dcp_world_size: int):
     assert split(self=mock, request=req2, num_new_tokens=1000) == 512
 
 
+def test_mamba_align_split_uses_resolved_mamba_block_size():
+    """Page-size alignment can enlarge Mamba blocks after CacheConfig is built.
+
+    The splitter must stop where that resolved Mamba state can be materialized,
+    not where the original hash block happens to end. Otherwise multi-module
+    MTP's re-prefill tail leaves no hash-aligned state for the next request.
+    """
+    hash_block_size = 16
+    mamba_block_size = 2096
+    mock = SimpleNamespace(
+        block_size=mamba_block_size,
+        mamba_block_size=mamba_block_size,
+        cache_config=SimpleNamespace(block_size=hash_block_size),
+        max_num_scheduled_tokens=4096,
+        scheduler_config=SimpleNamespace(long_prefill_token_threshold=0),
+        use_eagle_block_drop=True,
+        hash_block_size=hash_block_size,
+        mamba_partial_cache_hit=True,
+        mamba_fine_grained_prefix_cache=False,
+        mamba_has_prefill_checkpoint_blocks=False,
+    )
+    req = make_request("0", [0] * 3000, hash_block_size, sha256)
+
+    split = Scheduler._mamba_block_aligned_split(mock, req, 3000)
+
+    assert split == 2976
+
+
 def test_mamba_align_split_when_block_exceeds_scheduling_budget():
     """Sub-block chunks make progress only when no step can fit a full block."""
     block_size = 11392
@@ -444,6 +472,78 @@ def test_eagle_group_registers_unaligned_tail_under_partial_hash_hits():
 
     # Every group, EAGLE or not, may register the whole unaligned tail.
     assert recorded == [num_tokens] * len(coordinator.single_type_managers)
+
+
+def test_mtp_eagle_replay_boundary_is_shared_across_large_cache_blocks():
+    """All groups must index the fine-grained boundary where EAGLE resumes."""
+    hash_block_size = 2
+    cache_block_size = 8
+    kv_cache_config = KVCacheConfig(
+        num_blocks=40,
+        kv_cache_tensors=[],
+        kv_cache_groups=[
+            KVCacheGroupSpec(
+                ["target"],
+                FullAttentionSpec(
+                    block_size=cache_block_size,
+                    num_kv_heads=1,
+                    head_size=1,
+                    dtype=torch.float32,
+                ),
+            ),
+            KVCacheGroupSpec(
+                ["mamba"],
+                MambaSpec(
+                    block_size=cache_block_size,
+                    shapes=(1, 1),
+                    dtypes=(torch.float32,),
+                    mamba_cache_mode="align",
+                ),
+            ),
+            KVCacheGroupSpec(
+                ["draft"],
+                FullAttentionSpec(
+                    block_size=cache_block_size,
+                    num_kv_heads=1,
+                    head_size=1,
+                    dtype=torch.float32,
+                ),
+                is_eagle_group=True,
+            ),
+        ],
+    )
+    manager = make_kv_cache_manager(
+        kv_cache_config=kv_cache_config,
+        max_model_len=64,
+        enable_caching=True,
+        hash_block_size=hash_block_size,
+        use_eagle=True,
+        num_prefill_lookahead=2,
+    )
+    assert manager.coordinator.enable_partial_hash_hits
+
+    tokens = list(range(15))
+    producer = make_request("producer", tokens, hash_block_size, sha256)
+    computed_blocks, num_computed, _ = manager.get_computed_blocks(producer)
+    assert num_computed == 0
+    assert (
+        manager.allocate_slots(producer, 12, num_computed, computed_blocks) is not None
+    )
+    producer.num_computed_tokens = 12
+    manager.new_step_starts()
+    assert manager.allocate_slots(producer, 3) is not None
+    producer.num_computed_tokens = len(tokens)
+    producer.append_output_token_ids(15)
+    manager.new_step_starts()
+    assert manager.allocate_slots(producer, 1) is not None
+    manager.free(producer)
+    manager.new_step_starts()
+
+    consumer = make_request("consumer", tokens, hash_block_size, sha256)
+    _, num_computed, _ = manager.get_computed_blocks(consumer)
+
+    # Resend boundary 14, then one fine-grained EAGLE unit is replayed.
+    assert num_computed == 12
 
 
 def test_hybrid_mamba_partial_tail_owner_uses_cow_on_continue():

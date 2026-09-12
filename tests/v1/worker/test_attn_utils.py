@@ -56,6 +56,43 @@ class _DraftBackend:
         return False
 
 
+class _FakeAttentionModule:
+    kv_sharing_target_layer_name = None
+
+    def __init__(self, spec: FullAttentionSpec):
+        self.spec = spec
+
+    def get_kv_cache_spec(self, _vllm_config):
+        return self.spec
+
+    def get_attn_backend(self):
+        return SimpleNamespace(customize_spec=lambda spec: spec)
+
+
+def test_get_kv_cache_spec_marks_draft_ownership(monkeypatch: pytest.MonkeyPatch):
+    spec = FullAttentionSpec(
+        block_size=16,
+        num_kv_heads=1,
+        head_size=128,
+        dtype=torch.bfloat16,
+    )
+    monkeypatch.setattr(
+        attn_utils,
+        "get_layers_from_vllm_config",
+        lambda *_args, **_kwargs: {
+            "target": _FakeAttentionModule(spec),
+            "draft": _FakeAttentionModule(spec),
+        },
+    )
+
+    specs = attn_utils.get_kv_cache_spec(SimpleNamespace(), draft_layer_names={"draft"})
+
+    assert not specs["target"].is_eagle_draft
+    assert specs["draft"].is_eagle_draft
+    assert specs["target"] == specs["draft"]
+    assert hash(specs["target"]) == hash(specs["draft"])
+
+
 def test_attention_checks_preserve_global_and_target_scoped_support():
     spec = FullAttentionSpec(
         block_size=16,

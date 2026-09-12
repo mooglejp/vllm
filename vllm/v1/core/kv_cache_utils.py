@@ -711,8 +711,9 @@ def resolve_kv_cache_block_sizes(
       Mamba groups keep their full per-rank state and are not scaled.
     - ``hash_block_size`` is the granularity at which ``Request.block_hashes``
       is computed. Single group: equals scheduler block size. Multiple groups:
-      ``cache_config.prefix_match_unit`` override if set, else the GCD of
-      group block sizes; every group's block size must be divisible by it.
+      ``cache_config.prefix_match_unit`` override if set, else the configured
+      cache block size when every resolved group remains divisible by it, and
+      otherwise the GCD of group block sizes.
       Returns the scheduler block size (i.e. disables finer hashing) if block
       hashing is inactive or a mamba group is not using cache mode "align".
     """
@@ -755,7 +756,12 @@ def resolve_kv_cache_block_sizes(
         if group.kv_cache_spec.prefix_cacheable
     ] or group_block_sizes
     requested = cache_config.prefix_match_unit
-    hash_block_size = requested if requested is not None else math.gcd(*hashing_sizes)
+    if requested is not None:
+        hash_block_size = requested
+    elif all(bs % cache_config.block_size == 0 for bs in hashing_sizes):
+        hash_block_size = cache_config.block_size
+    else:
+        hash_block_size = math.gcd(*hashing_sizes)
     if any(bs % hash_block_size != 0 for bs in hashing_sizes):
         raise ValueError(
             f"Invalid prefix_match_unit={hash_block_size}; prefix-cacheable "
@@ -2084,16 +2090,20 @@ def _annotate_eagle_groups(
 ) -> None:
     """Flag the KV cache groups that hold drafter attention layers.
 
-    Two detection rules, in order of preference:
+    Three detection rules, in order of preference:
 
-    1. Spec-driven. ``non_causal_multi_token_decode`` is declared on
+    1. Worker-reported ownership. Model runners compare the attention layers
+       registered before and after loading the drafter and mark the added
+       layers with ``is_eagle_draft``. This is authoritative and independent
+       of model naming conventions.
+    2. Spec-driven. ``non_causal_multi_token_decode`` is declared on
        MLAAttentionSpec and set by drafter attention layers that run a
        non-causal multi-token decode (today only Kimi-K3 DSpark). It survives
        MLAAttentionSpec.merge, so it still identifies a group after per-group
        spec merging, wherever grouping happens to land. It is sufficient but
        not necessary: a drafter whose spec is indistinguishable from the
        target's cannot be found this way.
-    2. Model-scoped positional fallback for DeepseekV4, whose MTP block reuses
+    3. Model-scoped positional fallback for DeepseekV4, whose MTP block reuses
        the target's own decoder layer and so carries no spec marker. Its draft
        attention layer is always the last registered layer, so flag whichever
        group holds it. This rule is only valid where the groups partition
@@ -2106,16 +2116,16 @@ def _annotate_eagle_groups(
     Args:
         vllm_config: Config supplying the speculative method, if any.
         kv_cache_spec: The kv cache spec of each attention layer, in layer
-            registration order. Only read by rule 2.
+            registration order. Read by rules 1 and 3.
         kv_cache_groups: Groups to annotate in place.
-        use_deepseek_v4_fallback: Enable rule 2 for a DeepseekV4 packed group.
+        use_deepseek_v4_fallback: Enable rule 3 for a DeepseekV4 packed group.
     """
     spec_config = vllm_config.speculative_config
     if spec_config is None or not spec_config.use_eagle_block_drop():
         return
 
     for group in kv_cache_groups:
-        if any(
+        if any(kv_cache_spec[name].is_eagle_draft for name in group.layer_names) or any(
             getattr(spec, "non_causal_multi_token_decode", False)
             for spec in iter_layer_specs(group.kv_cache_spec)
         ):

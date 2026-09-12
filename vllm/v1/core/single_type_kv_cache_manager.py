@@ -842,6 +842,8 @@ class FullAttentionManager(SingleTypeKVCacheManager):
         if self.block_size == hash_block_size:
             return
         self._cache_partial_tail_block(request, num_tokens)
+        for boundary in replay_boundaries:
+            self._cache_partial_block_at(request, num_tokens, boundary)
 
     def _cache_partial_tail_block(
         self,
@@ -856,6 +858,17 @@ class FullAttentionManager(SingleTypeKVCacheManager):
         """
         hash_block_size = self.block_pool.hash_block_size
         boundary_tokens = request.num_prompt_tokens // hash_block_size * hash_block_size
+        self._cache_partial_block_at(request, num_tokens, boundary_tokens)
+
+    def _cache_partial_block_at(
+        self,
+        request: Request,
+        num_tokens: int,
+        boundary_tokens: int,
+    ) -> None:
+        hash_block_size = self.block_pool.hash_block_size
+        if boundary_tokens % hash_block_size != 0:
+            return
         if boundary_tokens == 0 or boundary_tokens > num_tokens:
             return
         if boundary_tokens % self.block_size == 0:
@@ -1969,7 +1982,9 @@ class MambaManager(SingleTypeKVCacheManager):
         )
         num_cached_blocks_after = self.num_cached_block.get(request.request_id, 0)
         if self.mamba_cache_mode == "align":
-            partial_hash = self._cache_partial_tail_block(request, num_tokens)
+            partial_hash = self._cache_partial_tail_block(
+                request, num_tokens, replay_boundaries
+            )
             if partial_hash is not None:
                 self.cached_blocks_this_step.add(partial_hash)
         if num_cached_blocks_after > num_cached_blocks_before:
@@ -2004,6 +2019,7 @@ class MambaManager(SingleTypeKVCacheManager):
         self,
         request: Request,
         num_tokens: int,
+        replay_boundaries: Sequence[int] = (),
     ) -> BlockHashWithGroupId | None:
         hash_block_size = self.block_pool.hash_block_size
         # Re-key the reserved block at its exported checkpoint boundary.
@@ -2043,10 +2059,16 @@ class MambaManager(SingleTypeKVCacheManager):
         # to the prompt chunk being computed -- during decode the target is the
         # running state block, mutated in place, which equals what its key
         # promises only after that step's forward.
-        if num_tokens != latest_prompt_hash_boundary and not (
+        is_junction = (
             self.fine_grained_prefix_cache
             and num_tokens == request.shared_prefix_boundary
             and request.num_computed_tokens < num_tokens <= request.num_prompt_tokens
+        )
+        is_replay_boundary = (
+            num_tokens in replay_boundaries and num_tokens <= request.num_prompt_tokens
+        )
+        if num_tokens != latest_prompt_hash_boundary and not (
+            is_junction or is_replay_boundary
         ):
             return None
 

@@ -119,6 +119,7 @@ class EngineCore:
         load_general_plugins()
 
         self.vllm_config = vllm_config
+        self._configured_cache_block_size = vllm_config.cache_config.block_size
         if not vllm_config.parallel_config.data_parallel_rank_local:
             logger.info(
                 "Initializing a V1 LLM engine (v%s) with config: %s",
@@ -342,6 +343,21 @@ class EngineCore:
                 for g in kv_cache_groups
                 if g.kv_cache_spec.prefix_cacheable
             ]
+            cache_config = vllm_config.cache_config
+            hashing_enabled = (
+                cache_config.enable_prefix_caching
+                or vllm_config.kv_transfer_config is not None
+            )
+            if (
+                hashing_enabled
+                and participating
+                and cache_config.prefix_match_unit is None
+                and all(
+                    block_size % self._configured_cache_block_size == 0
+                    for block_size in participating
+                )
+            ):
+                cache_config.prefix_match_unit = self._configured_cache_block_size
             vllm_config.cache_config.block_size = min(
                 participating
                 if participating

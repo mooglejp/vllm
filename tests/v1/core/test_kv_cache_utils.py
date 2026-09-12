@@ -2438,6 +2438,49 @@ def test_get_kv_cache_config_kpool_tail_coowns_indexer_tensor():
     )
 
 
+def test_resolved_equal_page_sizes_preserve_configured_hash_unit():
+    """Integral page enlargement must not erase fine-grained Mamba reuse."""
+    resolved_block_size = 2096
+    kv_cache_config = KVCacheConfig(
+        num_blocks=1,
+        kv_cache_tensors=[],
+        kv_cache_groups=[
+            KVCacheGroupSpec(
+                ["mamba"],
+                MambaSpec(
+                    block_size=resolved_block_size,
+                    shapes=((1, 1),),
+                    dtypes=(torch.float16,),
+                    mamba_cache_mode="align",
+                ),
+            ),
+            KVCacheGroupSpec(
+                ["draft"],
+                FullAttentionSpec(
+                    block_size=resolved_block_size,
+                    num_kv_heads=1,
+                    head_size=1,
+                    dtype=torch.float16,
+                ),
+                is_eagle_group=True,
+            ),
+        ],
+    )
+    vllm_config = SimpleNamespace(
+        cache_config=SimpleNamespace(
+            block_size=16,
+            enable_prefix_caching=True,
+            prefix_match_unit=None,
+        ),
+        parallel_config=SimpleNamespace(decode_context_parallel_size=1),
+        kv_transfer_config=None,
+    )
+
+    assert kv_cache_utils.resolve_kv_cache_block_sizes(
+        kv_cache_config, vllm_config
+    ) == (resolved_block_size, 16)
+
+
 def test_glm5_kpool_tail_does_not_drag_hash_block_size():
     """The tail's kpool-sized scratch block (4 tokens) must not constrain the
     prefix-cache hash granularity: participating groups alone decide it."""
@@ -3916,6 +3959,23 @@ def test_mamba_groups_never_flagged_even_when_draft_shares_a_group():
             assert group.is_eagle_group
         if isinstance(group.kv_cache_spec, MambaSpec):
             assert not group.is_eagle_group
+
+
+def test_worker_marked_draft_group_annotated_without_layout_change():
+    specs = _hybrid_specs_with_draft(draft=False)
+    draft_spec = replace(new_kv_cache_spec(block_size=64), is_eagle_draft=True)
+    assert draft_spec == replace(draft_spec, is_eagle_draft=False)
+    specs["draft.attn.0"] = draft_spec
+
+    groups = get_kv_cache_groups(_spec_decode_grouping_config(method="mtp"), specs)
+
+    flagged = [group for group in groups if group.is_eagle_group]
+    assert len(flagged) == 1
+    assert "draft.attn.0" in flagged[0].layer_names
+    assert all(
+        not isinstance(spec, MambaSpec)
+        for spec in iter_layer_specs(flagged[0].kv_cache_spec)
+    )
 
 
 def test_draft_group_not_annotated_without_spec_decode():

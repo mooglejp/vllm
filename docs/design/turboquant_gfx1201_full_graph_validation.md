@@ -18,10 +18,11 @@ summary is exact. Runtime graph metrics report `FULL` for decode token shapes
 required by `FULL_DECODE_ONLY`.
 
 This moves the full-decode graph, multi-request, and 32K-context gates to pass
-for the tested configuration. It does not justify default enablement. Prefix
-reuse is disabled for this MTP/hybrid-cache combination, broader model-quality
-coverage remains open, and the default O2 compile/graph policy is not ready for
-this route.
+for the tested configuration. The subsequent
+[rollout validation](turboquant_gfx1201_rollout_validation.md) adds working MTP
+prefix reuse, a 308-case quality comparison, and a 24-minute serving soak. It
+also retains opt-in rollout because the default O2 compile/graph policy is not
+ready for this route.
 
 ## Configuration and method
 
@@ -148,27 +149,28 @@ the quadratic SDPA continuation-prefill workspace. Smaller prefill chunks are
 the validated configuration control. The failure does not motivate a decode
 kernel or graph change.
 
-## Remaining default gates
+## Default decision
 
 Keep `VLLM_TQ_GFX1201_K8V4` and
 `VLLM_ROCM_USE_GFX1201_MXFP4_GEMM` opt-in for now.
 
-- The engine warns that it cannot identify a distinct MTP draft KV group. A
-  Mamba group cannot satisfy the widened lookup window, so cross-request
-  prefix-cache reuse is disabled and an external KV tier cannot serve hits.
-- The existing quality result is a useful but small 104-case gate, not a broad
-  model evaluation.
+- Draft KV ownership and cross-request prefix reuse now pass. A repeated
+  3000-token request reuses 2976 tokens across the full-attention and Mamba
+  groups. See the rollout validation for the implementation and live result.
+- The broader 308-case GSM8K, HumanEval, and MMLU comparison and the 24-minute,
+  484-request serving soak pass without an aggregate quality regression,
+  request error, abort, or preemption.
 - The repository's default O2 `FULL_AND_PIECEWISE` graph is exact against a
   matched compiled/no-graph control, but changes all three sampled outputs and
   is substantially slower than the compilation-disabled path. The existing
   quality gate does not cover this compiled configuration.
-- The current gfx1201 device lacks native MXFP4 execution. The custom backend
-  accelerates the software-emulation path, so rollout should remain explicit.
+- Native-MXFP4 hardware evaluation is outside this rollout decision. The
+  custom backend remains scoped to gfx1201 software emulation.
 
-The next enablement decision should follow a prefix-cache/MTP ownership fix,
-broader quality evaluation, and a compiler-path diagnosis or an explicit
-non-default execution policy. Full-decode graph support itself is no longer
-the blocking gate for this exact profile.
+The prefix-cache, quality, and serving gates are complete. Keep the route
+opt-in under the explicitly validated compilation-disabled full-decode policy;
+default enablement should follow a compiler-path diagnosis. Full-decode graph
+support itself is no longer a blocking gate for this exact profile.
 
 ## Artifacts
 

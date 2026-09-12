@@ -8,9 +8,11 @@ Initial eager-mode MTP acceptance/performance measurements are available below.
 The execution-shape diagnosis, small task-accuracy gate, and
 [whole-model full-decode graph validation](turboquant_gfx1201_full_graph_validation.md)
 are complete. The graph validation covers exact eager parity for single- and
-multi-request serving through 32K contexts. Single-token tuning, broader model
-quality, MTP prefix-cache reuse, and default-route replacement remain open exit
-gates.
+multi-request serving through 32K contexts. The
+[rollout validation](turboquant_gfx1201_rollout_validation.md) completes MTP
+prefix reuse, broader quality, and sustained-serving checks. Default-route
+replacement remains deferred because the repository's O2 policy is slower and
+numerically different from the validated compilation-disabled route.
 
 The [greedy-output diagnosis](turboquant_gfx1201_greedy_diagnosis.md) records
 controlled comparisons of query width, split boundaries, GDN decode, and prefill
@@ -28,6 +30,8 @@ requests, runtime `FULL` replay at decode shapes 3/6/9/12, and the validated
 matched default O2 control confirms exact `FULL_AND_PIECEWISE` graph replay but
 also records a large throughput regression and different outputs versus the
 compilation-disabled path, so default replacement remains deferred.
+The rollout follow-up additionally records a 2976-token live prefix hit, a
+308-case paired quality pass, and a clean 484-request serving soak.
 
 Validation follow-up (2026-09-11, gfx1201 / ROCm 7.2):
 
