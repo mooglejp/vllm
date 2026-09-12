@@ -4,7 +4,7 @@ Status: implementation plan and inert scaffolding only
 
 Base revision: `ef9433f1156ab44d8b2445778b83011605a9892f`
 
-Target branch: `feat/gfx1201-radiance-selective-port`
+Target branch: `feat/gfx1201-radiance-port`
 
 Primary external reference: `magiccodingman/vllm-radiance` at
 `adf9e1f1c9529dd6c971b223a961833376dbd524`.
