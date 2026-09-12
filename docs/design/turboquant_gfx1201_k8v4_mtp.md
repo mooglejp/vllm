@@ -1,13 +1,16 @@
 # TurboQuant gfx1201 K8/V4 D=256 GQA=6 fused decode + MTP implementation plan
 
-Status: implementation plan; opt-in single- and multi-token path implemented
+Status: implementation plan; opt-in path implemented and full-decode graph validated
 
 The target route is currently gated by ``VLLM_TQ_GFX1201_K8V4``. Numerical
 coverage and backend-level HIP graph replay validation are in place.
 Initial eager-mode MTP acceptance/performance measurements are available below.
-The execution-shape diagnosis and small task-accuracy gate are complete.
-Wider-context and full-model graph measurements, single-token tuning, and
-default-route replacement remain open exit gates.
+The execution-shape diagnosis, small task-accuracy gate, and
+[whole-model full-decode graph validation](turboquant_gfx1201_full_graph_validation.md)
+are complete. The graph validation covers exact eager parity for single- and
+multi-request serving through 32K contexts. Single-token tuning, broader model
+quality, MTP prefix-cache reuse, and default-route replacement remain open exit
+gates.
 
 The [greedy-output diagnosis](turboquant_gfx1201_greedy_diagnosis.md) records
 controlled comparisons of query width, split boundaries, GDN decode, and prefill
@@ -17,7 +20,14 @@ Follow-ups (2026-09-12): the
 [small accuracy gate](turboquant_gfx1201_accuracy_gate.md) finds no aggregate
 quality regression over 104 seeded cases, and the
 [stage-1 tuning](turboquant_gfx1201_performance_tuning.md) records a
-correctness-preserving `num_stages=2` improvement for multi-token decode.
+correctness-preserving `num_stages=2` improvement for multi-token decode. The
+[full-decode graph follow-up](turboquant_gfx1201_full_graph_validation.md)
+records exact graph/eager token and speculative-counter parity across 36 paired
+requests, runtime `FULL` replay at decode shapes 3/6/9/12, and the validated
+512-token prefill-chunk requirement for a 32K request on this 32 GiB device. A
+matched default O2 control confirms exact `FULL_AND_PIECEWISE` graph replay but
+also records a large throughput regression and different outputs versus the
+compilation-disabled path, so default replacement remains deferred.
 
 Validation follow-up (2026-09-11, gfx1201 / ROCm 7.2):
 

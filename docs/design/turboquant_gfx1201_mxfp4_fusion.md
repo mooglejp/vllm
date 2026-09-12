@@ -175,5 +175,8 @@ optimized model traces, rocprof CSV, generated assembly, and metadata are
 preserved under `/tmp/tq-accuracy-eval.ReUkmn`.
 
 Adopt the backend as an opt-in acceleration for software-emulated dynamic
-MXFP4 decode on gfx1201. Do not enable it by default until graph-mode,
-multi-request, wider-model, and broader serving validation are complete.
+MXFP4 decode on gfx1201. The
+[full-decode graph validation](turboquant_gfx1201_full_graph_validation.md)
+now covers graph-mode, multi-request serving, and 32K contexts. Do not enable
+it by default until MTP prefix-cache reuse and broader model-quality and
+default-policy validation are complete.
