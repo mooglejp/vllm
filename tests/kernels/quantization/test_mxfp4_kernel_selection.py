@@ -18,6 +18,7 @@ from vllm.model_executor.kernels.linear import (
     MarlinMxFp4LinearKernel,
     MxFp4LinearKernel,
     MxFp4LinearLayerConfig,
+    TritonGfx1201Mxfp4LinearKernel,
     XPUMxFp4LinearKernel,
     init_mxfp4_linear_kernel,
     register_linear_kernel,
@@ -40,6 +41,7 @@ _TRUE_W4A4_KERNELS = [
     FlashInferMxFp4LinearKernel,
     XPUMxFp4LinearKernel,
     AiterMxfp4LinearKernel,
+    TritonGfx1201Mxfp4LinearKernel,
 ]
 
 # Weight-only (A16) kernels: they never quantize activations. They still accept
@@ -166,6 +168,40 @@ def test_aiter_kernel_is_supported_requires_native_mx_support():
         is_supported, reason = AiterMxfp4LinearKernel.is_supported()
     assert not is_supported
     assert reason
+
+
+def test_gfx1201_kernel_requires_opt_in_and_target_architecture():
+    module = "vllm.model_executor.kernels.linear.mxfp4.triton_gfx1201"
+    with patch(f"{module}.envs.VLLM_ROCM_USE_GFX1201_MXFP4_GEMM", False):
+        is_supported, reason = TritonGfx1201Mxfp4LinearKernel.is_supported()
+    assert not is_supported
+    assert "not enabled" in reason
+
+    with (
+        patch(f"{module}.envs.VLLM_ROCM_USE_GFX1201_MXFP4_GEMM", True),
+        patch(f"{module}._on_gfx1201", return_value=False),
+    ):
+        is_supported, reason = TritonGfx1201Mxfp4LinearKernel.is_supported()
+    assert not is_supported
+    assert "gfx1201" in reason
+
+    with (
+        patch(f"{module}.envs.VLLM_ROCM_USE_GFX1201_MXFP4_GEMM", True),
+        patch(f"{module}._on_gfx1201", return_value=True),
+        patch(f"{module}.has_quark", return_value=False),
+    ):
+        is_supported, reason = TritonGfx1201Mxfp4LinearKernel.is_supported()
+    assert not is_supported
+    assert "amd-quark" in reason
+
+    with (
+        patch(f"{module}.envs.VLLM_ROCM_USE_GFX1201_MXFP4_GEMM", True),
+        patch(f"{module}._on_gfx1201", return_value=True),
+        patch(f"{module}.has_quark", return_value=True),
+    ):
+        is_supported, reason = TritonGfx1201Mxfp4LinearKernel.is_supported()
+    assert is_supported
+    assert reason is None
 
 
 class OOTMxFp4LinearKernel(MxFp4LinearKernel):

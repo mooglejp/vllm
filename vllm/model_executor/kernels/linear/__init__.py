@@ -92,6 +92,9 @@ from vllm.model_executor.kernels.linear.mxfp4.humming import (
 from vllm.model_executor.kernels.linear.mxfp4.marlin import (
     MarlinMxFp4LinearKernel,
 )
+from vllm.model_executor.kernels.linear.mxfp4.triton_gfx1201 import (
+    TritonGfx1201Mxfp4LinearKernel,
+)
 from vllm.model_executor.kernels.linear.mxfp4.xpu import (
     XPUMxFp4LinearKernel,
 )
@@ -301,6 +304,7 @@ _LINEAR_BACKEND_KERNEL_MAP: dict[str, set[type]] = {
     "triton": {
         TritonInt8ScaledMMLinearKernel,
         TritonFp8BlockScaledMMKernel,
+        TritonGfx1201Mxfp4LinearKernel,
         TritonW4A16LinearKernel,
     },
     "deep_gemm": {
@@ -582,6 +586,7 @@ _POSSIBLE_MXFP4_KERNELS: dict[PlatformEnum, list[type[MxFp4LinearKernel]]] = {
     ],
     PlatformEnum.ROCM: [
         AiterMxfp4LinearKernel,
+        TritonGfx1201Mxfp4LinearKernel,
         EmulationMxfp4LinearKernel,
     ],
     PlatformEnum.XPU: [
@@ -1258,6 +1263,7 @@ __all__ = [
     "EmulationMxfp6LinearKernel",
     "AiterMxfp4LinearKernel",
     "EmulationMxfp4LinearKernel",
+    "TritonGfx1201Mxfp4LinearKernel",
     "FlashInferMxFp4LinearKernel",
     "MarlinMxFp4LinearKernel",
     "FlashInferCutedslMxfp8LinearKernel",

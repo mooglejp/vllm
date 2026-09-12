@@ -110,6 +110,9 @@ layers. Those model GEMMs, the drafter, and GDN dominate the approximately
 from this emulation environment, and the older 29.5/17.7 figures from another
 runtime remain non-comparable.
 
+The follow-up software-fused decode linear and its new bottleneck profile are
+documented in [gfx1201 software-fused MXFP4 decode linear](turboquant_gfx1201_mxfp4_fusion.md).
+
 ## Artifacts and decision
 
 The tracked fixed-buffer harness reproduces the stage comparison from a saved
