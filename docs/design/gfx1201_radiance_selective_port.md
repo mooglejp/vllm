@@ -1,6 +1,6 @@
 # gfx1201 Radiance selective-port implementation plan
 
-Status: implementation plan and inert scaffolding only
+Status: phase 2 reference and tests complete; production dispatch remains inert
 
 Base revision: `ef9433f1156ab44d8b2445778b83011605a9892f`
 
@@ -49,6 +49,14 @@ to StillDeadcode/libr4d and ggz14/Radiance MXFP4 work. Therefore:
 3. if licensing is unclear, reimplement from the documented algorithm and public
    behavior rather than transliterating source code;
 4. record the decision in this document before the first functional port commit.
+
+Phase 2 provenance decision (2026-09-12): the pinned GitHub mirror does not
+expose a repository license, and the README attributes major pieces to other
+projects. No Radiance implementation code is copied into vLLM. The phase 2
+W4A8 reference is a clean-room tensor implementation of the public A2 contract
+in this document, with the external commit retained only as a provenance and
+comparison pin. No external copyright notice is required for the reference
+implementation beyond the vLLM Apache-2.0 headers.
 
 Reference material for the first two workstreams:
 
@@ -363,17 +371,17 @@ justifies them:
 Luna should create or extend these exact assets as the phases land:
 
 - `benchmarks/kernels/benchmark_gfx1201_w4a8.py`
-  - direct preallocated-output kernel timing;
-  - current software-fused MXFP4 reference;
-  - independent W4A8 numerical reference;
-  - M/shape sweep and raw samples;
+    - direct preallocated-output kernel timing;
+    - current software-fused MXFP4 reference;
+    - independent W4A8 numerical reference;
+    - M/shape sweep and raw samples;
 - `tests/kernels/quantization/test_mxfp4_gfx1201_w4a8.py`
-  - packing, E2M1/E8M0 boundaries, FP8-scale boundaries, N/K tails, all real
+    - packing, E2M1/E8M0 boundaries, FP8-scale boundaries, N/K tails, all real
     dense shapes, M=1..4 initially;
 - `benchmarks/kernels/benchmark_gfx1201_fast_draft_head.py`
-  - exact BF16 argmax, INT2 coarse candidates, exact rerank, recall and timing;
+    - exact BF16 argmax, INT2 coarse candidates, exact rerank, recall and timing;
 - `tests/kernels/test_gfx1201_fast_draft_head.py`
-  - packing round trip/reference, candidate bounds, rerank correctness, unsupported
+    - packing round trip/reference, candidate bounds, rerank correctness, unsupported
     fallback;
 - reuse the existing rollout-quality/soak instrumentation rather than creating
   a second incompatible model-level gate.
@@ -383,6 +391,15 @@ Every benchmark result adopted into production gets a design report under
 location, negative candidates, and rollback instructions.
 
 ## 9. Planned commit sequence
+
+Phase 2 gate record (2026-09-12): the independent BF16-to-FP8 E4M3 activation
+reference, row-major MXFP4 E2M1/E8M0 decoder, and BF16-output W4A8 linear
+reference are covered by CPU tests for row scales, zero rows, finite FP8
+clamping, nibble order, E8M0 edge values, shape validation, M=1..4, and
+non-registration. The phase-2 test gate passes on the target environment. No
+production import, dispatch, environment variable, model integration, cache
+layout, or default behavior is changed. Phase 3 remains a separate decode-only
+step and must satisfy the A3 adoption gate before any later phase is started.
 
 Use this sequence unless a phase fails its gate:
 
