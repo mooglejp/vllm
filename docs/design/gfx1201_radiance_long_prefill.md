@@ -919,6 +919,17 @@ used `max_num_kv_splits=1`; the production split=32 control reduced its time
 but remained 1.98--2.05x slower than the existing unified launcher called as a
 single q128 chunk. This supports a query-decomposition/work-partition
 hypothesis, but no production dispatch change has been made.
+The q-length sweep shows regressions at q16/q32 and only about 1.05x at q64;
+the candidate opt-in is consequently limited to cached q128 continuations
+and remains default-off as `VLLM_TQ_GFX1201_K8V4_UNIFIED_CONTINUATION`. Model
+quality, capacity, and cold-32K gates were then checked on a model replay. The
+compiled 4K/q128 candidate was only 1.13x faster than baseline (11.691 s vs
+13.220 s, below the exploratory 1.5x gate), and 47 of 64 greedy token IDs
+differed. The candidate was rejected; the 32K candidate was not run after this
+early gate failure. The opt-in remains default-off and no production dispatch
+changed. Raw rows are under
+`/tmp/tq-radiance-delta-20260913/model-q128/`, with the reproducible client in
+`benchmarks/benchmark_gfx1201_unified_continuation_model.py`.
 The control is diagnostic only; keep it out of production commits unless a
 later design explicitly changes the cache contract and supplies new numerical,
 quality, capacity, and performance gates. Radiance source remains subject to
@@ -934,7 +945,7 @@ the P0 provenance restriction; use clean-room behavior and measurements.
 6. `[TurboQuant] Evaluate gfx1201 raw prefill attention` — P4.0/P4.1 profile and benchmark-only decision; current candidate rejected, no production integration.
 7. `[ROCm] Fuse gfx1201 GDN prefill` — P5 gate not met; no implementation.
 8. `[gfx1201] Qualify long-prefill composition` — P6 skipped because no phase was adopted; baseline remains validated.
-9. `[gfx1201] Diagnose Radiance delta` — future plan; isolated FP8-KV/Radiance control with new gates.
+9. `[gfx1201] Diagnose Radiance delta` — future plan; isolated FP8-KV/Radiance control with new gates. The q128 unified work-partition candidate was rejected on the model speed/greedy-output gate and is not part of the validated lane.
 
 The P2.2 candidate remains behind its explicit default-off gate and is not enabled. P2.2 evaluation is closed for the current candidates. The current P3 candidate failed its production-weighted speed gate and remains default-off; reopening it requires a new kernel hypothesis. P4.0/P4.1 are complete for the current candidate and failed the kernel speed gate; no P4 production dispatch or later production change is enabled.
 

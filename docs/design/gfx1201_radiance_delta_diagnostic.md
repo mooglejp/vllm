@@ -155,6 +155,58 @@ production experiment would need a default-off opt-in, actual metadata, model
 quality/capacity checks, and a cold long-prefill A/B; no dispatch or threshold
 was changed here.
 
+## q-length scope control (2026-09-13)
+
+Before wiring an opt-in, the same control swept q16/q32/q64/q128 at 4K and
+32K. The table shows the production-split adapter and unified 2D medians:
+
+| cached / q | adapter split=32 | unified chunk 2D | unified speedup |
+| ---: | ---: | ---: | ---: |
+| 4K / 16 | 1,517.5 us | 4,740.8 us | 0.32x |
+| 4K / 32 | 2,694.5 us | 4,806.9 us | 0.56x |
+| 4K / 64 | 5,141.8 us | 4,899.3 us | 1.05x |
+| 4K / 128 | 9,898.1 us | 4,936.0 us | 2.00x |
+| 32K / 16 | 10,064.9 us | 37,267.5 us | 0.27x |
+| 32K / 32 | 18,970.7 us | 36,561.8 us | 0.52x |
+| 32K / 64 | 39,629.8 us | 37,881.4 us | 1.05x |
+| 32K / 128 | 76,473.0 us | 38,635.0 us | 1.98x |
+
+All unified outputs in this sweep were finite. The crossover makes a blanket
+q_len<=128 replacement unjustified: q16/q32 regress, and q64 is below the
+1.3x exploratory speed margin. The first production candidate is therefore
+limited to cached `q_len == 128` behind the new default-off
+`VLLM_TQ_GFX1201_K8V4_UNIFIED_CONTINUATION` opt-in. The existing q<128 adapter,
+q>128 continuation path, first-chunk prefill, decode, MTP2, and cache layout
+remain unchanged. The model-quality and cold-32K gates are still pending.
+
+## q128 model opt-in gate (2026-09-13)
+
+The q128-only opt-in was replayed on the official Quark MXFP4 model with TP1,
+TurboQuant K8/V4, MTP2, adaptive verification disabled, `max_num_batched_tokens`
+128, compilation disabled with `FULL_DECODE_ONLY`, one request, and fixed greedy
+64-token output. The baseline and candidate used the same generated token
+prompts and server settings; only
+`VLLM_TQ_GFX1201_K8V4_UNIFIED_CONTINUATION` changed. A first candidate 4K
+request included Triton compilation, so it was not used for the speed gate. A
+second request in the same candidate process was used after compilation:
+
+| model case | baseline TTFT | candidate TTFT | speedup | token output |
+| --- | ---: | ---: | ---: | --- |
+| 4K / q128 continuation | 13.220 s | 11.691 s | 1.13x | 47/64 token IDs differ |
+
+The candidate was finite and the server completed normally, but it missed the
+1.5x exploratory model gate and changed the greedy output substantially. The
+32K candidate was intentionally not run after this gate failure. The q128
+unified continuation opt-in is therefore **rejected and remains disabled**;
+the result does not reopen P2.2 or change the production q<128 adapter,
+q>128 continuation, decode, MTP2, or cache layout.
+
+Artifacts are `/tmp/tq-radiance-delta-20260913/model-q128/model-q128-baseline.jsonl`,
+`/tmp/tq-radiance-delta-20260913/model-q128/model-q128-candidate.jsonl`, and
+`/tmp/tq-radiance-delta-20260913/model-q128/model-q128-candidate-4k-repeat.jsonl`.
+The reproducible request harness is
+`benchmarks/benchmark_gfx1201_unified_continuation_model.py`.
+
 ## Interpretation and stop point
 
 At 32K/q256, prefix decode was `1.353 ms` for FP8 and `1.547 ms` for K8/V4,
@@ -180,6 +232,7 @@ Artifacts:
 - `/tmp/tq-radiance-delta-20260913/kv-format-direct-reader.json` (historical
   split=1 run)
 - `/tmp/tq-radiance-delta-20260913/kv-format-unified-chunk.json`
+- `/tmp/tq-radiance-delta-20260913/kv-format-unified-sweep.json`
 - `/tmp/tq-radiance-delta-20260913/kv-format-smoke.json`
 
 Reproduction inside the GPU container:
@@ -207,6 +260,13 @@ Reproduction inside the GPU container:
   benchmarks/kernels/benchmark_gfx1201_kv_format_diagnostic.py \
   --output /tmp/tq-kvdiag-unified-20260913.json \
   --cached-lens 4096 32768 --q-lens 128 \
+  --warmups 2 --samples 3 --flush-mib 64 \
+  --production-max-num-kv-splits 32
+
+/tmp/tq-venv/bin/python \
+  benchmarks/kernels/benchmark_gfx1201_kv_format_diagnostic.py \
+  --output /tmp/tq-kvdiag-unified-sweep-20260913.json \
+  --cached-lens 4096 32768 --q-lens 16 32 64 128 \
   --warmups 2 --samples 3 --flush-mib 64 \
   --production-max-num-kv-splits 32
 ```

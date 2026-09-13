@@ -416,6 +416,46 @@ class TestGfx1201TargetProfile:
             sliding_window=profile["sliding_window"],
         )
 
+    def test_unified_continuation_gate_is_default_off_and_q128_only(self, monkeypatch):
+        from vllm.v1.attention.backends import turboquant_attn
+
+        monkeypatch.setattr(
+            turboquant_attn.envs,
+            "VLLM_TQ_GFX1201_K8V4_UNIFIED_CONTINUATION",
+            False,
+        )
+        gate = turboquant_attn._should_use_gfx1201_unified_continuation
+        assert not gate(
+            q_len=128,
+            cached_len=4096,
+            use_gfx1201_fast=True,
+            soa_store=True,
+        )
+
+        monkeypatch.setattr(
+            turboquant_attn.envs,
+            "VLLM_TQ_GFX1201_K8V4_UNIFIED_CONTINUATION",
+            True,
+        )
+        assert gate(
+            q_len=128,
+            cached_len=4096,
+            use_gfx1201_fast=True,
+            soa_store=True,
+        )
+        for q_len, cached_len, use_fast, soa_store in (
+            (64, 4096, True, True),
+            (128, 0, True, True),
+            (128, 4096, False, True),
+            (128, 4096, True, False),
+        ):
+            assert not gate(
+                q_len=q_len,
+                cached_len=cached_len,
+                use_gfx1201_fast=use_fast,
+                soa_store=soa_store,
+            )
+
     @pytest.mark.parametrize(
         ("q_len", "cached_len", "expected"),
         [(128, 129, False), (129, 0, False), (129, 129, True)],

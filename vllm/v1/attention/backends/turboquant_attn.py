@@ -168,6 +168,23 @@ def _supports_gfx1201_spec_decode(
     )
 
 
+def _should_use_gfx1201_unified_continuation(
+    *,
+    q_len: int,
+    cached_len: int,
+    use_gfx1201_fast: bool,
+    soa_store: bool,
+) -> bool:
+    """Gate the benchmarked one-sequence unified q128 continuation path."""
+    return (
+        envs.VLLM_TQ_GFX1201_K8V4_UNIFIED_CONTINUATION
+        and use_gfx1201_fast
+        and soa_store
+        and cached_len > 0
+        and q_len == _CONTINUATION_DECODE_THRESHOLD
+    )
+
+
 def _soa_imports():
     """Lazy import of the HIP-free SoA Triton subset (store / dequant / decode).
 
@@ -184,6 +201,15 @@ def _soa_imports():
     )
 
     return soa_store, soa_dequant, soa_decode
+
+
+def _soa_unified_import():
+    """Lazily import the benchmarked unified K8/V4 continuation launcher."""
+    from vllm.v1.attention.ops.turboquant_soa.triton_turboquant_unified_attention import (  # noqa: E501
+        triton_turboquant_unified_attention,
+    )
+
+    return triton_turboquant_unified_attention
 
 
 def _build_hadamard(d: int, device_str: str) -> torch.Tensor:
@@ -941,7 +967,41 @@ class TurboQuantAttentionImpl(AttentionImpl["TurboQuantMetadata"]):
                 # avoid O(cached_len) full-dequant per continuation.
                 # For large continuations, fall back to _continuation_prefill.
                 cached_len = seq_len - q_len
-                if q_len <= _CONTINUATION_DECODE_THRESHOLD:
+                if _should_use_gfx1201_unified_continuation(
+                    q_len=q_len,
+                    cached_len=cached_len,
+                    use_gfx1201_fast=self._use_gfx1201_fast,
+                    soa_store=self._soa_store,
+                ):
+                    # All visible positions, including the current chunk, are
+                    # already stored in the quantized cache. Keep this path
+                    # separate from the rejected raw-current candidate.
+                    unified_attention = _soa_unified_import()
+                    self._cu_2[0:1] = 0
+                    self._cu_2[1:2] = q_len
+                    out = unified_attention(
+                        query=q_seq,
+                        kv_cache=kv_cache,
+                        block_table=attn_metadata.block_table[i : i + 1],
+                        seq_lens=attn_metadata.seq_lens[i : i + 1],
+                        query_start_loc=self._cu_2,
+                        Pi=Pi,
+                        centroids=centroids,
+                        scale=self.scale,
+                        mse_bits=self.tq_config.key_mse_bits,
+                        key_packed_size=self.tq_config.key_packed_size,
+                        value_quant_bits=self.tq_config.effective_value_quant_bits,
+                        value_packed_size=self.tq_config.value_packed_size,
+                        key_fp8=self.tq_config.key_fp8,
+                        norm_correction=self.tq_config.norm_correction,
+                        PiT=PiT,
+                        output=output[q_start:q_end],
+                        max_query_len=q_len,
+                        max_seq_len=int(seq_len),
+                        num_kv_splits=self.max_num_kv_splits,
+                        force_2d=True,
+                    )
+                elif q_len <= _CONTINUATION_DECODE_THRESHOLD:
                     # Fast path: treat each query as a decode request
                     # with incremental seq_lens for causal masking.
                     # Slice from pre-built arange (no kernel launch)

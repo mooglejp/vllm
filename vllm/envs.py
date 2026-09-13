@@ -150,6 +150,7 @@ if TYPE_CHECKING:
     VLLM_ROCM_USE_AITER_FUSION_SHARED_EXPERTS: bool = False
     VLLM_TQ_GFX1201_K8V4: bool = False
     VLLM_TQ_GFX1201_K8V4_PREFILL: bool = False
+    VLLM_TQ_GFX1201_K8V4_UNIFIED_CONTINUATION: bool = False
     VLLM_ROCM_USE_GFX1201_MXFP4_GEMM: bool = False
     VLLM_ROCM_USE_GFX1201_MXFP4_W4A8: bool = False
     VLLM_ROCM_USE_GFX1201_MXFP4_W4A8_PREFILL: bool = False
@@ -1358,6 +1359,11 @@ environment_variables: dict[str, Callable[[], Any]] = {
     # Experimental opt-in for raw-current gfx1201 K8/V4 continuation prefill.
     "VLLM_TQ_GFX1201_K8V4_PREFILL": lambda: (
         os.getenv("VLLM_TQ_GFX1201_K8V4_PREFILL", "False").lower() in ("true", "1")
+    ),
+    # Experimental opt-in for q128 K8/V4 continuation through unified 2D.
+    "VLLM_TQ_GFX1201_K8V4_UNIFIED_CONTINUATION": lambda: (
+        os.getenv("VLLM_TQ_GFX1201_K8V4_UNIFIED_CONTINUATION", "False").lower()
+        in ("true", "1")
     ),
     # Use the software-fused OCP MXFP4 small-M GEMM on ROCm gfx1201.
     "VLLM_ROCM_USE_GFX1201_MXFP4_GEMM": lambda: (
