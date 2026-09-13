@@ -1,12 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-"""Replay the saved P2.2 layer-3 candidates without a model run.
+"""Replay saved P2.2 candidate arithmetic without a model run.
 
 The input is one immutable baseline snapshot and its saved FP64 references.
-The BF16 and PV-FP32 paths below reproduce the existing online-softmax
-candidate arithmetic on the same BF16 Q/K/V contract.  When requested, the
-existing Triton cache reader is used only to verify that candidate prefix
-dequantization reproduces the saved FP16 workspace and BF16-rounded prefix.
+The BF16 and PV-FP32 paths below are PyTorch replays of the existing
+online-softmax precision settings on the same BF16 Q/K/V contract; they do not
+invoke the production Triton attention launcher. When requested, the existing
+Triton cache reader is used only to verify that candidate prefix dequantization
+reproduces the saved FP16 workspace and BF16-rounded prefix.
 No production launcher, threshold, dispatch, or later phase is changed.
 """
 
@@ -351,7 +352,7 @@ def _row(
 
 def markdown_table(result: dict[str, Any]) -> str:
     lines = [
-        "# P2.2 offline candidate comparison",
+        "# P2.2 offline PyTorch candidate-arithmetic replay",
         "",
         f"- snapshot: `{result['snapshot']}`",
         f"- references: `{result['references']}`",
@@ -359,6 +360,8 @@ def markdown_table(result: dict[str, Any]) -> str:
         f"- device: `{result['device']}`",
         "- input contract: BF16 query, BF16-rounded prefix, raw BF16 current K/V",
         "- SDPA reference: explicit Math backend",
+        "- candidate execution: PyTorch arithmetic replay; production Triton "
+        "attention launcher not invoked",
         "",
         "## Three-route final BF16 table",
         "",
@@ -401,7 +404,9 @@ def markdown_table(result: dict[str, Any]) -> str:
             json.dumps(result["prefix_verification"], indent=2),
             "```",
             "",
-            "The numeric gate is the existing synthetic criterion: candidate "
+            "This table is a PyTorch precision-setting replay, not a rerun of "
+            "the production Triton candidate kernel. The numeric gate is the "
+            "existing synthetic criterion: candidate "
             "max-abs and RMSE must each be no more than 1.1x the old SDPA "
             "error against the same BF16-input FP64 reference after the final "
             "BF16 cast. This artifact closes the diagnostic supplement only; "
@@ -555,6 +560,8 @@ def main() -> None:
 
     result = {
         "revision": "91fea1f79eb2bd9e3c6e06ae56b96aa5683bdcda",
+        "execution_kind": "offline_torch_operation_replay",
+        "production_attention_launcher_executed": False,
         "snapshot": str(args.snapshot),
         "references": str(args.references),
         "layer": snapshot.get("layer"),

@@ -1,6 +1,6 @@
 # gfx1201 long-prefill selective-port plan
 
-Status: P0 provenance gate recorded; P1 baseline profile complete; P2.1 reuse evaluation complete; P2.2 candidate and real-model validation complete; adoption gate not passed; default dispatch unchanged
+Status: P0 provenance gate recorded; P1 baseline profile complete; P2.1 reuse evaluation complete; P2.2 current candidates evaluated and rejected; P3 independent evaluation not started; default dispatch unchanged
 
 Base revision: `787189270cc97f0671e2f2f4aa33a506b07df335`
 
@@ -211,7 +211,7 @@ Workspace accounting confirms the split warning. At 32K/q512, current-large expl
 
 P2.1 reuse adoption gate: **not adopted**. The generic reader fails the speed gate. The specialized reader passes the device-time and workspace checks on the completed common points (including 32K/q256) and is much faster on the synthetic 32K/q512 control, but it violates the current raw-current-chunk numerical contract. The P1 model run remains the authority for capacity: chunk 512/32K old path OOMed, so the synthetic 32K/q512 timing is not used as an old-path speed ratio. Likewise, the P1 64K model result remains a 600-second timeout, not an OOM; the synthetic 64K/q64 completion does not infer a 120K result.
 
-No production threshold or default dispatch was changed. P2.2 has a default-off candidate hook for the narrow target profile; real-model speed and capacity observations are recorded, but the adoption gate is not passed because the quality evidence requires remediation.
+No production threshold or default dispatch was changed. P2.2 had a default-off candidate hook for the narrow target profile; real-model speed and capacity observations are recorded, but the adoption gate was not passed. The current candidate evaluation is closed and the hook remains disabled.
 
 ### P2.2 dedicated streaming kernel
 
@@ -358,8 +358,9 @@ The machine-readable records and diagnostic tensors are preserved under
 `/tmp/tq-p2.2-real-20260913/`. P2.2 therefore remains **candidate
 implementation only**: the speed and capacity observations are recorded, but
 the adoption gate is **not passed** because the production quality evidence
-is not acceptable. No threshold, default dispatch, or later P3 work is
-enabled.
+is not acceptable. The current candidate evaluation is closed with the
+candidates rejected; it is not a pending request to repeat the same
+diagnosis. No threshold, default dispatch, or later P3 work is enabled.
 
 ### P2.2 numerical diagnosis before any model re-evaluation (2026-09-13)
 
@@ -444,8 +445,9 @@ RMSE `0.859348`, so PV-FP32 does not recover the end-to-end discrepancy.
 The artifacts are preserved under `/tmp/tq-p2.2-real-20260913/`, including
 `replaydiag/results/numerics-pvfp32.json`, the paired 32K kernel timings, and
 `diag/*-pvfp32*`. The PV-FP32 switch is therefore retained only as a recorded
-cause-isolation candidate and is **not adopted**. P2.2 remains candidate-only;
-production defaults, thresholds, and all P3 work remain unchanged.
+cause-isolation candidate and is **not adopted**. The current P2.2 candidate
+evaluation is closed; production defaults, thresholds, and all P3 work remain
+unchanged.
 
 ### P2.2 saved FP64 comparison and 4K first-difference trace (2026-09-13)
 
@@ -551,10 +553,13 @@ all elements were equal. Prefix dequantization and the cache/block mapping are
 therefore not the source of the remaining candidate arithmetic difference in
 this fixed case.
 
-Both candidates were replayed offline on the same BF16 input. The rows below
-show the final BF16 output against the FP64 reference before and after the
-final BF16 cast; the pre-cast candidate rows are retained separately because
-the old SDPA artifact only stores its final BF16 output.
+Both candidates were replayed offline by a PyTorch implementation of their
+precision settings on the same BF16 input. This program does not invoke the
+production Triton attention launcher; `--verify-prefix` invokes the existing
+Triton cache reader only for prefix-dequantization verification. The rows
+below show the final BF16 output against the FP64 reference before and after
+the final BF16 cast; the pre-cast candidate rows are retained separately
+because the old SDPA artifact only stores its final BF16 output.
 
 | route | max-abs vs FP64 pre-cast | RMSE vs FP64 pre-cast | relative L2 vs FP64 pre-cast | max-abs vs FP64 BF16-cast | RMSE vs FP64 BF16-cast | relative L2 vs FP64 BF16-cast | numeric gate |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
@@ -574,8 +579,8 @@ same BF16-input FP64 reference after the final BF16 cast. The old SDPA baseline
 limits are max-abs `0.004296875` and RMSE `0.000010024`; the BF16 candidate
 and PV-FP32 candidate exceed both limits. The fixed-input numeric gate is thus
 **not passed** for either candidate. This closes the requested diagnostic
-supplement only; P2.2 adoption remains not passed and no production threshold,
-dispatch, or P3 work is enabled.
+supplement. Both current candidates are rejected and P2.2 evaluation is
+finished; no production threshold, dispatch, or P3 work is enabled.
 
 The GPU result, Markdown table, and replay tensors are preserved at
 `/tmp/tq-p2.2-real-20260913/trace4k/offline-candidates-gpu.json`,
@@ -594,6 +599,21 @@ run with:
   --save-outputs /cache/tq-p2.2-real-20260913/trace4k/offline-candidate-outputs.pt \
   --device cuda --verify-prefix
 ```
+
+### P2.2 evaluation closure (2026-09-13)
+
+The BF16 and PV-FP32 implementations are **evaluated and rejected**. The
+diagnostic supplement is complete; no further replay or model run is needed
+for these same candidates. The BF16 candidate lacks the required fixed-input
+numeric evidence, while PV-FP32 improves the pre-cast local arithmetic but
+still fails the final BF16-cast gate and the measured speed requirement.
+
+This is a decision about these two implementations, not a proof that streaming
+attention is impossible and not a model-quality conclusion beyond the recorded
+gates. Reopening P2.2 requires a different implementation hypothesis and a new
+plan/adoption gate. P3 may be evaluated independently against the existing
+attention path; it does not depend on enabling or rescuing P2.2. This record
+does not start P3.
 
 ## P3: native FP8-WMMA W4A8 large-M only
 
@@ -679,10 +699,10 @@ If qualified K8/V4 remains far below historical Radiance, run an isolated FP8-KV
 1. `[gfx1201] Plan long-prefill Radiance follow-up` — this plan + inert P2/P5 scaffolds; runtime unchanged.
 2. `[gfx1201] Profile K8V4 long prefill` — P1 helpers/report only.
 3. `[TurboQuant] Audit wide-query direct prefill reuse` — P2.1 benchmark/decision only.
-4. `[TurboQuant] Stream gfx1201 K8V4 continuation prefill` — P2.2 candidate only; adoption gate remains pending.
+4. `[TurboQuant] Stream gfx1201 K8V4 continuation prefill` — P2.2 current candidates evaluated and rejected; evaluation closed. Reopen only with a different implementation hypothesis and a new gate.
 5. `[MXFP4] Add gfx1201 native W4A8 prefill` — P3, independent of failed A3.
 6. `[TurboQuant] Add gfx1201 raw prefill attention` — P4 only if profile-gated.
 7. `[ROCm] Fuse gfx1201 GDN prefill` — P5 only if profile-gated.
 8. `[gfx1201] Qualify long-prefill composition` — P6 report/quality/needles/prefix/soak; defaults unchanged.
 
-The P2.2 candidate is imported only through its explicit default-off gate. P3/P4/P5 scaffolds remain unimported until their own phase gates pass; no later production dispatch is enabled.
+The P2.2 candidate remains behind its explicit default-off gate and is not enabled. P2.2 evaluation is closed for the current candidates. P3/P4/P5 scaffolds remain unimported until their own phase gates pass; no later production dispatch is enabled.
