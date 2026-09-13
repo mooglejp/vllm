@@ -79,8 +79,9 @@ current validated K8/V4 direct reader with two attention-only controls:
 - `bf16_math_attention_only`: raw BF16 prefix/current K/V with Math SDPA;
 - `k8v4_all_quantized_math_attention_only`: every cached K/V position decoded
   to BF16 first, then the same Math SDPA;
-- `k8v4_direct_reader`: the existing unified K8/V4 direct-reader kernel, with
-  `q_len=128` rows, `max_num_kv_splits=1`, and the same cache metadata.
+- `k8v4_direct_reader_split1`: the existing unified K8/V4 direct-reader
+  adapter, with `q_len=128` rows, `max_num_kv_splits=1`, and the same cache
+  metadata.
 
 This is a backend control, not a replay of a production continuation request,
 and it does not use the rejected P2.2 streaming candidate. The attention inputs
@@ -93,7 +94,9 @@ samples, and a 64 MiB flush are retained from the cache-format experiment.
 | 32K / 128 | 52,879.7 us | 52,597.9 us | 95,224.9 us | 1.80x |
 
 The all-quantized Math control is within 1.1% of the raw BF16 Math control,
-while the direct reader is about 1.8--2.0x slower. Its outputs were finite and
+while the split=1 direct-reader adapter is about 1.8--2.0x slower. This split=1
+value is a diagnostic setting, not the production direct-reader latency. Its
+outputs were finite and
 its representative-row relative L2 errors against the raw BF16 FP64 oracle
 were `0.10952` (4K) and `0.12090` (32K); these remain synthetic cache-format
 diagnostics, not model-quality results. The corresponding K8/V4 decode-only
@@ -106,6 +109,51 @@ control also shows the expected chunking effect at 32K: q128/q256/q512
 attention medians were `52,879.7`/`77,513.1`/`148,859.0 us`, or roughly
 `413`/`303`/`291 us` per query token. This is a diagnostic observation only;
 it does not authorize a scheduler or production chunk-size change.
+
+## Unified chunk backend control (2026-09-13)
+
+The split setting and query decomposition were then separated in one
+benchmark-only run. The cache and K8/V4 metadata stayed fixed, and the q128
+query was run through:
+
+- the existing decode adapter with `max_num_kv_splits=1`;
+- the same adapter with the production default
+  `tq_max_kv_splits_for_cuda_graph=32`;
+- `triton_turboquant_unified_attention` directly as one sequence with
+  `query_start_loc=[0, 128]`, `seq_lens=[cached_len + 128]`,
+  `max_query_len=128`, and `force_2d=True`.
+
+All three K8/V4 paths read the quantized cache for both prefix and current
+positions. The final path is therefore a work-partition control for the
+current production contract, not the rejected P2.2 raw-current streaming
+candidate. Math SDPA and the all-quantized Math control are retained as the
+same-case references.
+
+| cached / q | BF16 Math | K8/V4 all-quantized Math | adapter split=1 | adapter split=32 | unified chunk 2D |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 4K / 128 | 6,278.0 us | 6,189.3 us | 12,396.6 us | 10,241.5 us | 5,007.4 us |
+| 32K / 128 | 53,860.7 us | 53,043.0 us | 95,215.6 us | 76,158.6 us | 38,529.3 us |
+
+The production split improves the adapter by about 1.21x (4K) and 1.25x
+(32K) over split=1, so the earlier result must not be called production
+latency. The unified chunk path is still 2.05x/1.98x faster than the
+production-split adapter and 2.48x/2.47x faster than split=1. It is also
+1.25x/1.40x faster than the BF16 Math control at these two lengths.
+
+All outputs were finite. Against the representative-row raw BF16 FP64 oracle,
+the unified path had relative L2 `0.10951` (4K) and `0.12088` (32K), matching
+the direct-reader envelope (`0.10952`/`0.12090`). Its representative-row
+differences from the production-split adapter had max-abs `0.0004883`/`0.0001221`
+and relative L2 `0.00285`/`0.00304`. These are synthetic numerical controls,
+not model-quality gates.
+
+This result supports the hypothesis that converting a q128 continuation into
+128 one-token decode requests is a major cost, while retaining K8/V4 itself is
+not. It is not yet a production adoption result: the benchmark uses one
+synthetic request, no sinks or sliding window, and no model replay. A future
+production experiment would need a default-off opt-in, actual metadata, model
+quality/capacity checks, and a cold long-prefill A/B; no dispatch or threshold
+was changed here.
 
 ## Interpretation and stop point
 
@@ -129,7 +177,9 @@ Artifacts:
 - [benchmark source](/home/emmett/vllm-tq/benchmarks/kernels/benchmark_gfx1201_kv_format_diagnostic.py)
 - `/tmp/tq-radiance-delta-20260913/kv-format-4k32k.json`
 - `/tmp/tq-radiance-delta-20260913/kv-format-32k-q512.json`
-- `/tmp/tq-radiance-delta-20260913/kv-format-direct-reader.json`
+- `/tmp/tq-radiance-delta-20260913/kv-format-direct-reader.json` (historical
+  split=1 run)
+- `/tmp/tq-radiance-delta-20260913/kv-format-unified-chunk.json`
 - `/tmp/tq-radiance-delta-20260913/kv-format-smoke.json`
 
 Reproduction inside the GPU container:
@@ -152,4 +202,11 @@ Reproduction inside the GPU container:
   --output /tmp/tq-kvdiag-direct-20260913.json \
   --cached-lens 4096 32768 --q-lens 128 \
   --warmups 2 --samples 3 --flush-mib 64
+
+/tmp/tq-venv/bin/python \
+  benchmarks/kernels/benchmark_gfx1201_kv_format_diagnostic.py \
+  --output /tmp/tq-kvdiag-unified-20260913.json \
+  --cached-lens 4096 32768 --q-lens 128 \
+  --warmups 2 --samples 3 --flush-mib 64 \
+  --production-max-num-kv-splits 32
 ```

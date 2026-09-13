@@ -10,7 +10,9 @@ three paths use the same BF16 Q/K/V tensors and causal continuation mask:
 * ``fp8_prefix_math`` stores the prefix as FP8 E4M3, decodes it to BF16, and
   then uses Math SDPA;
 * ``k8v4_prefix_math`` stores the prefix with the existing TurboQuant K8/V4
-  writer, decodes it with the existing reader, and then uses Math SDPA.
+  writer, decodes it with the existing reader, and then uses Math SDPA;
+* the q128 backend control compares the decode adapter with the same unified
+  launcher in its single-sequence chunked-prefill shape.
 
 The full-path timings include prefix decode and dense K/V assembly.  Separate
 attention-only timings use already materialized BF16 K/V, so a large common
@@ -45,6 +47,7 @@ from vllm.v1.attention.ops.turboquant_soa.triton_turboquant_store import (
 )
 from vllm.v1.attention.ops.turboquant_soa.triton_turboquant_unified_attention import (
     triton_turboquant_decode_attention_soa,
+    triton_turboquant_unified_attention,
 )
 
 H_Q = 24
@@ -52,6 +55,7 @@ H_K = 4
 HEAD_DIM = 256
 BLOCK_SIZE = 16
 FP8_DTYPE = torch.float8_e4m3fn
+DEFAULT_PRODUCTION_MAX_NUM_KV_SPLITS = 32
 
 
 @dataclass(frozen=True)
@@ -307,9 +311,30 @@ def row_metrics(
     output: torch.Tensor,
     oracle: dict[tuple[int, int], torch.Tensor],
 ) -> dict[str, float]:
-    actual = torch.stack([output[row, head].double() for row, head in oracle], dim=0)
+    actual = representative_output(output, oracle)
     reference = torch.stack(list(oracle.values()), dim=0)
     return error_metrics(actual, reference)
+
+
+def representative_output(
+    output: torch.Tensor,
+    oracle: dict[tuple[int, int], torch.Tensor],
+) -> torch.Tensor:
+    return torch.stack(
+        [output[row, head].double() for row, head in oracle],
+        dim=0,
+    )
+
+
+def pairwise_row_metrics(
+    actual: torch.Tensor,
+    reference: torch.Tensor,
+    oracle: dict[tuple[int, int], torch.Tensor],
+) -> dict[str, float]:
+    return error_metrics(
+        representative_output(actual, oracle),
+        representative_output(reference, oracle),
+    )
 
 
 def time_record(times_us: list[float]) -> dict[str, object]:
@@ -329,6 +354,7 @@ def benchmark_case(
     samples: int,
     flush: torch.Tensor,
     seed: int,
+    production_max_num_kv_splits: int,
 ) -> dict[str, object]:
     generator = torch.Generator(device=device).manual_seed(seed)
     dtype = torch.bfloat16
@@ -382,8 +408,13 @@ def benchmark_case(
     )
     all_decode_v = torch.empty_like(all_decode_k)
     direct_output = torch.empty_like(query)
+    unified_output = torch.empty_like(query)
     direct_seq_lens = torch.arange(
         case.cached_len + 1, case.seq_len + 1, dtype=torch.int32, device=device
+    )
+    unified_seq_lens = torch.tensor([case.seq_len], dtype=torch.int32, device=device)
+    unified_query_start_loc = torch.tensor(
+        [0, case.q_len], dtype=torch.int32, device=device
     )
     oracle = oracle_rows(query, key, value, case, scale)
 
@@ -477,7 +508,9 @@ def benchmark_case(
     def run_k8v4_all_attention_only() -> torch.Tensor:
         return run_k8v4_all_attention()
 
-    def run_k8v4_direct_reader() -> torch.Tensor:
+    def run_k8v4_direct_reader_with_splits(
+        max_num_kv_splits: int,
+    ) -> torch.Tensor:
         return triton_turboquant_decode_attention_soa(
             query=query,
             kv_cache=tq_cache,
@@ -492,9 +525,40 @@ def benchmark_case(
             value_packed_size=config.value_packed_size,
             key_fp8=config.key_fp8,
             norm_correction=config.norm_correction,
+            PiT=pit,
             max_seq_len=case.seq_len,
             output_buf=direct_output,
-            max_num_kv_splits=1,
+            max_num_kv_splits=max_num_kv_splits,
+        )
+
+    def run_k8v4_direct_reader_split1() -> torch.Tensor:
+        return run_k8v4_direct_reader_with_splits(1)
+
+    def run_k8v4_direct_reader_production_split() -> torch.Tensor:
+        return run_k8v4_direct_reader_with_splits(production_max_num_kv_splits)
+
+    def run_k8v4_unified_chunk_2d() -> torch.Tensor:
+        return triton_turboquant_unified_attention(
+            query=query,
+            kv_cache=tq_cache,
+            block_table=block_table,
+            seq_lens=unified_seq_lens,
+            query_start_loc=unified_query_start_loc,
+            Pi=pit,
+            centroids=centroids,
+            scale=scale,
+            mse_bits=config.key_mse_bits,
+            key_packed_size=config.key_packed_size,
+            value_quant_bits=config.effective_value_quant_bits,
+            value_packed_size=config.value_packed_size,
+            key_fp8=config.key_fp8,
+            norm_correction=config.norm_correction,
+            PiT=pit,
+            output=unified_output,
+            max_query_len=case.q_len,
+            max_seq_len=case.seq_len,
+            num_kv_splits=production_max_num_kv_splits,
+            force_2d=True,
         )
 
     def run_k8v4_decode() -> torch.Tensor:
@@ -524,7 +588,11 @@ def benchmark_case(
     }
     if case.q_len <= 128:
         methods["k8v4_all_quantized_math_attention_only"] = run_k8v4_all_attention_only
-        methods["k8v4_direct_reader"] = run_k8v4_direct_reader
+        methods["k8v4_direct_reader_split1"] = run_k8v4_direct_reader_split1
+        methods["k8v4_direct_reader_production_split"] = (
+            run_k8v4_direct_reader_production_split
+        )
+        methods["k8v4_unified_chunk_2d"] = run_k8v4_unified_chunk_2d
     results: dict[str, object] = {}
     names = list(methods)
     for index in range(warmups + samples):
@@ -564,6 +632,37 @@ def benchmark_case(
             record["oracle_rows"] = row_metrics(last_output, oracle)
         output_results[name] = record
 
+    def last_output(name: str) -> torch.Tensor | None:
+        raw = results.get(name)
+        if not isinstance(raw, dict):
+            return None
+        output_value = raw.get("last_output")
+        return output_value if isinstance(output_value, torch.Tensor) else None
+
+    split1_output = last_output("k8v4_direct_reader_split1")
+    production_output = last_output("k8v4_direct_reader_production_split")
+    if split1_output is not None:
+        for name in (
+            "k8v4_direct_reader_production_split",
+            "k8v4_unified_chunk_2d",
+        ):
+            record = output_results.get(name)
+            raw_output = last_output(name)
+            if isinstance(record, dict) and raw_output is not None:
+                record["vs_direct_reader_split1"] = pairwise_row_metrics(
+                    raw_output, split1_output, oracle
+                )
+    if production_output is not None:
+        record = output_results.get("k8v4_unified_chunk_2d")
+        unified_output_value = last_output("k8v4_unified_chunk_2d")
+        if isinstance(record, dict) and unified_output_value is not None:
+            record["vs_direct_reader_production_split"] = pairwise_row_metrics(
+                unified_output_value, production_output, oracle
+            )
+    production_record = output_results.get("k8v4_direct_reader_production_split")
+    if isinstance(production_record, dict):
+        production_record["max_num_kv_splits"] = production_max_num_kv_splits
+
     baseline_us = output_results["bf16_math_attention_only"]["median_us"]
     for record in output_results.values():
         assert isinstance(record, dict)
@@ -576,7 +675,11 @@ def benchmark_case(
         "dtype": str(dtype),
         "cache_block_size": BLOCK_SIZE,
         "attention_backend": "torch SDPBackend.MATH",
-        "current_chunk_contract": "raw BF16 K/V; only prefix cache format varies",
+        "current_chunk_contract": (
+            "raw BF16 K/V for Math controls; cache-quantized K8/V4 for "
+            "direct/unified controls"
+        ),
+        "production_max_num_kv_splits": production_max_num_kv_splits,
         "seed": seed,
         "results": output_results,
     }
@@ -590,8 +693,16 @@ def main() -> None:
     parser.add_argument("--warmups", type=int, default=2)
     parser.add_argument("--samples", type=int, default=5)
     parser.add_argument("--flush-mib", type=int, default=64)
+    parser.add_argument(
+        "--production-max-num-kv-splits",
+        type=int,
+        default=DEFAULT_PRODUCTION_MAX_NUM_KV_SPLITS,
+    )
     parser.add_argument("--seed", type=int, default=20260913)
     args = parser.parse_args()
+
+    if args.production_max_num_kv_splits < 1:
+        raise ValueError("--production-max-num-kv-splits must be positive")
 
     if not torch.cuda.is_available():
         raise RuntimeError("This diagnostic requires a ROCm GPU")
@@ -617,6 +728,7 @@ def main() -> None:
             "backend": "SDPBackend.MATH",
             "fp8_dtype": str(FP8_DTYPE),
             "cache_format": "K8/V4 prefix vs FP8 E4M3 prefix vs BF16 logical prefix",
+            "production_max_num_kv_splits": args.production_max_num_kv_splits,
         },
         "warmups": args.warmups,
         "samples": args.samples,
@@ -633,6 +745,7 @@ def main() -> None:
                 args.samples,
                 flush,
                 args.seed + index,
+                args.production_max_num_kv_splits,
             )
         except torch.OutOfMemoryError as exc:
             result = {

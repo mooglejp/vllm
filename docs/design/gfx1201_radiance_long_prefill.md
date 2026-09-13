@@ -914,7 +914,11 @@ follow-up are recorded in
 they do not enable an FP8-KV production path or a direct-reader dispatch. The
 follow-up found that all-quantized Math attention stayed within 1.1% of raw
 BF16 Math while the existing direct reader was 1.8--2.0x slower at q128, so
-cache format alone is not the remaining explanation.
+cache format alone is not the remaining explanation. That first reader number
+used `max_num_kv_splits=1`; the production split=32 control reduced its time
+but remained 1.98--2.05x slower than the existing unified launcher called as a
+single q128 chunk. This supports a query-decomposition/work-partition
+hypothesis, but no production dispatch change has been made.
 The control is diagnostic only; keep it out of production commits unless a
 later design explicitly changes the cache contract and supplies new numerical,
 quality, capacity, and performance gates. Radiance source remains subject to
