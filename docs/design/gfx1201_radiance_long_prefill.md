@@ -1,6 +1,6 @@
 # gfx1201 long-prefill selective-port plan
 
-Status: P0 provenance gate recorded; P1 baseline profile complete; P2.1 reuse evaluation complete; P2.2 current candidates evaluated and rejected; P3 current native W4A8 candidate speed gate failed; default dispatch unchanged
+Status: P0 provenance gate recorded; P1 baseline profile complete; P2.1 reuse evaluation complete; P2.2 current candidates evaluated and rejected; P3 current native W4A8 candidate speed gate failed; P4.1 raw first-chunk candidate speed gate failed; default dispatch unchanged
 
 Base revision: `787189270cc97f0671e2f2f4aa33a506b07df335`
 
@@ -716,7 +716,7 @@ implementation. The result is sufficient to stop before workspace reuse,
 layout tuning, or cold-32K integration. This is a decision about the current
 one-wave row-major implementation, not a proof that a different FP8-WMMA
 layout cannot work. Reopening P3 requires a new kernel hypothesis and a new
-gate; P4 remains independent and unstarted.
+gate; P4 was evaluated independently and its current candidate is closed.
 
 ### P3 pure FP8-WMMA microbenchmark (2026-09-13)
 
@@ -760,8 +760,8 @@ rules out MXFP4 decode/E8M0 scaling as the sole explanation for the low P3
 throughput. The leading remaining hypotheses are the one-wave 16x16 mapping,
 LDS/barrier and fragment-load overhead, and register/occupancy effects; this
 does not identify one of them conclusively. The current W4A8 candidate remains
-rejected, no production kernel or dispatch was changed, and P4 remains
-unstarted. Reopening P3 would require a separate large-tile/multi-wave
+rejected, no production kernel or dispatch was changed, and the current P4
+candidate is also closed. Reopening P3 would require a separate large-tile/multi-wave
 hypothesis and a new gate.
 
 The saved JSONL artifacts were `/tmp/tq-fp8-wmma-m256.jsonl` and
@@ -785,6 +785,67 @@ Initial narrow profile: D=256, GQA6, causal BF16 Q/K/V, one request, no sinks/wi
 Gate: attention kernel at least 1.3x faster on production shapes, cold 32K prefill at least 5% faster alone, no worse error envelope versus FP64 oracle, and 308-case quality gate before composition.
 
 Suggested opt-in: `VLLM_TQ_GFX1201_RAW_PREFILL`, default False.
+
+### P4.0 first-chunk/continuation reprofile (2026-09-13)
+
+The P4.0 run re-used the current source at `6ee9b59eed7f5bf1f3a3f782c625ab70bc60777f` and the P1 official lane: Quark MXFP4, TP1, TurboQuant K8/V4, MTP2, adaptive verification disabled, the validated software-fused gfx1201 MXFP4 decode path, compilation disabled with `FULL_DECODE_ONLY`, maximum sequence count one, a cold 32K prompt, chunk size 256, and 64 output tokens with EOS ignored. P2.2/P3/P4/P5 opt-ins were off. The request completed with TTFT 135.2091 s (242.35 prefill tok/s); the output token hash matched the P1 chunk-256 run. The preserved request row is in `/tmp/tq-p4-profile-20260913/client.jsonl`.
+
+The trace was analyzed by `benchmarks/benchmark_gfx1201_p4_profile.py`. It uses the `execute_context_1(<q_len>)` scopes to separate the first raw chunk (ordinal 0) from 141 continuation chunks, and follows CUDA runtime launch correlations for the 16 first-scope `aten::scaled_dot_product_attention` calls. This avoids treating CPU-side SDPA wait time or Math SDPA Cijk kernels as dense MXFP4 GEMM.
+
+The mutually exclusive kernel-time split for the 32K prefill is:
+
+| cost center | GPU ms | share | calls |
+| --- | ---: | ---: | ---: |
+| first-chunk raw attention | 9.456 | 0.008% | 352 |
+| continuation attention | 4,284.259 | 3.552% | 272 |
+| MXFP4 dequant / dense GEMM | 90,856.013 | 75.334% | 133,472 |
+| TurboQuant store | 39.633 | 0.033% | 2,272 |
+| GDN / FLA prefill | 962.418 | 0.798% | 54,528 |
+| norm / activation / indexing | 6,683.267 | 5.542% | 189,149 |
+| copies / conversions | 7,943.623 | 6.587% | 122,189 |
+| cached-prefix dequantization | 1,334.648 | 1.107% | 71,836 |
+| other | 8,490.164 | 7.040% | 93,735 |
+| **scoped prefill kernel sum** | **120,603.481** | **100.000%** | **667,805** |
+
+The first context has q_len 256 and 309.902 ms of correlated kernel time. The 16 outer SDPA calls have 176.468 ms of inclusive CPU operation time but only 9.456 ms of launch-correlated GPU kernel time; both values are retained to distinguish host wait/launch overhead from device execution. The first raw kernel share is therefore far below the 10% quantitative gate.
+
+The runnable first-chunk backend is nevertheless an inefficient fallback. With `TQ_DISABLE_FLASH_PREFILL=1` (the same fallback control used for the P1 trace), the first scope contains 16 `aten::_scaled_dot_product_attention_math` operations. A second startup with that override removed confirmed that the installed gfx1201 CK flash path is not a usable alternative in this environment: the first 32K request segfaulted in the `ck_tile::FmhaFwdKernel` path before producing a result. Its server log is preserved at `/tmp/tq-p4-profile-20260913-flash/server.log`. The P4.0 adoption condition therefore passes only through the “no working efficient flash path and SDPA fallback” clause, not through the 10% share clause.
+
+P4.0 artifacts are `/tmp/tq-p4-profile-20260913/rank0.1789304974030962018.pt.trace.json.gz`, `/tmp/tq-p4-profile-20260913/p4-summary-final.json`, and `benchmarks/benchmark_gfx1201_p4_profile.py`. The reproduction command is:
+
+```bash
+.venv/bin/python benchmarks/benchmark_gfx1201_p4_profile.py \
+  --trace /tmp/tq-p4-profile-20260913/rank0.1789304974030962018.pt.trace.json.gz \
+  --requests /tmp/tq-p4-profile-20260913/client.jsonl \
+  --output /tmp/tq-p4-profile-20260913/p4-summary-final.json
+```
+
+### P4.1 raw attention microbenchmark (2026-09-13)
+
+Because P4.0 passed the fallback clause, a benchmark-only P4.1 probe was run without production integration. The contract was exactly D=256, Hq=24, Hk=4 (GQA6), BF16 raw Q/K/V, causal, one request, no sinks, no sliding window, with caller-owned output buffers. The comparison was the current explicit Math SDPA fallback versus a clean-room online-softmax Triton candidate. Both paths used the same tensors, two warmups, three rotating-order samples, a 64 MiB cache flush before each sample, and raw sample arrays in the output artifact. The FP64 oracle computed only rows 0, floor(M/2), and M-1 for heads 0 and 23; no full score matrix was formed.
+
+| q_len | Math median us | candidate median us | Math / candidate | numeric gate | speed gate |
+| ---: | ---: | ---: | ---: | :---: | :---: |
+| 128 | 330.1 | 1,215.1 | 0.272x | pass | fail |
+| 129 | 380.2 | 1,827.8 | 0.208x | pass | fail |
+| 256 | 695.1 | 4,595.8 | 0.151x | pass | fail |
+| 512 | 2,405.9 | 18,215.8 | 0.132x | pass | fail |
+| 1,024 | 9,643.0 | 72,203.7 | 0.134x | pass | fail |
+| 2,048 | 36,492.8 | 286,422.7 | 0.127x | pass | fail |
+| 4,096 | 143,901.3 | 1,141,117.1 | 0.126x | pass | fail |
+
+All measured candidate outputs were finite. On the representative FP64 rows, candidate max-abs and RMSE matched the Math fallback's error envelope (ratio 1.0 in the saved rows), including the causal first and last rows and the 129-token tail. The production-relevant q_len 256 and 512 speed ratios were 0.151x and 0.132x, far below the required 1.3x. q_len 8192 was not attempted after the speed gate had already failed through 4096.
+
+The P4.1 speed gate is **failed**. Cold 32K A/B was not run because the kernel-only gate is a prerequisite. No P4 production kernel, opt-in, first-chunk dispatch, continuation path, decode path, MTP attention, or KV layout changed. This closes the current P4.1 candidate evaluation; raw first-chunk attention remains a profile finding, not an adopted optimization. Reopening P4 requires a materially different efficient-kernel hypothesis and a new gate.
+
+The complete raw samples and gate result are preserved at `/tmp/tq-p4.1-raw-prefill/benchmark.json`. Reproduction (inside the gfx1201 container) is:
+
+```bash
+/tmp/tq-venv/bin/python benchmarks/kernels/benchmark_gfx1201_raw_prefill_attention.py \
+  --output /tmp/tq-p4.1-raw-prefill.json \
+  --q-lens 128 129 256 512 1024 2048 4096 \
+  --warmups 2 --samples 3 --flush-mib 64
+```
 
 ## P5: GDN prefill fusion
 
@@ -831,8 +892,8 @@ If qualified K8/V4 remains far below historical Radiance, run an isolated FP8-KV
 3. `[TurboQuant] Audit wide-query direct prefill reuse` — P2.1 benchmark/decision only.
 4. `[TurboQuant] Stream gfx1201 K8V4 continuation prefill` — P2.2 current candidates evaluated and rejected; evaluation closed. Reopen only with a different implementation hypothesis and a new gate.
 5. `[MXFP4] Add gfx1201 native W4A8 prefill` — P3, independent of failed A3.
-6. `[TurboQuant] Add gfx1201 raw prefill attention` — P4 only if profile-gated.
+6. `[TurboQuant] Evaluate gfx1201 raw prefill attention` — P4.0/P4.1 profile and benchmark-only decision; current candidate rejected, no production integration.
 7. `[ROCm] Fuse gfx1201 GDN prefill` — P5 only if profile-gated.
 8. `[gfx1201] Qualify long-prefill composition` — P6 report/quality/needles/prefix/soak; defaults unchanged.
 
-The P2.2 candidate remains behind its explicit default-off gate and is not enabled. P2.2 evaluation is closed for the current candidates. The current P3 candidate failed its production-weighted speed gate and remains default-off; reopening it requires a new kernel hypothesis. P4/P5 remain unimported and no later production dispatch is enabled.
+The P2.2 candidate remains behind its explicit default-off gate and is not enabled. P2.2 evaluation is closed for the current candidates. The current P3 candidate failed its production-weighted speed gate and remains default-off; reopening it requires a new kernel hypothesis. P4.0/P4.1 are complete for the current candidate and failed the kernel speed gate; no P4 production dispatch or later production change is enabled.
