@@ -445,6 +445,82 @@ class TestGfx1201TargetProfile:
 
         assert Gfx1201TurboQuantPrefillContract().max_num_kv_splits == 1
 
+    @pytest.mark.parametrize("bad_tensor", ["key", "value"])
+    def test_raw_current_prefill_rejects_wrong_raw_head_dim(self, bad_tensor):
+        from vllm.v1.attention.ops.turboquant_soa.gfx1201_prefill import (
+            is_gfx1201_tq_prefill_candidate,
+        )
+
+        query = torch.empty(129, 24, 256, dtype=torch.bfloat16)
+        key_chunk = torch.empty(129, 4, 256, dtype=torch.bfloat16)
+        value_chunk = torch.empty_like(key_chunk)
+        if bad_tensor == "key":
+            key_chunk = torch.empty(129, 4, 128, dtype=torch.bfloat16)
+        else:
+            value_chunk = torch.empty(129, 4, 128, dtype=torch.bfloat16)
+        assert not is_gfx1201_tq_prefill_candidate(
+            query=query,
+            key_chunk=key_chunk,
+            value_chunk=value_chunk,
+            cached_len=129,
+        )
+
+    @pytest.mark.parametrize("bad_tensor", ["query", "key", "value"])
+    def test_raw_current_prefill_rejects_non_unit_last_stride(self, bad_tensor):
+        from vllm.v1.attention.ops.turboquant_soa.gfx1201_prefill import (
+            is_gfx1201_tq_prefill_candidate,
+        )
+
+        query = torch.empty(129, 24, 256, dtype=torch.bfloat16)
+        key_chunk = torch.empty(129, 4, 256, dtype=torch.bfloat16)
+        value_chunk = torch.empty_like(key_chunk)
+        if bad_tensor == "query":
+            query = torch.empty(129, 24, 512, dtype=torch.bfloat16)[..., ::2]
+        elif bad_tensor == "key":
+            key_chunk = torch.empty(129, 4, 512, dtype=torch.bfloat16)[..., ::2]
+        else:
+            value_chunk = torch.empty(129, 4, 512, dtype=torch.bfloat16)[..., ::2]
+        assert not is_gfx1201_tq_prefill_candidate(
+            query=query,
+            key_chunk=key_chunk,
+            value_chunk=value_chunk,
+            cached_len=129,
+        )
+
+    def test_raw_current_prefill_launcher_rejects_non_unit_output_stride(self):
+        from vllm.v1.attention.ops.turboquant_soa.gfx1201_prefill import (
+            LOGICAL_BYTES_PER_SLOT,
+            launch_gfx1201_tq_continuation_prefill,
+        )
+
+        query = torch.empty(129, 24, 256, dtype=torch.bfloat16)
+        key_chunk = torch.empty(129, 4, 256, dtype=torch.bfloat16)
+        value_chunk = torch.empty_like(key_chunk)
+        block_size = 16
+        seq_len = 258
+        num_blocks = (seq_len + block_size - 1) // block_size
+        kv_cache = torch.empty(
+            num_blocks,
+            block_size,
+            4,
+            LOGICAL_BYTES_PER_SLOT,
+            dtype=torch.uint8,
+        )
+        block_table = torch.zeros(1, num_blocks, dtype=torch.int32)
+        output = torch.empty(129, 24, 512, dtype=torch.bfloat16)[..., ::2]
+        with pytest.raises(ValueError, match="last dimension must have unit stride"):
+            launch_gfx1201_tq_continuation_prefill(
+                query=query,
+                key_chunk=key_chunk,
+                value_chunk=value_chunk,
+                kv_cache=kv_cache,
+                block_table=block_table,
+                cached_len=129,
+                seq_len=seq_len,
+                scale=256**-0.5,
+                output=output,
+            )
+
 
 class TestTurboQuantKVCacheSpec:
     @pytest.mark.parametrize("preset", ALL_PRESETS)

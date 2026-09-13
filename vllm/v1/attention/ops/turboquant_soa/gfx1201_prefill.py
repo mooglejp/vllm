@@ -270,12 +270,17 @@ def is_gfx1201_tq_prefill_candidate(
         cached_len > 0
         and q_len > 128
         and head_dim == HEAD_DIM
+        and key_chunk.shape[-1] == HEAD_DIM
+        and value_chunk.shape[-1] == HEAD_DIM
         and num_query_heads == key_chunk.shape[1] * GQA
         and key_chunk.shape == value_chunk.shape
         and key_chunk.shape[0] == q_len
         and query.dtype in (torch.float16, torch.bfloat16)
         and key_chunk.dtype == query.dtype
         and value_chunk.dtype == query.dtype
+        and query.stride(-1) == 1
+        and key_chunk.stride(-1) == 1
+        and value_chunk.stride(-1) == 1
     )
 
 
@@ -341,6 +346,8 @@ def launch_gfx1201_tq_continuation_prefill(
         or output.device != query.device
     ):
         raise ValueError("output must have the same shape, dtype, and device as query")
+    if output.stride(-1) != 1:
+        raise ValueError("output's last dimension must have unit stride")
 
     meta_region_offset = block_size * num_kv_heads * DATA_BYTES_PER_SLOT
     kv_cache_u16 = kv_cache.view(torch.uint16)

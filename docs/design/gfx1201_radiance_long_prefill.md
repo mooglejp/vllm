@@ -1,6 +1,6 @@
 # gfx1201 long-prefill selective-port plan
 
-Status: P0 provenance gate recorded; P1 baseline profile complete; P2.1 reuse evaluation complete; P2.2 candidate implementation and smoke checks complete; adoption gate pending; default dispatch unchanged
+Status: P0 provenance gate recorded; P1 baseline profile complete; P2.1 reuse evaluation complete; P2.2 candidate, smoke checks, and measurement hardening complete; adoption gate pending; default dispatch unchanged
 
 Base revision: `787189270cc97f0671e2f2f4aa33a506b07df335`
 
@@ -278,9 +278,21 @@ Math SDPA is fixed for numerical references, while the old whole-path record
 uses runtime-auto SDPA and records that selection separately. A reference OOM
 is retained as `reference_oom` and does not prevent candidate execution.
 Split scratch is allocated one candidate at a time; calculated workspace and
-allocator peak deltas are recorded independently. Generic whole-path timing,
-fixed-metadata timing, specialized-reader timing, and the raw-current
-streaming candidate are distinguished, with candidate order alternated.
+allocator peak deltas are recorded independently. Each candidate's GPU output
+and scratch are owned by a short-lived measurement function; only CPU timing
+and error statistics escape it. This also initializes both old-path dequant
+buffers before allocation, so an OOM while creating the second buffer cannot
+mask the original failure. Generic whole-path timing, fixed-metadata timing,
+specialized-reader timing, and the raw-current streaming candidate are
+distinguished, with both the continuation pair and reader candidates ordered
+alternately.
+
+The candidate predicate now requires raw K/V shapes `[Q,Hk,256]` and unit
+stride on the query, raw K/V, and launcher output's last dimension. Unsupported
+shape or layout falls back through the existing backend path; a direct launcher
+call reports a `ValueError`. The model-level TurboQuant FP16 workspace
+reservation was not changed; capacity runs must continue to report its peak
+alongside candidate allocations.
 
 Initial gfx1201 smoke checks (PyTorch 2.12 / HIP 7.2 container, synthetic
 K/V) completed without non-finite output:

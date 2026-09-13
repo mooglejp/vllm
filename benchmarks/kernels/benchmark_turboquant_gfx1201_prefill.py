@@ -25,7 +25,9 @@ import json
 import math
 import random
 import statistics
+from contextlib import suppress
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
 
 import torch
@@ -543,13 +545,14 @@ def benchmark_case(
     torch.accelerator.synchronize()
 
     scale = HEAD_DIM**-0.5
-    quantized_reference: torch.Tensor | None = None
-    raw_reference: torch.Tensor | None = None
+    quantized_reference_cpu: torch.Tensor | None = None
+    raw_reference_cpu: torch.Tensor | None = None
     reference_status = "skipped"
     reference_error: str | None = None
+    reference_result: tuple[torch.Tensor, torch.Tensor] | None = None
     if do_correctness:
         try:
-            quantized_reference, raw_reference = build_references(
+            reference_result = build_references(
                 query,
                 key_chunk,
                 value_chunk,
@@ -560,6 +563,8 @@ def benchmark_case(
                 centroids,
                 scale,
             )
+            quantized_reference_cpu = reference_result[0].detach().float().cpu()
+            raw_reference_cpu = reference_result[1].detach().float().cpu()
             reference_status = "complete"
         except torch.OutOfMemoryError as exc:
             reference_status = "reference_oom"
@@ -568,6 +573,8 @@ def benchmark_case(
             reference_status = "reference_error"
             reference_error = str(exc)
         finally:
+            if reference_result is not None:
+                del reference_result
             torch.accelerator.synchronize()
             if reference_status != "complete":
                 torch.accelerator.empty_cache()
@@ -593,12 +600,39 @@ def benchmark_case(
     results: list[dict] = []
     raw_methods = {"current_large_continuation", "streaming_raw_current_prefill"}
 
+    def candidate_metrics(
+        output: torch.Tensor,
+    ) -> dict[str, dict[str, float]] | None:
+        if quantized_reference_cpu is None or raw_reference_cpu is None:
+            return None
+        output_cpu = output.detach().float().cpu()
+        metrics = {
+            "vs_quantized_reference": error_metrics(
+                output_cpu, quantized_reference_cpu
+            ),
+            "vs_raw_current_reference": error_metrics(output_cpu, raw_reference_cpu),
+        }
+        del output_cpu
+        return metrics
+
+    def complete_measurement(
+        output: torch.Tensor,
+        times_us: list[float],
+        baseline: int | None,
+    ) -> dict:
+        return {
+            "status": "complete",
+            "times_us": times_us,
+            "metrics": candidate_metrics(output),
+            "measured_peak": measured_peak_bytes(device, baseline),
+        }
+
     def append_result(
         method: str,
         split: int | None,
         status: str,
         times_us: list[float] | None = None,
-        output: torch.Tensor | None = None,
+        metrics: dict[str, dict[str, float]] | None = None,
         error: str | None = None,
         measurement_scope: str = "whole_path",
         measured_peak: int | None = None,
@@ -657,27 +691,27 @@ def benchmark_case(
                     "min_us": min(times_us),
                 }
             )
-        if output is not None and quantized_reference is not None:
-            output_cpu = output.detach().float().cpu()
-            result["vs_quantized_reference"] = error_metrics(
-                output_cpu, quantized_reference.float().cpu()
-            )
-            result["vs_raw_current_reference"] = error_metrics(
-                output_cpu, raw_reference.float().cpu()
-            )
+        if metrics is not None:
+            result.update(metrics)
         if error is not None:
             result["error"] = error
         results.append(result)
 
-    prefix_alloc = math.ceil(case.cached_len / BLOCK_SIZE) * BLOCK_SIZE
-    try:
+    def measure_current() -> dict:
         baseline = memory_baseline(device)
-        dequant_k = torch.empty(
-            1, H_K, prefix_alloc, HEAD_DIM, dtype=torch.float16, device=device
-        )
-        dequant_v = torch.empty_like(dequant_k)
-        output, times = timed_samples(
-            lambda: run_raw_current(
+        dequant_k: torch.Tensor | None = None
+        dequant_v: torch.Tensor | None = None
+        output: torch.Tensor | None = None
+        run = None
+        try:
+            prefix_alloc = math.ceil(case.cached_len / BLOCK_SIZE) * BLOCK_SIZE
+            dequant_k = torch.empty(
+                1, H_K, prefix_alloc, HEAD_DIM, dtype=torch.float16, device=device
+            )
+            dequant_v = torch.empty_like(dequant_k)
+            assert dequant_k is not None and dequant_v is not None
+            run = partial(
+                run_raw_current,
                 query,
                 key_chunk,
                 value_chunk,
@@ -689,70 +723,158 @@ def benchmark_case(
                 dequant_k,
                 dequant_v,
                 scale,
-            ),
-            warmups,
-            samples,
-            flush,
-        )
-        append_result(
-            "current_large_continuation",
-            None,
-            "complete",
-            times,
-            output,
-            measurement_scope="whole_path",
-            measured_peak=measured_peak_bytes(device, baseline),
-            calculated_workspace=workspaces[splits[0]]["old_additional_bytes"]
-            if splits
-            else None,
-        )
-    except torch.OutOfMemoryError as exc:
-        append_result("current_large_continuation", None, "oom", error=str(exc))
-    except RuntimeError as exc:
-        append_result("current_large_continuation", None, "error", error=str(exc))
-    finally:
-        if "dequant_k" in locals():
-            del dequant_k, dequant_v
+            )
+            output, times = timed_samples(run, warmups, samples, flush)
+            return complete_measurement(output, times, baseline)
+        except torch.OutOfMemoryError as exc:
+            return {"status": "oom", "error": str(exc)}
+        except RuntimeError as exc:
+            return {"status": "error", "error": str(exc)}
+        finally:
+            del dequant_k, dequant_v, output, run
 
-    if case.q_len > 128:
+    def measure_streaming() -> dict:
         baseline = memory_baseline(device)
-        streaming_output = None
+        streaming_output: torch.Tensor | None = None
+        output: torch.Tensor | None = None
+        run = None
         try:
             streaming_output = torch.empty_like(query)
-            output, times = timed_samples(
-                lambda output=streaming_output: run_streaming_raw_current(
+            run = partial(
+                run_streaming_raw_current,
+                query,
+                key_chunk,
+                value_chunk,
+                cache,
+                block_table,
+                case,
+                scale,
+                streaming_output,
+            )
+            output, times = timed_samples(run, warmups, samples, flush)
+            return complete_measurement(output, times, baseline)
+        except torch.OutOfMemoryError as exc:
+            return {"status": "oom", "error": str(exc)}
+        except RuntimeError as exc:
+            return {"status": "error", "error": str(exc)}
+        finally:
+            del streaming_output, output, run
+
+    def measure_reader(method: str, split: int) -> dict:
+        baseline = memory_baseline(device)
+        output_buf: torch.Tensor | None = None
+        mid_o: torch.Tensor | None = None
+        lse: torch.Tensor | None = None
+        output: torch.Tensor | None = None
+        run = None
+        try:
+            output_buf = torch.empty_like(query)
+            fixed = method.endswith("_fixed")
+            if method.startswith("generic"):
+                run = partial(
+                    run_generic,
                     query,
-                    key_chunk,
-                    value_chunk,
                     cache,
                     block_table,
                     case,
-                    scale,
-                    output,
-                ),
-                warmups,
-                samples,
-                flush,
-            )
-            append_result(
-                "streaming_raw_current_prefill",
-                1,
-                "complete",
-                times,
-                output,
-                measurement_scope="fixed_metadata",
-                measured_peak=measured_peak_bytes(device, baseline),
-                calculated_workspace=workspace_bytes(case, dtype, config, 1)[
-                    "streaming_additional_bytes"
-                ],
-            )
+                    config,
+                    centroids,
+                    pit,
+                    output_buf,
+                    split,
+                    seq_lens=row_seq_lens if fixed else None,
+                    row_block_table=row_block_table if fixed else None,
+                )
+            else:
+                mid_o = torch.empty(
+                    case.q_len,
+                    H_Q,
+                    split,
+                    HEAD_DIM + 1,
+                    dtype=torch.float32,
+                    device=device,
+                )
+                lse = torch.empty(case.q_len, H_Q, dtype=torch.float32, device=device)
+
+                assert output_buf is not None and mid_o is not None and lse is not None
+                run = partial(
+                    run_specialized,
+                    query,
+                    cache,
+                    block_table,
+                    case,
+                    output_buf,
+                    mid_o,
+                    lse,
+                    split,
+                    qsl,
+                    qsl_cpu,
+                    seq_lens,
+                )
+
+            assert run is not None
+            output, times = timed_samples(run, warmups, samples, flush)
+            return complete_measurement(output, times, baseline)
         except torch.OutOfMemoryError as exc:
-            append_result("streaming_raw_current_prefill", 1, "oom", error=str(exc))
+            return {"status": "oom", "error": str(exc)}
         except RuntimeError as exc:
-            append_result("streaming_raw_current_prefill", 1, "error", error=str(exc))
+            return {"status": "error", "error": str(exc)}
         finally:
-            del streaming_output
-    else:
+            del output_buf, mid_o, lse, output, run
+
+    def release_candidate_allocator() -> None:
+        # This runs only after the candidate-local function has returned, so
+        # empty_cache cannot hide live tensor references.
+        with suppress(AttributeError, RuntimeError):
+            torch.accelerator.empty_cache()
+
+    def append_measurement(
+        method: str,
+        split: int | None,
+        measurement: dict,
+        measurement_scope: str,
+        calculated_workspace: int | None,
+    ) -> None:
+        append_result(
+            method,
+            split,
+            measurement["status"],
+            measurement.get("times_us"),
+            measurement.get("metrics"),
+            measurement.get("error"),
+            measurement_scope=measurement_scope,
+            measured_peak=measurement.get("measured_peak"),
+            calculated_workspace=calculated_workspace,
+        )
+
+    # Alternate the two whole-path continuation measurements so allocator,
+    # clock, and cache state do not systematically favor one method.
+    continuation_methods = ["current_large_continuation"]
+    if case.q_len > 128:
+        continuation_methods.append("streaming_raw_current_prefill")
+        if seed % 2:
+            continuation_methods.reverse()
+    old_workspace = workspaces[min(workspaces)]["old_additional_bytes"]
+    for method in continuation_methods:
+        measurement = (
+            measure_current()
+            if method == "current_large_continuation"
+            else measure_streaming()
+        )
+        append_measurement(
+            method,
+            None if method == "current_large_continuation" else 1,
+            measurement,
+            "whole_path"
+            if method == "current_large_continuation"
+            else "fixed_metadata",
+            old_workspace
+            if method == "current_large_continuation"
+            else workspaces[1]["streaming_additional_bytes"],
+        )
+        release_candidate_allocator()
+
+    if case.q_len <= 128:
         append_result(
             "streaming_raw_current_prefill",
             1,
@@ -769,102 +891,21 @@ def benchmark_case(
         if (seed + split) % 2:
             methods.reverse()
         for method in methods:
-            baseline = memory_baseline(device)
-            output_buf = mid_o = lse = None
-            try:
-                if method.startswith("generic"):
-                    output_buf = torch.empty_like(query)
-                    fixed = method.endswith("_fixed")
-                    output, times = timed_samples(
-                        lambda fixed=fixed, output_buf=output_buf, split=split: (
-                            run_generic(  # noqa: E501
-                                query,
-                                cache,
-                                block_table,
-                                case,
-                                config,
-                                centroids,
-                                pit,
-                                output_buf,
-                                split,
-                                seq_lens=row_seq_lens if fixed else None,
-                                row_block_table=row_block_table if fixed else None,
-                            )
-                        ),
-                        warmups,
-                        samples,
-                        flush,
-                    )
-                    append_result(
-                        method,
-                        split,
-                        "complete",
-                        times,
-                        output,
-                        measurement_scope=("fixed_metadata" if fixed else "whole_path"),
-                        measured_peak=measured_peak_bytes(device, baseline),
-                        calculated_workspace=workspaces[split][
-                            "generic_additional_bytes"
-                        ],
-                    )
-                else:
-                    output_buf = torch.empty_like(query)
-                    mid_o = torch.empty(
-                        case.q_len,
-                        H_Q,
-                        split,
-                        HEAD_DIM + 1,
-                        dtype=torch.float32,
-                        device=device,
-                    )
-                    lse = torch.empty(
-                        case.q_len, H_Q, dtype=torch.float32, device=device
-                    )
-
-                    def run_specialized_candidate(
-                        output_buf=output_buf,
-                        mid_o=mid_o,
-                        lse=lse,
-                        split=split,
-                    ):
-                        return run_specialized(
-                            query,
-                            cache,
-                            block_table,
-                            case,
-                            output_buf,
-                            mid_o,
-                            lse,
-                            split,
-                            qsl,
-                            qsl_cpu,
-                            seq_lens,
-                        )
-
-                    output, times = timed_samples(
-                        run_specialized_candidate,
-                        warmups,
-                        samples,
-                        flush,
-                    )
-                    append_result(
-                        method,
-                        split,
-                        "complete",
-                        times,
-                        output,
-                        measurement_scope="fixed_metadata",
-                        measured_peak=measured_peak_bytes(device, baseline),
-                        calculated_workspace=workspaces[split][
-                            "specialized_additional_bytes"
-                        ],
-                    )
-            except torch.OutOfMemoryError as exc:
-                append_result(method, split, "oom", error=str(exc))
-            except RuntimeError as exc:
-                append_result(method, split, "error", error=str(exc))
-            finally:
-                del output_buf, mid_o, lse
+            measurement = measure_reader(method, split)
+            append_measurement(
+                method,
+                split,
+                measurement,
+                "fixed_metadata"
+                if method.endswith("_fixed") or method == "specialized_multi_token"
+                else "whole_path",
+                workspaces[split][
+                    "generic_additional_bytes"
+                    if method.startswith("generic")
+                    else "specialized_additional_bytes"
+                ],
+            )
+            release_candidate_allocator()
 
     return results
 
