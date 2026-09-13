@@ -70,6 +70,7 @@ def _kernel_category(name: str) -> str:
         token in lowered
         for token in (
             "mxfp4",
+            "cijk_",
             "fp8_gemm",
             "gemm",
             "gemv",

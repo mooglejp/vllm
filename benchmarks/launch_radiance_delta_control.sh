@@ -12,6 +12,14 @@ server_log=${4:?server log path is required}
 w4a8=${RADIANCE_DELTA_W4A8:-1}
 r4d=${RADIANCE_DELTA_R4D:-1}
 
+mm_profile_args=()
+if [[ "$r4d" == "0" ]]; then
+  # R4D-off falls back to Torch SDPA for the dummy vision profile, whose
+  # maximum feature shape requests an infeasible dense score matrix.  The
+  # control request is text-only, so skip that unrelated startup probe.
+  mm_profile_args+=(--skip-mm-profiling)
+fi
+
 model_dir=${RADIANCE_MODEL_DIR:-/srv/ai/models/llm/hf/amd-Qwen3.8-27B-Quark-AWQ-MXFP4}
 base_env=${RADIANCE_BASE_ENV:-/home/emmett/radiance-benchmark/results/mmtp-20260910T104329Z/base.env}
 image=${RADIANCE_IMAGE:-magiccodingman/vllm-radiance@sha256:83a9dc02a8f8e75aabe81366d36ebaa2e35fcbe181cacf8e8e0a4cef4ebccbcc}
@@ -37,6 +45,10 @@ docker run --rm --name "$label" \
   --env RADIANCE_R4D_REPORT=0 \
   --env RADIANCE_USE_R4D_AR="$r4d" \
   --env RADIANCE_USE_R4D_AR_QUANT="$r4d" \
+  --env RADIANCE_GDN_META="$r4d" \
+  --env RADIANCE_GDN_MERGE_INPROJ="$r4d" \
+  --env RADIANCE_GDN_FUSED_UPDATE="$r4d" \
+  --env RADIANCE_GDN_SHARED_BUILD="$r4d" \
   --env R4D_ATTN_FP8=0 \
   --env VLLM_CACHE_ROOT=/cache/vllm \
   --env TORCHINDUCTOR_CACHE_DIR=/cache/inductor \
@@ -64,6 +76,7 @@ docker run --rm --name "$label" \
   --max-num-batched-tokens 256 \
   --enable-prefix-caching \
   --mamba-cache-mode align \
+  "${mm_profile_args[@]}" \
   --load-format runai_streamer \
   --model-loader-extra-config '{"distributed":false,"memory_limit":3221225472}' \
   --profiler-config "{\"profiler\":\"torch\",\"torch_profiler_dir\":\"/cache/profiler\",\"torch_profiler_with_stack\":false,\"torch_profiler_with_flops\":false,\"torch_profiler_use_gzip\":true,\"torch_profiler_dump_cuda_time_total\":true,\"torch_profiler_record_shapes\":false,\"torch_profiler_with_memory\":false,\"ignore_frontend\":true,\"delay_iterations\":0,\"max_iterations\":0,\"warmup_iterations\":0,\"active_iterations\":1,\"wait_iterations\":0}" \

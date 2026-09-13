@@ -1,6 +1,6 @@
 # gfx1201 Radiance-delta diagnostic plan
 
-Status: Radiance composition baseline captured; W4A8/R4D controls pending; no production path adopted
+Status: Radiance composition controls complete; no production path adopted
 
 Base revision: `a85fec26ba`
 
@@ -254,22 +254,57 @@ with the common prompt failed during server warmup in the installed CK
 FlashAttention path (`ck_tile::FmhaFwdKernel` segfault).  The startup log is
 retained rather than treating the failed run as a performance sample.
 
-The W4A8-off and R4D-off Radiance controls are deliberately separate from the
-baseline.  They have not been folded into a conclusion until they can be run
-under the same pinned image and request contract.  No production default,
-attention dispatch, cache layout, or kernel implementation changes follow
-from this baseline.  The benchmark-only launcher and analyzer are:
+The two Radiance ablations were then run with the same pinned image, prompt
+hash, 32K/chunk256 request, no-MTP setting, and fixed 64 output tokens.  The
+trace classifier includes generic `Cijk_*` dense GEMMs in the linear family;
+this is important for the W4A8-off fallback, where the kernel names no longer
+contain `mxfp4`.
+
+| control | W4A8 | R4D | startup / request | TTFT (s) | elapsed (s) | decode tok/s | prefill linear kernel sum (ms) | attention (ms) | GDN/FLA (ms) | output hash |
+| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| full | on | on | normal | 24.825 | 28.955 | 15.252 | 11,521.0 | 5,348.6 | 678.1 | `82361006…` |
+| W4A8-off | off | on | normal | 50.578 | 64.961 | 4.380 | 37,213.6 | 5,360.8 | 724.8 | `4fac26d5…` |
+| R4D-off | on | off | `--skip-mm-profiling` | 26.619 | 30.859 | 14.860 | 11,285.9 | 5,317.3 | 481.0 | `050fd6ca…` |
+
+Relative to the full control, disabling W4A8 made TTFT `2.037x` slower and
+increased the prefill linear kernel-duration sum `3.23x`.  Disabling R4D made
+TTFT `1.072x` slower; its GDN family is smaller but generic/other kernels grow,
+so the family totals are not a direct implementation-cost subtraction.  The
+different output hashes are recorded as evidence that these are ablations, not
+bitwise-equivalent performance controls; no quality conclusion is inferred
+from a single 64-token greedy request.
+
+The first R4D-off startup (without the extra flag) failed before serving: the
+non-R4D Torch SDPA dummy vision profile attempted a 256 GiB allocation.  The
+successful text-only control used `--skip-mm-profiling` to remove that
+unrelated initialization probe; the flag is recorded in the table and launcher
+and was not used to alter the measured text request.
+
+These controls identify W4A8 as a large Radiance-side contributor and R4D as a
+smaller whole-request contributor under this image, but they do not identify a
+clean-room kernel to copy or authorize production integration.  No production
+default, attention dispatch, cache layout, or kernel implementation changes
+follow from them.  The benchmark-only launcher and analyzer are:
 
 - [Radiance trace analyzer](/home/emmett/vllm-tq/benchmarks/benchmark_gfx1201_radiance_delta_trace.py)
 - [Radiance control launcher](/home/emmett/vllm-tq/benchmarks/launch_radiance_delta_control.sh)
 - `/tmp/tq-radiance-delta-20260913/radiance-controls/radiance-full.jsonl`
 - `/tmp/tq-radiance-delta-20260913/radiance-controls/radiance-full.trace-summary.json`
+- `/tmp/tq-radiance-delta-20260913/radiance-controls/w4a8-off.jsonl`
+- `/tmp/tq-radiance-delta-20260913/radiance-controls/w4a8-off.trace-summary.json`
+- `/tmp/tq-radiance-delta-20260913/radiance-controls/w4a8-off/profiler/rank0.1789341560193231965.pt.trace.json.gz`
+- `/tmp/tq-radiance-delta-20260913/radiance-controls/r4d-off.jsonl`
+- `/tmp/tq-radiance-delta-20260913/radiance-controls/r4d-off.trace-summary.json`
+- `/tmp/tq-radiance-delta-20260913/radiance-controls/r4d-off/profiler/rank0.1789342469003221576.pt.trace.json.gz`
+- `/tmp/tq-radiance-delta-20260913/radiance-controls/r4d-off.server.log`
+- `/tmp/tq-radiance-delta-20260913/radiance-controls/r4d-off-2.server.log`
 - `/tmp/tq-radiance-delta-20260913/radiance-controls/fork-sameprompt-startup.log`
 
-The baseline already points to a large linear and continuation-attention
-composition difference from the fork, but it does not identify which Radiance
-feature causes that difference.  The two ablations are the next required
-controls; until then this section is diagnostic only.
+The baseline and ablations point to a large linear and continuation-attention
+composition difference from the fork, while the fork side still lacks a valid
+same-prompt replay.  This closes the control pass as a diagnostic result only;
+the next implementation plan must be a new clean-room hypothesis with its own
+correctness and performance gates.
 
 At 32K/q256, prefix decode was `1.353 ms` for FP8 and `1.547 ms` for K8/V4,
 versus `77.513 ms` for the common Math attention. At q512 the corresponding
