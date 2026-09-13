@@ -908,10 +908,13 @@ After official qualification, optionally run MTP8 for historical comparison. Pri
 
 The next plan should use an isolated FP8-KV/Radiance control to separate
 cache-format/attention, W4A8, GDN, runtime/chunking, and compiler effects.
-The first cache-format control is recorded in
+The cache-format control and its fixed-cache continuation backend/chunking
+follow-up are recorded in
 [`gfx1201_radiance_delta_diagnostic.md`](gfx1201_radiance_delta_diagnostic.md);
-it does not enable an FP8-KV production path and points the next experiment at
-continuation attention backend/runtime and chunking.
+they do not enable an FP8-KV production path or a direct-reader dispatch. The
+follow-up found that all-quantized Math attention stayed within 1.1% of raw
+BF16 Math while the existing direct reader was 1.8--2.0x slower at q128, so
+cache format alone is not the remaining explanation.
 The control is diagnostic only; keep it out of production commits unless a
 later design explicitly changes the cache contract and supplies new numerical,
 quality, capacity, and performance gates. Radiance source remains subject to

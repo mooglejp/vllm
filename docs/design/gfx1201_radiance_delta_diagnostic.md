@@ -1,6 +1,6 @@
 # gfx1201 Radiance-delta diagnostic plan
 
-Status: cache-format control complete; no production path adopted
+Status: cache-format and continuation-backend controls complete; no production path adopted
 
 Base revision: `a85fec26ba`
 
@@ -71,6 +71,42 @@ at 32K/q512 it was `0.04005` and `0.11781`, respectively. The BF16 Math
 baseline was about `0.00166`--`0.00168` relative L2. These are format/error
 diagnostics only, not an adoption gate or a production-quality claim.
 
+## Continuation backend control (2026-09-13)
+
+The follow-up control kept the same synthetic K8/V4 cache and compared the
+current validated K8/V4 direct reader with two attention-only controls:
+
+- `bf16_math_attention_only`: raw BF16 prefix/current K/V with Math SDPA;
+- `k8v4_all_quantized_math_attention_only`: every cached K/V position decoded
+  to BF16 first, then the same Math SDPA;
+- `k8v4_direct_reader`: the existing unified K8/V4 direct-reader kernel, with
+  `q_len=128` rows, `max_num_kv_splits=1`, and the same cache metadata.
+
+This is a backend control, not a replay of a production continuation request,
+and it does not use the rejected P2.2 streaming candidate. The attention inputs
+and preallocated outputs are fixed per case; warmup, rotating order, raw
+samples, and a 64 MiB flush are retained from the cache-format experiment.
+
+| cached / q | BF16 Math | K8/V4 all-quantized Math | K8/V4 direct reader | direct / BF16 |
+| ---: | ---: | ---: | ---: | ---: |
+| 4K / 128 | 6,332.4 us | 6,261.5 us | 12,399.5 us | 1.96x |
+| 32K / 128 | 52,879.7 us | 52,597.9 us | 95,224.9 us | 1.80x |
+
+The all-quantized Math control is within 1.1% of the raw BF16 Math control,
+while the direct reader is about 1.8--2.0x slower. Its outputs were finite and
+its representative-row relative L2 errors against the raw BF16 FP64 oracle
+were `0.10952` (4K) and `0.12090` (32K); these remain synthetic cache-format
+diagnostics, not model-quality results. The corresponding K8/V4 decode-only
+times were `261.7 us` and `1,531.4 us`, far below the direct-reader attention
+times.
+
+The fixed-cache evidence therefore points at the direct reader's backend or
+work partitioning rather than at K8/V4 materialization alone. The same Math
+control also shows the expected chunking effect at 32K: q128/q256/q512
+attention medians were `52,879.7`/`77,513.1`/`148,859.0 us`, or roughly
+`413`/`303`/`291 us` per query token. This is a diagnostic observation only;
+it does not authorize a scheduler or production chunk-size change.
+
 ## Interpretation and stop point
 
 At 32K/q256, prefix decode was `1.353 ms` for FP8 and `1.547 ms` for K8/V4,
@@ -81,18 +117,19 @@ slightly but does not remove the dominant attention cost. Cache format alone
 does not explain the long-continuation slowdown observed in the corrected P4
 trace.
 
-The control is complete and does not justify an FP8-KV production opt-in. No
-model rerun, cache-layout change, attention kernel, or dispatch change follows
-from these numbers. The next diagnostic should isolate the continuation
-attention backend/runtime and chunking behavior while keeping cache format
-fixed; any efficient backend must first pass a separate correctness and
-availability gate on gfx1201.
+Both controls are complete and do not justify an FP8-KV production opt-in or a
+direct-reader dispatch change. No model rerun, cache-layout change, attention
+kernel, scheduler, or dispatch change follows from these numbers. Any future
+continuation optimization must use a materially different backend/runtime
+hypothesis and pass separate correctness, availability, and performance gates
+on gfx1201.
 
 Artifacts:
 
 - [benchmark source](/home/emmett/vllm-tq/benchmarks/kernels/benchmark_gfx1201_kv_format_diagnostic.py)
 - `/tmp/tq-radiance-delta-20260913/kv-format-4k32k.json`
 - `/tmp/tq-radiance-delta-20260913/kv-format-32k-q512.json`
+- `/tmp/tq-radiance-delta-20260913/kv-format-direct-reader.json`
 - `/tmp/tq-radiance-delta-20260913/kv-format-smoke.json`
 
 Reproduction inside the GPU container:
@@ -108,5 +145,11 @@ Reproduction inside the GPU container:
   benchmarks/kernels/benchmark_gfx1201_kv_format_diagnostic.py \
   --output /tmp/tq-kvdiag-20260913-q512.json \
   --cached-lens 32768 --q-lens 512 \
+  --warmups 2 --samples 3 --flush-mib 64
+
+/tmp/tq-venv/bin/python \
+  benchmarks/kernels/benchmark_gfx1201_kv_format_diagnostic.py \
+  --output /tmp/tq-kvdiag-direct-20260913.json \
+  --cached-lens 4096 32768 --q-lens 128 \
   --warmups 2 --samples 3 --flush-mib 64
 ```

@@ -43,6 +43,9 @@ from vllm.v1.attention.ops.turboquant_soa.triton_turboquant_decode import (
 from vllm.v1.attention.ops.turboquant_soa.triton_turboquant_store import (
     triton_turboquant_store,
 )
+from vllm.v1.attention.ops.turboquant_soa.triton_turboquant_unified_attention import (
+    triton_turboquant_decode_attention_soa,
+)
 
 H_Q = 24
 H_K = 4
@@ -358,6 +361,8 @@ def benchmark_case(
     fp8_full_v = torch.empty_like(value)
     k8v4_full_k = torch.empty_like(key)
     k8v4_full_v = torch.empty_like(value)
+    k8v4_all_full_k = torch.empty_like(key)
+    k8v4_all_full_v = torch.empty_like(value)
     decode_k = torch.empty(
         1,
         H_K,
@@ -367,9 +372,23 @@ def benchmark_case(
         device=device,
     )
     decode_v = torch.empty_like(decode_k)
+    all_decode_k = torch.empty(
+        1,
+        H_K,
+        math.ceil(case.seq_len / BLOCK_SIZE) * BLOCK_SIZE,
+        HEAD_DIM,
+        dtype=torch.float16,
+        device=device,
+    )
+    all_decode_v = torch.empty_like(all_decode_k)
+    direct_output = torch.empty_like(query)
+    direct_seq_lens = torch.arange(
+        case.cached_len + 1, case.seq_len + 1, dtype=torch.int32, device=device
+    )
     oracle = oracle_rows(query, key, value, case, scale)
 
     block_table, physical_blocks = allocate_block_table(case.seq_len, device)
+    direct_block_table = block_table.expand(case.q_len, -1)
     slots = cache_slot_indices(case.cached_len, physical_blocks, device)
     fp8_key_cache, fp8_value_cache = build_fp8_cache(key, value, physical_blocks)
     fp8_key_flat = fp8_key_cache.view(-1, H_K, HEAD_DIM)
@@ -399,6 +418,11 @@ def benchmark_case(
 
     def run_k8v4_attention() -> torch.Tensor:
         return run_math_sdpa(query, k8v4_full_k, k8v4_full_v, mask, output, scale)
+
+    def run_k8v4_all_attention() -> torch.Tensor:
+        return run_math_sdpa(
+            query, k8v4_all_full_k, k8v4_all_full_v, mask, output, scale
+        )
 
     def decode_fp8() -> None:
         fp8_full_k[: case.cached_len].copy_(fp8_key_flat[slots].to(dtype))
@@ -433,6 +457,46 @@ def benchmark_case(
         decode_k8v4()
         return run_k8v4_attention()
 
+    def decode_k8v4_all() -> None:
+        dequantize_k8v4_prefix(
+            tq_cache,
+            block_table,
+            case.seq_len,
+            config,
+            centroids,
+            all_decode_k,
+            all_decode_v,
+        )
+        k8v4_all_full_k.copy_(
+            all_decode_k[0, :, : case.seq_len].transpose(0, 1).to(dtype)
+        )
+        k8v4_all_full_v.copy_(
+            all_decode_v[0, :, : case.seq_len].transpose(0, 1).to(dtype)
+        )
+
+    def run_k8v4_all_attention_only() -> torch.Tensor:
+        return run_k8v4_all_attention()
+
+    def run_k8v4_direct_reader() -> torch.Tensor:
+        return triton_turboquant_decode_attention_soa(
+            query=query,
+            kv_cache=tq_cache,
+            block_table=direct_block_table,
+            seq_lens=direct_seq_lens,
+            Pi=pit,
+            centroids=centroids,
+            scale=scale,
+            mse_bits=config.key_mse_bits,
+            key_packed_size=config.key_packed_size,
+            value_quant_bits=config.effective_value_quant_bits,
+            value_packed_size=config.value_packed_size,
+            key_fp8=config.key_fp8,
+            norm_correction=config.norm_correction,
+            max_seq_len=case.seq_len,
+            output_buf=direct_output,
+            max_num_kv_splits=1,
+        )
+
     def run_k8v4_decode() -> torch.Tensor:
         decode_k8v4()
         return output_aux
@@ -446,6 +510,7 @@ def benchmark_case(
     # these inputs between samples.
     decode_fp8()
     decode_k8v4()
+    decode_k8v4_all()
     synchronize()
 
     methods: dict[str, Callable[[], torch.Tensor]] = {
@@ -457,6 +522,9 @@ def benchmark_case(
         "fp8_prefix_decode_only": run_fp8_decode,
         "k8v4_prefix_decode_only": run_k8v4_decode,
     }
+    if case.q_len <= 128:
+        methods["k8v4_all_quantized_math_attention_only"] = run_k8v4_all_attention_only
+        methods["k8v4_direct_reader"] = run_k8v4_direct_reader
     results: dict[str, object] = {}
     names = list(methods)
     for index in range(warmups + samples):
