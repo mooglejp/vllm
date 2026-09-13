@@ -1,6 +1,6 @@
 # gfx1201 long-prefill selective-port plan
 
-Status: implementation plan and inert scaffolding only
+Status: P0 provenance gate recorded; P1 baseline profile complete; P2+ not started
 
 Base revision: `787189270cc97f0671e2f2f4aa33a506b07df335`
 
@@ -67,6 +67,8 @@ Before copying external implementation code, record exact source commit/file, au
 
 Relevant external references are `radiance_mxfp4.py`, `radiance_mxfp4_fp8.hip`, `radiance_r4d_attn.py`, `radiance_gdn.py`, `docs/MXFP4_W4A8_R9700.md`, and `docs/MXFP4_RX5_FP8KV_CONTINUATION.md` at the pinned commit above.
 
+P0 provenance decision (2026-09-12): The pinned `magiccodingman/vllm-radiance@adf9e1f1c9529dd6c971b223a961833376dbd524` was checked before any implementation copy. Its GitHub metadata and repository root do not expose a compatible license; the README credits StillDeadcode/libr4d and ggz14/Radiance MXFP4 but does not grant a source-code license. No external implementation was copied into this branch. The P1 helper and profiling instrumentation are clean-room work based on the public behavior in this design and local traces. Any later port remains blocked until a compatible license and exact file-level provenance are recorded.
+
 ## P1: freeze and profile the long-prefill baseline
 
 Run the parent implementation with all new prefill opt-ins absent.
@@ -97,6 +99,58 @@ Collect correlation-based prefill device time split into at least:
 - other.
 
 P1 ends when a machine-readable summary identifies the largest two 32K prefill cost centers. 64K/120K may fail; preserve first failure stack and peak memory.
+
+### P1 execution record (2026-09-12)
+
+The run used revision `4d33849ec927fb28e13bf5d1c13dd23b6efe0f2f` on an AMD Radeon AI PRO R9700 (gfx1201), ROCm 7.14, TP1, and the official Quark MXFP4 model. The lane was MTP2 with adaptive verification disabled, TurboQuant K8/V4, compilation disabled with `FULL_DECODE_ONLY`, max model length 131,072, max sequence count 1, random `cache_salt` per request, and fixed 64 output tokens with EOS ignored. No new prefill opt-in was set.
+
+The throughput formula was frozen as `prefill_tok_s = prompt_tokens / TTFT_s`; fixed-output E2E is `completion_tokens / elapsed_s`. The chunk-128 baseline completed through 32K:
+
+| prompt | prefill tok/s | TTFT (s) | fixed-64 E2E tok/s | result |
+| ---: | ---: | ---: | ---: | :--- |
+| 4,096 | 310.43 | 13.1945 | 3.2449 | complete |
+| 8,192 | 259.89 | 31.5205 | 1.6937 | complete |
+| 16,384 | 192.25 | 85.2236 | 0.6973 | complete |
+| 32,768 | 127.41 | 257.1877 | 0.2424 | complete |
+
+The scheduler sweep was run under the same lane. Raw JSONL preserves prompt hashes, output hashes, speculative counters, TTFT, E2E, and decode rates at `/tmp/tq-long-prefill-p1.zMusXN/{chunk128,chunk256,chunk512-partial,chunk1024-partial}.jsonl` (the corresponding cache copies are under `/cache`). Completed points were:
+
+| chunk | prompt | prefill tok/s | TTFT (s) | fixed-64 E2E tok/s | result |
+| ---: | ---: | ---: | ---: | ---: | :--- |
+| 128 | 4,096 | 310.43 | 13.1945 | 3.2449 | complete |
+| 128 | 8,192 | 259.89 | 31.5205 | 1.6937 | complete |
+| 128 | 16,384 | 192.25 | 85.2236 | 0.6973 | complete |
+| 128 | 32,768 | 127.41 | 257.1877 | 0.2424 | complete |
+| 256 | 4,096 | 550.97 | 7.4341 | 4.7621 | complete |
+| 256 | 8,192 | 471.83 | 17.3621 | 2.7083 | complete |
+| 256 | 16,384 | 372.69 | 43.9620 | 1.2797 | complete |
+| 256 | 32,768 | 247.86 | 132.2025 | 0.4610 | complete |
+| 512 | 4,096 | 739.36 | 5.5400 | 5.3148 | complete |
+| 512 | 8,192 | 590.06 | 13.8833 | 3.1355 | complete |
+| 512 | 16,384 | 441.97 | 37.0708 | 1.4670 | complete |
+| 1024 | 4,096 | 785.83 | 5.2123 | 5.5749 | complete |
+| 1024 | 8,192 | 616.45 | 13.2890 | 3.2681 | complete |
+
+The first sweep failures were retained. At chunk 512 / 32K, `torch.OutOfMemoryError` came from `TurboQuantAttentionImpl._continuation_prefill` at `F.scaled_dot_product_attention`: a 290 MiB allocation was requested with 152 MiB free (30.24 GiB allocated, 821.25 MiB reserved but unallocated). At chunk 1024 / 16K, the same path requested 1.44 GiB with 1.38 GiB free (29.01 GiB allocated, 806.82 MiB reserved but unallocated). A chunk-128 64K probe exceeded the client 600 s timeout without a completion; the first failure was the client `TimeoutError`, so 120K was not attempted. These points are not treated as candidate wins.
+
+The observed attention path was TurboQuant large-continuation full-prefix K/V dequantization, full `k_full`/`v_full` materialization, and the SDPA fallback (`F.scaled_dot_product_attention`) on this gfx1201 environment. Logs selected the existing EmulationMxfp4LinearKernel, Triton/FLA GDN prefill, and TURBOQUANT backend. A sampled active run reported physical VRAM 33,147,588,608 / 34,208,743,424 bytes at chunk 256; another active 64K probe reported 29,514,899,456 bytes, GPU busy 100%, 281 W, junction 90 C, and memory 74 C. These are samples, not claimed maxima. After each server cleanup, physical VRAM returned to 59,912,192 bytes.
+
+The correlation profile was collected from a finite 256-iteration torch profiler run for a cold 32K request. The compressed trace is `/tmp/tq-long-prefill-p1.zMusXN/trace-full.json.gz` (192,176,586 bytes; 3,250,189,952 bytes uncompressed), with 12,050,896 trace events and 1,165,514 kernel events; all kernel correlations resolved. The machine-readable result is `/tmp/tq-long-prefill-p1.zMusXN/summary-v3.json`, generated by `benchmarks/benchmark_gfx1201_long_prefill.py`. It reports 1,084,160 prefill kernels and the following mutually exclusive split (GPU time sums, not wall time):
+
+| prefill family | GPU ms | share | calls |
+| :--- | ---: | ---: | ---: |
+| attention compute | 154,590.044 | 68.793% | 4,080 |
+| MXFP4 dequant / dense GEMM | 64,333.066 | 28.629% | 233,504 |
+| norm / activation / indexing | 1,873.484 | 0.834% | 304,224 |
+| other | 1,523.980 | 0.678% | 148,208 |
+| GDN / FLA prefill | 1,186.279 | 0.528% | 98,304 |
+| full K/V copy / conversion | 1,146.090 | 0.510% | 291,744 |
+| TurboQuant store | 63.422 | 0.028% | 4,096 |
+| cached-prefix dequantization | 0.000 | 0.000% | 0 |
+
+The default-shape profiler attempt failed after `profiler_stop` with an EngineCore exit and a ROCTracer duplicate-flow warning; the low-overhead finite run completed and the full finite trace above was preserved despite the profiled request later exiting. This limitation is recorded rather than silently discarded.
+
+P1 adoption gate: **pass**. The machine-readable summary identifies the largest two 32K prefill cost centers as attention compute and MXFP4 dequant / dense GEMM. No P2 or P3 production kernel was implemented or enabled; the inert scaffolds remain unchanged.
 
 ## P2: direct K8/V4 continuation prefill
 
