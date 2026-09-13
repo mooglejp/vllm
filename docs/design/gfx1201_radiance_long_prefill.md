@@ -908,6 +908,10 @@ After official qualification, optionally run MTP8 for historical comparison. Pri
 
 The next plan should use an isolated FP8-KV/Radiance control to separate
 cache-format/attention, W4A8, GDN, runtime/chunking, and compiler effects.
+The first cache-format control is recorded in
+[`gfx1201_radiance_delta_diagnostic.md`](gfx1201_radiance_delta_diagnostic.md);
+it does not enable an FP8-KV production path and points the next experiment at
+continuation attention backend/runtime and chunking.
 The control is diagnostic only; keep it out of production commits unless a
 later design explicitly changes the cache contract and supplies new numerical,
 quality, capacity, and performance gates. Radiance source remains subject to

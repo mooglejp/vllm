@@ -1,0 +1,112 @@
+# gfx1201 Radiance-delta diagnostic plan
+
+Status: cache-format control complete; no production path adopted
+
+Base revision: `a85fec26ba`
+
+This document starts after the long-prefill phase plan closed without an
+adopted P2--P5 component. It is a diagnostic control, not a request to reopen
+the rejected streaming, W4A8, or raw-attention candidates.
+
+## Scope and constraints
+
+The first control separates cache-format cost from the attention implementation
+under one explicit contract. It does not change production defaults, decode,
+MTP2, K8/V4 ownership, scheduler policy, or any cache dtype. No Radiance code
+is copied; the control is a clean-room implementation of the local tensor
+contract.
+
+The GPU run used an AMD Radeon AI PRO R9700 (gfx1201), ROCm `7.2.53211`, and
+Torch `2.12.0+git6bbd260` in `tq-e2e-current`. The fixed contract is:
+
+- BF16 Q/K/V, `Hq=24`, `Hk=4`, `D=256`, GQA6;
+- one causal continuation request, block size 16;
+- raw BF16 current chunk; only the cached prefix representation changes;
+- explicit `torch.nn.attention.SDPBackend.MATH` for every attention call;
+- no sinks, sliding window, or full score-matrix oracle.
+
+The installed gfx1201 FlashAttention/CK path was already observed to segfault
+in `ck_tile::FmhaFwdKernel` during the P4 control. It is therefore not used as
+an unverified “efficient” comparator here.
+
+## Measurement contract
+
+`benchmarks/kernels/benchmark_gfx1201_kv_format_diagnostic.py` creates one
+seeded logical BF16 Q/K/V tensor set per case and uses three prefix formats:
+
+- `bf16_math`: logical BF16 prefix and current chunk, Math SDPA;
+- `fp8_prefix`: prefix stored as FP8 E4M3, decoded to BF16, raw BF16 current
+  chunk, Math SDPA;
+- `k8v4_prefix`: prefix stored with the existing TurboQuant K8/V4 writer and
+  decoded by the existing full-dequant reader, raw BF16 current chunk, Math
+  SDPA.
+
+Each format has an attention-only timing on pre-materialized BF16 K/V, a
+full-path timing including prefix decode and dense K/V assembly, and a
+decode-only timing. Outputs are preallocated, compilation is warmed, samples
+use rotating order and a 64 MiB device flush, and all raw samples are saved.
+The FP64 oracle evaluates only rows `0`, `floor(q_len/2)`, and `q_len-1` for
+heads `0` and `23`; no `q_len x cached_len` score matrix is constructed.
+
+This is a synthetic tensor control. Its FP8 and K8/V4 error values are not a
+model-quality result because the K8/V4 metadata uses the benchmark's fixed
+reference configuration rather than captured model calibration.
+
+## Results
+
+Median device times are in microseconds. The attention-only columns use the
+same Math SDPA implementation; full columns include prefix decode and current
+chunk assembly.
+
+| cached / q | BF16 attention | FP8 attention | K8/V4 attention | FP8 full | K8/V4 full | FP8 decode | K8/V4 decode |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4K / 256 | 9,191.0 | 9,189.9 | 9,090.7 | 9,263.7 | 9,334.1 | 165.0 | 188.9 |
+| 32K / 128 | 53,406.0 | 54,148.6 | 52,978.5 | 55,246.7 | 54,726.0 | 1,284.7 | 1,433.5 |
+| 32K / 256 | 77,513.1 | 80,760.8 | 80,206.4 | 76,451.8 | 82,129.7 | 1,353.2 | 1,546.7 |
+| 32K / 512 | 148,859.0 | 145,054.3 | 152,334.9 | 154,576.8 | 154,251.0 | 1,340.7 | 1,466.7 |
+
+All outputs were finite. At 32K/q256, representative-row relative L2 error
+against the raw BF16 FP64 oracle was `0.03699` for FP8 and `0.11258` for K8/V4;
+at 32K/q512 it was `0.04005` and `0.11781`, respectively. The BF16 Math
+baseline was about `0.00166`--`0.00168` relative L2. These are format/error
+diagnostics only, not an adoption gate or a production-quality claim.
+
+## Interpretation and stop point
+
+At 32K/q256, prefix decode was `1.353 ms` for FP8 and `1.547 ms` for K8/V4,
+versus `77.513 ms` for the common Math attention. At q512 the corresponding
+figures were `1.341 ms`, `1.467 ms`, and `148.859 ms`. Thus, under this fixed
+Math-SDPA control, replacing K8/V4 with FP8 reduces the cache decode portion
+slightly but does not remove the dominant attention cost. Cache format alone
+does not explain the long-continuation slowdown observed in the corrected P4
+trace.
+
+The control is complete and does not justify an FP8-KV production opt-in. No
+model rerun, cache-layout change, attention kernel, or dispatch change follows
+from these numbers. The next diagnostic should isolate the continuation
+attention backend/runtime and chunking behavior while keeping cache format
+fixed; any efficient backend must first pass a separate correctness and
+availability gate on gfx1201.
+
+Artifacts:
+
+- [benchmark source](/home/emmett/vllm-tq/benchmarks/kernels/benchmark_gfx1201_kv_format_diagnostic.py)
+- `/tmp/tq-radiance-delta-20260913/kv-format-4k32k.json`
+- `/tmp/tq-radiance-delta-20260913/kv-format-32k-q512.json`
+- `/tmp/tq-radiance-delta-20260913/kv-format-smoke.json`
+
+Reproduction inside the GPU container:
+
+```bash
+/tmp/tq-venv/bin/python \
+  benchmarks/kernels/benchmark_gfx1201_kv_format_diagnostic.py \
+  --output /tmp/tq-kvdiag-20260913.json \
+  --cached-lens 4096 32768 --q-lens 128 256 \
+  --warmups 2 --samples 3 --flush-mib 64
+
+/tmp/tq-venv/bin/python \
+  benchmarks/kernels/benchmark_gfx1201_kv_format_diagnostic.py \
+  --output /tmp/tq-kvdiag-20260913-q512.json \
+  --cached-lens 32768 --q-lens 512 \
+  --warmups 2 --samples 3 --flush-mib 64
+```
