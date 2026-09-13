@@ -290,6 +290,7 @@ follow from them.  The benchmark-only launcher and analyzer are:
 - [Radiance control launcher](/home/emmett/vllm-tq/benchmarks/launch_radiance_delta_control.sh)
 - `/tmp/tq-radiance-delta-20260913/radiance-controls/radiance-full.jsonl`
 - `/tmp/tq-radiance-delta-20260913/radiance-controls/radiance-full.trace-summary.json`
+- `/tmp/tq-radiance-delta-20260913/radiance-controls/radiance-control-summary.json`
 - `/tmp/tq-radiance-delta-20260913/radiance-controls/w4a8-off.jsonl`
 - `/tmp/tq-radiance-delta-20260913/radiance-controls/w4a8-off.trace-summary.json`
 - `/tmp/tq-radiance-delta-20260913/radiance-controls/w4a8-off/profiler/rank0.1789341560193231965.pt.trace.json.gz`
