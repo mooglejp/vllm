@@ -1,6 +1,6 @@
 # gfx1201 Radiance-delta diagnostic plan
 
-Status: cache-format and continuation-backend controls complete; no production path adopted
+Status: Radiance composition baseline captured; W4A8/R4D controls pending; no production path adopted
 
 Base revision: `a85fec26ba`
 
@@ -208,6 +208,68 @@ The reproducible request harness is
 `benchmarks/benchmark_gfx1201_unified_continuation_model.py`.
 
 ## Interpretation and stop point
+
+## Radiance composition control (2026-09-13)
+
+The first Radiance-side control was run from the pinned image
+`magiccodingman/vllm-radiance@sha256:83a9dc02a8f8e75aabe81366d36ebaa2e35fcbe181cacf8e8e0a4cef4ebccbcc`.
+Its source label is `f295b9ef51ad413a68e4192371e0377741a354ce`.  No source
+file or kernel was copied from that image.  The control used the same model,
+TP1, prompt generator, 32K prompt, chunk256, one request, fixed 64 output
+tokens, cold cache, and no MTP/speculative decoding.  Radiance used its
+validated FP8 KV, R4D, and W4A8 paths for this baseline.
+
+The request result was `TTFT=24.8246 s`, `elapsed=28.9552 s`, and
+`decode=15.2522 tokens/s`.  The prompt hash was
+`0ada0cc394c01ef2450dfca4afaca23149aeb0a365d304732c6bacb06f079dbf`.
+The profiler contained 143 prefill contexts (`123 x q256` and `20 x q64`)
+and 63 decode contexts.  The first long context annotation is the first
+profiled chunk, not an extra request; the prefill q-token sum is exactly
+32768.
+
+The new offline analyzer assigns each GPU kernel to the smallest enclosing
+`execute_context_*` annotation and uses an explicit kernel-name classifier.
+The numbers below are sums of kernel durations, not a wall-clock critical
+path.  They are therefore useful for composition and family comparisons, but
+must not be divided into TTFT as if all kernels were serial.
+
+| Radiance prefill phase | MXFP4/dequant + linear (ms, share) | attention (ms, share) | GDN/FLA (ms, share) | all classified GPU kernel sum (ms) |
+| --- | ---: | ---: | ---: | ---: |
+| first q256 | 88.240 (86.00%) | 4.591 (4.47%) | 4.636 (4.52%) | 102.606 |
+| continuation (q256/q64) | 11,432.779 (61.36%) | 5,343.987 (28.68%) | 673.451 (3.61%) | 18,631.476 |
+| prefill total | 11,521.019 (61.50%) | 5,348.578 (28.55%) | 678.087 (3.62%) | 18,734.082 |
+
+The remaining prefill sum was norm/activation/indexing `650.118 ms (3.47%)`,
+copies/conversions `339.643 ms (1.81%)`, other `180.923 ms (0.97%)`, and KV
+store `15.714 ms (0.08%)`.  Host scheduling and launch overhead are not a
+separate GPU-kernel category in this trace; the prefill context wall-span sum
+was `24.7019 s`, close to the request TTFT but not interchangeable with the
+kernel-duration sum.
+
+For orientation only, the preserved fork P1 chunk256 profile (prompt hash
+`e521e82962da058f714a3872ed7219892ae57a47bf7294c0511ab2567b42766a`, MTP2)
+reported attention `154,590.044 ms (68.79%)` and MXFP4/dequant+dense GEMM
+`64,333.066 ms (28.63%)`.  This is not a same-prompt A/B: an attempted replay
+with the common prompt failed during server warmup in the installed CK
+FlashAttention path (`ck_tile::FmhaFwdKernel` segfault).  The startup log is
+retained rather than treating the failed run as a performance sample.
+
+The W4A8-off and R4D-off Radiance controls are deliberately separate from the
+baseline.  They have not been folded into a conclusion until they can be run
+under the same pinned image and request contract.  No production default,
+attention dispatch, cache layout, or kernel implementation changes follow
+from this baseline.  The benchmark-only launcher and analyzer are:
+
+- [Radiance trace analyzer](/home/emmett/vllm-tq/benchmarks/benchmark_gfx1201_radiance_delta_trace.py)
+- [Radiance control launcher](/home/emmett/vllm-tq/benchmarks/launch_radiance_delta_control.sh)
+- `/tmp/tq-radiance-delta-20260913/radiance-controls/radiance-full.jsonl`
+- `/tmp/tq-radiance-delta-20260913/radiance-controls/radiance-full.trace-summary.json`
+- `/tmp/tq-radiance-delta-20260913/radiance-controls/fork-sameprompt-startup.log`
+
+The baseline already points to a large linear and continuation-attention
+composition difference from the fork, but it does not identify which Radiance
+feature causes that difference.  The two ablations are the next required
+controls; until then this section is diagnostic only.
 
 At 32K/q256, prefix decode was `1.353 ms` for FP8 and `1.547 ms` for K8/V4,
 versus `77.513 ms` for the common Math attention. At q512 the corresponding
