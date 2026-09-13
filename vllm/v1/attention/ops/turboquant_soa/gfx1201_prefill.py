@@ -11,6 +11,7 @@ the production backend unless its explicit opt-in gate is enabled.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import Final
 
@@ -85,6 +86,7 @@ def _gfx1201_k8v4_raw_current_stage1(
     SOA_V_ZERO: tl.constexpr,
     FP8_E4B15: tl.constexpr,
     USE_BF16_DOT: tl.constexpr,
+    PV_FP32: tl.constexpr,
     QUERY_BLOCK_SIZE: tl.constexpr,
 ):
     """One splitless online-softmax program for a query tile and KV head."""
@@ -229,7 +231,17 @@ def _gfx1201_k8v4_raw_current_stage1(
             mask=raw_mask[:, None] & d_mask[None, :],
             other=0.0,
         )
-        if USE_BF16_DOT:
+        if PV_FP32:
+            if USE_BF16_DOT:
+                v = tl.where(
+                    cache_mask[:, None],
+                    v_cache.to(tl.float16).to(tl.bfloat16),
+                    v_current.to(tl.bfloat16),
+                )
+            else:
+                v = tl.where(cache_mask[:, None], v_cache.to(tl.float16), v_current)
+            acc += tl.dot(p.to(tl.float32), v.to(tl.float32))
+        elif USE_BF16_DOT:
             v = tl.where(
                 cache_mask[:, None],
                 v_cache.to(tl.float16).to(tl.bfloat16),
@@ -351,6 +363,12 @@ def launch_gfx1201_tq_continuation_prefill(
 
     meta_region_offset = block_size * num_kv_heads * DATA_BYTES_PER_SLOT
     kv_cache_u16 = kv_cache.view(torch.uint16)
+    pv_fp32 = os.environ.get("VLLM_TQ_GFX1201_K8V4_PREFILL_PV_FP32", "0").lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
     query_block_size = 4
     num_query_blocks = (q_len + query_block_size - 1) // query_block_size
     _gfx1201_k8v4_raw_current_stage1[(num_query_blocks, num_kv_heads)](
@@ -390,6 +408,7 @@ def launch_gfx1201_tq_continuation_prefill(
         SOA_V_ZERO=SOA_V_ZERO,
         FP8_E4B15=_use_fp8_e4b15(query.device.index or 0),
         USE_BF16_DOT=1 if query.dtype == torch.bfloat16 else 0,
+        PV_FP32=1 if pv_fp32 else 0,
         QUERY_BLOCK_SIZE=query_block_size,
         num_warps=4,
         num_stages=2,
