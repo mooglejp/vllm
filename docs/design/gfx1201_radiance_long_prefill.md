@@ -447,6 +447,81 @@ The artifacts are preserved under `/tmp/tq-p2.2-real-20260913/`, including
 cause-isolation candidate and is **not adopted**. P2.2 remains candidate-only;
 production defaults, thresholds, and all P3 work remain unchanged.
 
+### P2.2 saved FP64 comparison and 4K first-difference trace (2026-09-13)
+
+The numerical supplement used revision `8fb487f41266db2e9ba634632dc3cf99e26d8704`.
+No kernel source, production threshold, dispatch setting, or P3 setting was
+changed during this diagnosis. The saved `variants.pt` and
+`variants-pvfp32.pt` artifacts contain the same old SDPA replay and the same
+FP64-contract reference; candidate outputs were never fed into a baseline
+continuation.
+
+The direct comparison against that shared FP64 reference is:
+
+| output | max-abs | RMSE | relative L2 | exact fraction |
+| --- | ---: | ---: | ---: | ---: |
+| old SDPA math | 0.125000 | 0.000971927 | 0.000190925 | 0.998900 |
+| old BF16 streaming candidate | 0.250000 | 0.003898440 | 0.000765808 | 0.929531 |
+| PV-FP32 streaming candidate | 0.125000 | 0.001319219 | 0.000259147 | 0.998475 |
+
+This confirms that PV-FP32 is closer to the FP64 contract than the BF16
+candidate on the saved layer-63 snapshot, while remaining non-bitwise and
+slightly farther from the FP64 reference than old SDPA in RMSE. It is a
+numeric comparison only, not a model-quality or adoption result.
+
+For the 4K trace, baseline, BF16, and PV-FP32 were served independently with
+the same prompt (`prompt_sha256=b1455990a1dcca99a7c397ec74e0ad1a52216f1931658e6d4556b2fd6758e285`), block size 16, and
+`max_num_batched_tokens=256`. Each request produced the same final token
+`27775` (token-list SHA-256
+`1a4a084d5fec3d3c6812552db1ef372ecf276ef7616e246e68cc64ee3cef80d0`), but
+the internal attention trace differed. The diagnostic hook
+recorded 255 continuation calls per run: 240 language-model full-attention
+calls and 15 MTP calls. The first-difference report intentionally scopes the
+comparison to the 240 language-model calls and does not generalize from one
+layer to the whole model.
+
+For both candidates, the first differing full-attention output is the first
+continuation chunk: `cached_len=256`, `q_len=256`, `seq_len=512`,
+`language_model.model.layers.3.self_attn.attn` (`trace_index=0`). The
+baseline operation is `sdpa_math_fallback`; the BF16 and PV-FP32 operations
+are respectively `gfx1201_streaming_bf16_pv` and
+`gfx1201_streaming_pv_fp32`. Query, raw current K, and raw current V digests
+are equal at this call, so the first difference is classified as an attention
+operation difference rather than an upstream input difference. The first
+input digest difference appears at the next full-attention call in the same
+chunk, layer 7, after the layer-3 output has propagated. This identifies the
+first divergent operation for this 4K request; it does not establish a
+model-wide layer or quality conclusion. The earlier controlled replay still
+provides the narrower PV-side BF16 cause hypothesis.
+
+The CPU-only reproduction programs are
+`benchmarks/kernels/benchmark_turboquant_gfx1201_prefill_saved_compare.py` and
+`benchmarks/kernels/benchmark_turboquant_gfx1201_prefill_trace_compare.py`.
+The 4K capture uses the diagnostic-only
+`benchmarks/kernels/p2_2_prefill_trace/sitecustomize.py` with one independent
+server/client run per mode. The hook forced the diagnostic baseline to Math
+SDPA by disabling FlashAttention; this is not a production backend change. The
+resulting records are preserved under
+`/tmp/tq-p2.2-real-20260913/`, including
+`replaydiag/results/saved-vs-fp64.json`,
+`trace4k/first-difference.json`, and
+`numeric-diagnosis-8fb487.json`. For replay after capture:
+
+```bash
+./.venv/bin/python benchmarks/kernels/benchmark_turboquant_gfx1201_prefill_saved_compare.py \
+  --bf16 /tmp/tq-p2.2-real-20260913/replaydiag/results/variants.pt \
+  --pvfp32 /tmp/tq-p2.2-real-20260913/replaydiag/results/variants-pvfp32.pt \
+  --output /tmp/tq-p2.2-real-20260913/replaydiag/results/saved-vs-fp64.json
+./.venv/bin/python benchmarks/kernels/benchmark_turboquant_gfx1201_prefill_trace_compare.py \
+  --baseline /tmp/tq-p2.2-real-20260913/trace4k/baseline.jsonl \
+  --bf16 /tmp/tq-p2.2-real-20260913/trace4k/bf16.jsonl \
+  --pvfp32 /tmp/tq-p2.2-real-20260913/trace4k/pvfp32.jsonl \
+  --output /tmp/tq-p2.2-real-20260913/trace4k/first-difference.json
+```
+
+This supplement records the cause-isolation evidence only. Production remains
+default-off, and no new optimization candidate or later phase is enabled.
+
 ## P3: native FP8-WMMA W4A8 large-M only
 
 P3 is independent from failed A3. Small-M calls remain on the current software-fused MXFP4 backend.
