@@ -718,6 +718,64 @@ one-wave row-major implementation, not a proof that a different FP8-WMMA
 layout cannot work. Reopening P3 requires a new kernel hypothesis and a new
 gate; P4 remains independent and unstarted.
 
+### P3 pure FP8-WMMA microbenchmark (2026-09-13)
+
+To separate the MXFP4 decode/scale work from the matrix mapping, the
+benchmark-only source `benchmarks/kernels/gfx1201_fp8_wmma_microbenchmark.cu`
+was compiled out of tree. It consumes prequantized/preexpanded raw FP8 E4M3
+byte matrices `A[M,K]` and `B[N,K]`, performs no MXFP4 decode, E8M0 scale, or
+activation quantization, and writes an FP32 output. The accumulator stays in a
+single 16x16 rocWMMA fragment across K and is stored once, so this is a more
+favorable ablation than the rejected W4A8 candidate, not a production kernel.
+The comparison paths are preexpanded FP32 and BF16 `torch.mm`; conversion and
+allocation are outside the timed region.
+
+The gfx1201 run used commit `34ea60a3af1ce4adc27bbe178cfed8911f9fa2cb`,
+ROCm `7.2.53211`, Torch `2.12.0+git6bbd260`, two warmups, five samples, a
+64 MiB flush, and rotating operation order. M=256 was used for the six dense
+shapes. Effective TFLOP/s uses `2*M*N*K / time`; these are diagnostic values,
+not an adoption gate.
+
+| N x K | raw FP8 WMMA (us / TFLOP/s) | FP32 mm (us / TFLOP/s) | BF16 mm (us / TFLOP/s) |
+| ---: | ---: | ---: | ---: |
+| 5120 x 6144 | 6,046.5 / 2.664 | 4,753.0 / 3.389 | 360.3 / 44.700 |
+| 34816 x 5120 | 116,797.7 / 0.781 | 24,946.5 / 3.659 | 1,204.5 / 75.771 |
+| 5120 x 17408 | 27,688.9 / 1.648 | 12,557.9 / 3.634 | 641.6 / 71.121 |
+| 16384 x 5120 | 55,267.2 / 0.777 | 11,933.5 / 3.599 | 734.4 / 58.481 |
+| 96 x 5120 | 496.9 / 0.506 | 139.6 / 1.803 | 42.3 / 5.946 |
+| 14336 x 5120 | 45,000.7 / 0.835 | 10,299.2 / 3.649 | 615.1 / 61.095 |
+| **weighted (64/64/64/48/48/16)** | **13,030,809.5 us / 0.957** | **3,448,769.3 us / —** | **188,340.5 us / —** |
+
+The explicit tail probe `(M,N,K)=(129,17,64)` and the full `M=256, N=96,
+K=5120` output both matched the FP64 oracle built by decoding the exact input
+bytes (`max-abs=0`, `RMSE=0`). Larger cases were checked on a bounded 16x32
+output slice against the same oracle and remained finite. The generated
+gfx1201 device object contains
+`v_wmma_f32_16x16x16_fp8_fp8`.
+
+Even after removing decode, scale, quantization, and the rejected candidate's
+per-K accumulator spill, the raw WMMA mapping stays at 0.78--2.66 TFLOP/s
+(0.957 TFLOP/s under the production call weights). This experiment therefore
+rules out MXFP4 decode/E8M0 scaling as the sole explanation for the low P3
+throughput. The leading remaining hypotheses are the one-wave 16x16 mapping,
+LDS/barrier and fragment-load overhead, and register/occupancy effects; this
+does not identify one of them conclusively. The current W4A8 candidate remains
+rejected, no production kernel or dispatch was changed, and P4 remains
+unstarted. Reopening P3 would require a separate large-tile/multi-wave
+hypothesis and a new gate.
+
+The saved JSONL artifacts were `/tmp/tq-fp8-wmma-m256.jsonl` and
+`/tmp/tq-fp8-wmma-full-correctness.jsonl` in the GPU container. The sweep is
+reproducible with:
+
+```bash
+PYTORCH_ROCM_ARCH=gfx1201 /tmp/tq-venv/bin/python \
+  benchmarks/kernels/benchmark_gfx1201_fp8_wmma.py \
+  --output /tmp/tq-fp8-wmma-m256.jsonl --rows 256 \
+  --warmups 2 --samples 5 --flush-mib 64 \
+  --build-directory /tmp/tq-gfx1201-fp8-wmma-build
+```
+
 ## P4: raw first-chunk prefill attention
 
 Re-profile after P2/P3. Implement only if raw/first-chunk attention is at least 10% of remaining 32K prefill kernel time or if the environment lacks a working efficient flash-attention path and SDPA is dominant.
