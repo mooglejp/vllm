@@ -1,6 +1,6 @@
 # gfx1201 long-prefill selective-port plan
 
-Status: P0 provenance gate recorded; P1 baseline profile complete; P2+ not started
+Status: P0 provenance gate recorded; P1 baseline profile complete; P2.1 reuse evaluation complete; P2.2+ not started; production dispatch unchanged
 
 Base revision: `787189270cc97f0671e2f2f4aa33a506b07df335`
 
@@ -174,6 +174,44 @@ Before a new kernel, benchmark the existing SoA-aware direct TurboQuant reader b
 Compare current full-dequant continuation, the generic SoA direct reader with a benchmark-only widened threshold, and the specialized gfx1201 K8/V4 multi-token reader if its metadata/workspace contract permits those widths. Do not change production threshold in this commit.
 
 Prefer reuse if q_len=512 / 32K is at least 1.25x faster than current continuation and needs no more than 384 MiB additional workspace.
+
+### P2.1 execution record (2026-09-13)
+
+The benchmark-only harness is `benchmarks/kernels/benchmark_turboquant_gfx1201_prefill.py`. It was run against the P1 baseline source (`b8547a3572`) in the existing gfx1201 GPU container (PyTorch `2.12.0+git6bbd260`, HIP `7.2.53211`). Production threshold and dispatch code were not changed.
+
+The controls use deterministic BF16 tensors with Hq=24, Hk=4, D=256, K8/V4 SoA storage, and block size 16. No captured model tensors were available, so these are synthetic cache-contract controls. The feasible matrix covers 4K/q64,128,256; 8K/q1024; 16K/q512; 32K/q256,512; and 64K/q64. The machine-readable output is `/tmp/p2.1-turboquant-prefill-reuse.jsonl`.
+
+The three measured paths are deliberately separated:
+
+- `current_large_continuation`: dequantize only the prefix into the existing FP16 workspace, append raw current K/V, and run the SDPA causal fallback.
+- `generic_soa_direct_rowwise`: reuse the existing SoA reader shape with one synthetic request per query row; both prefix and current K/V are read from the quantized cache.
+- `specialized_multi_token`: use the existing gfx1201 packed multi-token launcher with one request and `query_start_loc=[0,q_len]`; both prefix and current K/V are read from the quantized cache. Split counts 4/8/16 were measured.
+  For q_len > 2 its existing launcher uses query blocks of 4 (q512 therefore launches 128 query blocks), so this is not one shared KV load for all 512 query tokens.
+
+The all-quantized reference dequantizes every visible position to FP16 and then casts to the query dtype before SDPA. The raw-current reference dequantizes only the prefix to FP16 and appends raw current K/V. This records the FP16-workspace rounding separately from the current-chunk quantization difference.
+
+Median device times (microseconds) were:
+
+| cached / q | current large | generic best | specialized split 4 / 8 / 16 | specialized speedup vs current |
+| ---: | ---: | ---: | ---: | ---: |
+| 4K / 64 | 3,568 | 5,300 | 712 / 780 / 994 | 3.59--5.01x |
+| 4K / 128 | 6,638 | 10,877 | 1,571 / 1,515 / 1,579 | 4.20--4.38x |
+| 4K / 256 | 9,539 | 20,588 | 2,662 / 2,673 / 2,855 | 3.34--3.58x |
+| 8K / 1024 | 80,996 | 159,691 | 20,503 / 21,078 / 21,408 | 3.78--3.95x |
+| 16K / 512 | 69,753 | 154,550 | 18,603 / 18,748 / 19,256 | 3.62--3.75x |
+| 32K / 256 | 79,520 | 151,899 | 17,340 / 17,152 / 16,962 | 4.59--4.69x |
+| 32K / 512 | 145,591 | 306,269 | 34,212 / 34,368 / 34,407 | 4.23--4.26x |
+| 64K / 64 | 84,918 | 76,351 | 9,341 / 9,679 / 8,798 | 8.77--9.65x |
+
+The generic reader was slower than current large continuation except for the 64K/q64 control, where it was only 1.11x faster. The specialized reader was consistently faster, but that result is not a production adoption result because it quantizes the current chunk.
+
+The direct-reader numerical envelope against the all-quantized reference was finite with relative L2 error 0.00266--0.00284 and maximum absolute error at most 0.00098. Against the raw-current reference, the specialized and generic paths differed by relative L2 0.00383--0.02691 and maximum absolute error up to 0.00452; this is the expected quantized-current-chunk plus FP16-workspace contract difference, not automatically a reader bug. The current large path matched its raw-current reference exactly.
+
+Workspace accounting confirms the split warning. At 32K/q512, current-large explicit additional workspace was 274.25 MiB; specialized `mid_o` was 48.2/96.4/192.8 MiB for split 4/8/16, with total specialized additional workspace 54.2/105.0/198.5 MiB. At 8K/q1024, `mid_o` was 96.4/192.8/385.5 MiB, so split 16 alone exceeds the 384 MiB limit. Generic split scratch follows the same `[q_len,Hq,splits,D]` growth and did not produce a speed win.
+
+P2.1 reuse adoption gate: **not adopted**. The generic reader fails the speed gate. The specialized reader passes the device-time and workspace checks on the completed common points (including 32K/q256) and is much faster on the synthetic 32K/q512 control, but it violates the current raw-current-chunk numerical contract. The P1 model run remains the authority for capacity: chunk 512/32K old path OOMed, so the synthetic 32K/q512 timing is not used as an old-path speed ratio. Likewise, the P1 64K model result remains a 600-second timeout, not an OOM; the synthetic 64K/q64 completion does not infer a 120K result.
+
+No production threshold or dispatch was changed. A dedicated P2.2 streaming candidate (quantized prefix plus raw current K/V, causal bound `kv_pos <= cached_len + query_row`) is required if work continues; no P2.2 production kernel was implemented in this commit.
 
 ### P2.2 dedicated streaming kernel
 
