@@ -534,6 +534,67 @@ Artifacts are preserved under `/tmp/tq-p2.2-real-20260913/trace4k/`, including
 This is a cause-isolation supplement only. Production defaults, thresholds,
 P3, and all kernel dispatch remain unchanged.
 
+### P2.2 saved-candidate offline replay completion (2026-09-13)
+
+The final diagnostic supplement re-used the saved layer-3 snapshot and saved
+references; it did not capture a new snapshot, rerun the model, or send any
+candidate output into a baseline continuation. The replay fixes the complete
+contract at `cached_len=256`, `q_len=256`, `scale=0.0625`, explicit Math SDPA,
+BF16 query/raw current K/V, BF16-rounded prefix K/V, and the saved causal
+boundary. The replay program is
+`benchmarks/kernels/benchmark_turboquant_gfx1201_prefill_offline_candidates.py`.
+
+The existing candidate cache reader was run on the saved SoA cache and block
+table. Its decoded prefix matched the saved FP16 workspace and the saved
+FP16-to-BF16 prefix exactly for both K and V: max-abs and RMSE were zero and
+all elements were equal. Prefix dequantization and the cache/block mapping are
+therefore not the source of the remaining candidate arithmetic difference in
+this fixed case.
+
+Both candidates were replayed offline on the same BF16 input. The rows below
+show the final BF16 output against the FP64 reference before and after the
+final BF16 cast; the pre-cast candidate rows are retained separately because
+the old SDPA artifact only stores its final BF16 output.
+
+| route | max-abs vs FP64 pre-cast | RMSE vs FP64 pre-cast | relative L2 vs FP64 pre-cast | max-abs vs FP64 BF16-cast | RMSE vs FP64 BF16-cast | relative L2 vs FP64 BF16-cast | numeric gate |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| old SDPA | 0.007798811 | 0.000506864 | 0.001681955 | 0.003906250 | 0.000009112 | 0.000030238 | **pass** |
+| BF16 candidate | 0.008922591 | 0.000515869 | 0.001711837 | 0.015625000 | 0.000335916 | 0.001114693 | **fail** |
+| PV-FP32 candidate | 0.007798811 | 0.000506864 | 0.001681955 | 0.007812500 | 0.000011382 | 0.000037769 | **fail** |
+
+At the arithmetic stage before the final output cast, the BF16 candidate was
+`max-abs=0.002159503`, `RMSE=0.000096773`, and the PV-FP32 candidate was
+`max-abs=0.000004222`, `RMSE=0.000000087`, against the BF16-input FP64
+reference. The difference exposed after the output cast is therefore recorded
+separately from the operation arithmetic.
+
+The existing synthetic numerical gate requires finite candidate output and
+both max-abs and RMSE no greater than `1.1x` the old SDPA error against the
+same BF16-input FP64 reference after the final BF16 cast. The old SDPA baseline
+limits are max-abs `0.004296875` and RMSE `0.000010024`; the BF16 candidate
+and PV-FP32 candidate exceed both limits. The fixed-input numeric gate is thus
+**not passed** for either candidate. This closes the requested diagnostic
+supplement only; P2.2 adoption remains not passed and no production threshold,
+dispatch, or P3 work is enabled.
+
+The GPU result, Markdown table, and replay tensors are preserved at
+`/tmp/tq-p2.2-real-20260913/trace4k/offline-candidates-gpu.json`,
+`offline-candidates-gpu.md`, and `offline-candidate-outputs.pt`. A CPU replay
+using the same saved snapshot and references is also recorded as
+`offline-candidates.json`. The GPU replay can be reproduced without a model
+run with:
+
+```bash
+/tmp/tq-venv/bin/python \
+  benchmarks/kernels/benchmark_turboquant_gfx1201_prefill_offline_candidates.py \
+  --snapshot /cache/tq-p2.2-real-20260913/trace4k/baseline-layer3-snapshot.pt \
+  --references /cache/tq-p2.2-real-20260913/trace4k/baseline-layer3-references.pt \
+  --output /cache/tq-p2.2-real-20260913/trace4k/offline-candidates.json \
+  --markdown-output /cache/tq-p2.2-real-20260913/trace4k/offline-candidates.md \
+  --save-outputs /cache/tq-p2.2-real-20260913/trace4k/offline-candidate-outputs.pt \
+  --device cuda --verify-prefix
+```
+
 ## P3: native FP8-WMMA W4A8 large-M only
 
 P3 is independent from failed A3. Small-M calls remain on the current software-fused MXFP4 backend.
