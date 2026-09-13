@@ -1,6 +1,6 @@
 # gfx1201 long-prefill selective-port plan
 
-Status: P0 provenance gate recorded; P1 baseline profile complete; P2.1 reuse evaluation complete; P2.2 current candidates evaluated and rejected; P3 independent candidate implementation started; default dispatch unchanged
+Status: P0 provenance gate recorded; P1 baseline profile complete; P2.1 reuse evaluation complete; P2.2 current candidates evaluated and rejected; P3 current native W4A8 candidate speed gate failed; default dispatch unchanged
 
 Base revision: `787189270cc97f0671e2f2f4aa33a506b07df335`
 
@@ -676,12 +676,47 @@ up to 20). These are runtime semantic diagnostics, not adoption or production
 model-quality decisions.
 
 `benchmarks/kernels/benchmark_gfx1201_w4a8_prefill.py` now records correctness
-against the FP64 native-byte oracle and the Torch FP8-conversion reference, and
-separates quantization, GEMM, and combined timing with fixed workspaces. Its
-current baseline is explicitly a pre-dequantized BF16 weight plus activation-QDQ
-matrix multiply, so its ratios are exploratory only and are not yet the P3
-adoption gate. No cold-32K, quality, or production threshold decision has been
-made.
+against the FP64 native-byte oracle and the Torch FP8-conversion reference. It
+reports both a pre-dequantized `old_mm_only` diagnostic and an
+`old_full_emulation` path that performs production `dequant_mxfp4`, activation
+`quant_dequant_mxfp4`, and `F.linear` on every call. The summary applies the
+architecture-derived production call weights (64/64/64/48/48/16) separately for
+each query-row count. The current candidate timing still uses preallocated
+quantization/GEMM workspaces while `old_full_emulation` includes its temporary
+allocations, so this is the corrected baseline for the next speed gate but not a
+final adoption result until workspace and same-load comparisons are completed.
+No cold-32K, quality, or production threshold decision has been made.
+
+### P3 preallocated speed gate probe (2026-09-13)
+
+A Quark-enabled gfx1201 GPU run measured all six tracked dense shapes at
+`M=256`, with two warmups, five samples, a 64 MiB device flush, and rotating
+operation order. The environment was gfx1201, ROCm `7.2.53211`, and
+Torch `2.12.0+git6bbd260`. The native ops came from the P3 source through a
+temporary test extension/namespace registration; the production linear dispatch
+was not used.
+`old_full_emulation` called production `dequant_mxfp4`,
+`quant_dequant_mxfp4`, and `F.linear` on every sample. The candidate's combined
+operation reused preallocated quantization/output buffers, so this comparison
+is favorable to the candidate and still excludes no baseline work.
+
+| N x K | Calls | old_full median (us) | candidate combined (us) | old/candidate |
+| ---: | ---: | ---: | ---: | ---: |
+| 5120 x 6144 | 64 | 349.8 | 9,045.5 | 0.039x |
+| 34816 x 5120 | 64 | 2,152.1 | 52,783.0 | 0.041x |
+| 5120 x 17408 | 64 | 1,164.9 | 24,627.4 | 0.047x |
+| 16384 x 5120 | 48 | 1,115.9 | 24,454.9 | 0.046x |
+| 96 x 5120 | 48 | 94.2 | 1,015.2 | 0.093x |
+| 14336 x 5120 | 16 | 930.0 | 21,311.0 | 0.044x |
+| **weighted** | **304** | **307,642.6** | **7,096,718.3** | **0.043x** |
+
+The required production-weighted threshold is `1.25x`; the current candidate is
+therefore **not adopted** and the speed evaluation is closed for this
+implementation. The result is sufficient to stop before workspace reuse,
+layout tuning, or cold-32K integration. This is a decision about the current
+one-wave row-major implementation, not a proof that a different FP8-WMMA
+layout cannot work. Reopening P3 requires a new kernel hypothesis and a new
+gate; P4 remains independent and unstarted.
 
 ## P4: raw first-chunk prefill attention
 
@@ -742,4 +777,4 @@ If qualified K8/V4 remains far below historical Radiance, run an isolated FP8-KV
 7. `[ROCm] Fuse gfx1201 GDN prefill` — P5 only if profile-gated.
 8. `[gfx1201] Qualify long-prefill composition` — P6 report/quality/needles/prefix/soak; defaults unchanged.
 
-The P2.2 candidate remains behind its explicit default-off gate and is not enabled. P2.2 evaluation is closed for the current candidates. The P3 candidate is implemented but remains default-off until its benchmark and quality gates pass; P4/P5 remain unimported and no later production dispatch is enabled.
+The P2.2 candidate remains behind its explicit default-off gate and is not enabled. P2.2 evaluation is closed for the current candidates. The current P3 candidate failed its production-weighted speed gate and remains default-off; reopening it requires a new kernel hypothesis. P4/P5 remain unimported and no later production dispatch is enabled.

@@ -15,12 +15,14 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import torch
+import torch.nn.functional as F
 
 from vllm.model_executor.kernels.linear.mxfp4.gfx1201_w4a8 import (
     dequantize_mxfp4_weight_reference,
     gfx1201_w4a8_linear_reference,
 )
 from vllm.model_executor.layers.quantization.utils.mxfp4_utils import (
+    dequant_mxfp4,
     quant_dequant_mxfp4,
 )
 
@@ -33,6 +35,9 @@ MODEL_SHAPES = (
     (14336, 5120),
 )
 QUERY_ROWS = (128, 256, 512, 1024, 2048, 3072, 4096)
+# Counts per target forward from docs/design/turboquant_gfx1201_mxfp4_launch_tuning.md.
+PRODUCTION_CALL_WEIGHTS = (64, 64, 64, 48, 48, 16)
+assert len(MODEL_SHAPES) == len(PRODUCTION_CALL_WEIGHTS)
 
 
 @dataclass(frozen=True)
@@ -102,6 +107,18 @@ def _native_reference(
     return torch.mm(activation, weight.t()).to(torch.bfloat16)
 
 
+def _old_full_emulation(
+    x: torch.Tensor,
+    packed_weight: torch.Tensor,
+    weight_scale: torch.Tensor,
+) -> torch.Tensor:
+    """Run the current production emulation contract, including allocations."""
+
+    dequantized_weight = dequant_mxfp4(packed_weight, weight_scale, x.dtype)
+    qdq_x = quant_dequant_mxfp4(x)
+    return F.linear(qdq_x, dequantized_weight)
+
+
 def _correctness_check() -> dict[str, object]:
     ops = _ops()
     m, n, k = 128, 17, 64
@@ -136,6 +153,7 @@ def _benchmark_case(
     m: int,
     n: int,
     k: int,
+    shape_call_weight: int,
     flush: torch.Tensor,
     config: TimingConfig,
     seed: int,
@@ -150,8 +168,9 @@ def _benchmark_case(
     row_scale = torch.empty((m,), device="cuda", dtype=torch.float32)
     output = torch.empty((m, n), device="cuda", dtype=torch.bfloat16)
     old_output = torch.empty_like(output)
+    # These precomputed tensors define the kernel-only diagnostic baseline.
     old_x = quant_dequant_mxfp4(x)
-    old_weight = dequantize_mxfp4_weight_reference(packed, scales, dtype=torch.bfloat16)
+    old_weight = dequant_mxfp4(packed, scales, x.dtype)
 
     def quantize():
         ops.gfx1201_w4a8_quantize(x, quantized, row_scale)
@@ -163,35 +182,94 @@ def _benchmark_case(
         quantize()
         gemm()
 
-    def old_emulation():
+    def old_mm_only():
         torch.mm(old_x, old_weight.t(), out=old_output)
 
-    # Populate the candidate workspace before timing GEMM-only.
+    def old_full_emulation():
+        return _old_full_emulation(x, packed, scales)
+
+    # Populate the candidate workspace before timing GEMM-only. All operations
+    # are then timed in one rotating order so old and new paths share
+    # cache/clock position effects.
     quantize()
     torch.accelerator.synchronize()
-    raw = _measure_round_robin(
-        {"quantization": quantize, "gemm": gemm, "combined": combined},
-        flush,
-        config,
-    )
-    old_raw = _measure_round_robin({"old_emulation_mm": old_emulation}, flush, config)
+    operations = {
+        "old_mm_only": old_mm_only,
+        "old_full_emulation": old_full_emulation,
+        "quantization": quantize,
+        "gemm": gemm,
+        "combined": combined,
+    }
+    raw = _measure_round_robin(operations, flush, config)
     timing = {name: _summary(values) for name, values in raw.items()}
-    old_timing = {name: _summary(values) for name, values in old_raw.items()}
     return {
         "m": m,
         "n": n,
         "k": k,
+        "shape_call_weight": shape_call_weight,
         "timing": timing,
-        "old_emulation_mm_timing": old_timing,
-        "old_emulation_mm_over_candidate_combined": (
-            old_timing["old_emulation_mm"]["median_us"]
-            / timing["combined"]["median_us"]
+        "old_mm_only_over_candidate_combined": (
+            timing["old_mm_only"]["median_us"] / timing["combined"]["median_us"]
         ),
+        "old_full_emulation_over_candidate_combined": (
+            timing["old_full_emulation"]["median_us"] / timing["combined"]["median_us"]
+        ),
+        "baseline_contract": (
+            "old_full_emulation runs dequant_mxfp4 + quant_dequant_mxfp4 + "
+            "F.linear on every call"
+        ),
+        "candidate_combined_preallocated": True,
+        "old_full_emulation_includes_allocation": True,
         "workspace_bytes": {
             "quantized_activation": quantized.numel() * quantized.element_size(),
             "row_scale": row_scale.numel() * row_scale.element_size(),
             "output": output.numel() * output.element_size(),
         },
+    }
+
+
+def _weighted_summary(results: list[dict[str, object]]) -> dict[str, object]:
+    by_m: dict[str, dict[str, float]] = {}
+    for result in results:
+        m = str(result["m"])
+        weight = float(result["shape_call_weight"])
+        timing = result["timing"]
+        bucket = by_m.setdefault(
+            m,
+            {
+                "total_calls": 0.0,
+                "old_mm_only_us": 0.0,
+                "old_full_emulation_us": 0.0,
+                "candidate_combined_us": 0.0,
+            },
+        )
+        bucket["total_calls"] += weight
+        bucket["old_mm_only_us"] += weight * timing["old_mm_only"]["median_us"]
+        bucket["old_full_emulation_us"] += (
+            weight * timing["old_full_emulation"]["median_us"]
+        )
+        bucket["candidate_combined_us"] += weight * timing["combined"]["median_us"]
+
+    for bucket in by_m.values():
+        bucket["old_mm_only_over_candidate"] = (
+            bucket["old_mm_only_us"] / bucket["candidate_combined_us"]
+        )
+        bucket["old_full_emulation_over_candidate"] = (
+            bucket["old_full_emulation_us"] / bucket["candidate_combined_us"]
+        )
+        bucket["preallocated_speed_gate_pass"] = (
+            bucket["old_full_emulation_over_candidate"] >= 1.25
+        )
+    return {
+        "shape_call_weights": list(PRODUCTION_CALL_WEIGHTS),
+        "by_query_rows": by_m,
+        "gate_baseline": "old_full_emulation",
+        "gate_candidate": "preallocated quantization + GEMM",
+        "gate_threshold": 1.25,
+        "comparison_caveat": (
+            "candidate workspace is preallocated; old_full_emulation includes "
+            "temporary allocations"
+        ),
     }
 
 
@@ -221,11 +299,35 @@ def main() -> None:
         "rows": args.rows,
         "flush_mib": args.flush_mib,
         "correctness": correctness,
-        "baseline": "pre-dequantized BF16 weight + activation MXFP4 QDQ + torch.mm",
+        "production_call_weights": [
+            {
+                "shape_index": index,
+                "n": n,
+                "k": k,
+                "calls_per_target_forward": PRODUCTION_CALL_WEIGHTS[index],
+            }
+            for index, (n, k) in enumerate(MODEL_SHAPES)
+        ],
+        "baseline": {
+            "old_mm_only": (
+                "pre-dequantized BF16 weight + activation MXFP4 QDQ + "
+                "preallocated torch.mm"
+            ),
+            "old_full_emulation": (
+                "production dequant_mxfp4 + quant_dequant_mxfp4 + F.linear"
+            ),
+        },
         "candidate": (
             "native FP8-WMMA custom ops; quantization and GEMM separately timed"
         ),
+        "adoption_gate": {
+            "weighted_speedup": 1.25,
+            "baseline": "old_full_emulation",
+            "candidate": "preallocated quantization + GEMM",
+            "status": "diagnostic_until_workspace_and_same_load_are_validated",
+        },
     }
+    records: list[dict[str, object]] = []
     with args.output.open("w") as output:
         output.write(json.dumps({"metadata": metadata}) + "\n")
         for shape_index in selected:
@@ -235,13 +337,19 @@ def main() -> None:
                     m,
                     n,
                     k,
+                    PRODUCTION_CALL_WEIGHTS[shape_index],
                     flush,
                     config,
                     1201 + 10 * shape_index + m,
                 )
+                records.append(result)
                 output.write(json.dumps(result) + "\n")
                 output.flush()
                 print(json.dumps(result), flush=True)
+        summary = _weighted_summary(records)
+        output.write(json.dumps({"summary": summary}) + "\n")
+        output.flush()
+        print(json.dumps({"summary": summary}), flush=True)
         print(f"saved {args.output}", flush=True)
 
 
