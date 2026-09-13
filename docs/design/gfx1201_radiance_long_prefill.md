@@ -402,6 +402,51 @@ The replay program and snapshot results are preserved under
 `/tmp/tq-p2.2-real-20260913/replaydiag/`; this single-layer diagnosis is a
 causal isolation result, not yet a model-quality gate.
 
+### P2.2 PV-FP32 candidate re-evaluation (2026-09-13)
+
+The proposed precision fix was implemented at revision `fc2730b9cd` as a
+separate, default-off diagnostic switch:
+`VLLM_TQ_GFX1201_K8V4_PREFILL_PV_FP32=true`. It preserves the existing
+FP16-to-BF16 rounding of cached values and raw BF16 current values, but keeps
+probabilities and those rounded values in FP32 for the PV dot and accumulator.
+The normal opt-in, threshold, dispatch, and P3 settings are unchanged.
+
+On the immutable layer-63 snapshot, the exact candidate cache-load replay still
+matched the old FP16 workspace K/V at every element. With the switch enabled,
+the actual Triton candidate measured max-abs `0.125`, RMSE `0.00100940`, and
+relative L2 `0.000198287` against old math SDPA, versus max-abs `0.250`, RMSE
+`0.00390115`, and relative L2 `0.000766345` before the fix. The offline
+PV-FP32 ablation was therefore reproduced by the kernel, but it remained above
+bitwise equality; QK+PV FP64 did not improve the FP64 reference comparison.
+
+The precision change has a substantial cost on the representative synthetic
+32K/q256 shape with fixed metadata: the splitless streaming kernel median rose
+from `21,239 us` with the original BF16 PV dot to `87,274 us` with the FP32 PV
+dot (4.11x slower). This explains why the end-to-end speed gate did not hold.
+
+The same model configuration was then rerun with the switch enabled. The 4K
+smoke hash was `c57cd141...`, differing from the baseline/old-candidate hash
+`a72956da...`. At 32K/chunk256, the measured TTFT was `159.304263 s`, compared
+with `131.988972 s` for the baseline and `86.218048 s` for the original
+candidate; the corresponding candidate hash was `d4b23e55...`. The request
+record did not contain a client-side speculative-metrics object in this run,
+so MTP acceptance is not used as a gate here; the server-side metrics were
+retained in the log.
+
+The saved logits/layer diagnostic also did not pass the quality gate. Against
+the baseline's common 32K output position, max-abs was `5.9296875`, RMSE
+`0.879591`, KL `0.822002`, top-10 overlap `7/10`, and the argmax changed from
+`52782` to `760`. The layer-63 probes reached max-abs `34.5` (final-norm probes
+`6.625` and `33.0`). These captures had finite tensors but did not establish
+model-quality approval; the earlier BF16 candidate had max-abs `5.0546875` and
+RMSE `0.859348`, so PV-FP32 does not recover the end-to-end discrepancy.
+
+The artifacts are preserved under `/tmp/tq-p2.2-real-20260913/`, including
+`replaydiag/results/numerics-pvfp32.json`, the paired 32K kernel timings, and
+`diag/*-pvfp32*`. The PV-FP32 switch is therefore retained only as a recorded
+cause-isolation candidate and is **not adopted**. P2.2 remains candidate-only;
+production defaults, thresholds, and all P3 work remain unchanged.
+
 ## P3: native FP8-WMMA W4A8 large-M only
 
 P3 is independent from failed A3. Small-M calls remain on the current software-fused MXFP4 backend.
