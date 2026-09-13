@@ -4,7 +4,8 @@
 
 This CPU-only tool aligns separately served runs by continuation call order.
 It never runs a kernel and does not infer a model-wide conclusion from one
-layer; the report is explicitly scoped to the captured 4K request.
+layer. Missing input fields are reported as ``uncompared_input`` rather than
+being treated as an operation cause.
 """
 
 from __future__ import annotations
@@ -15,7 +16,15 @@ from pathlib import Path
 from typing import Any
 
 FULL_PREFIX = "language_model.model.layers."
-INPUT_FIELDS = ("query_digest", "key_chunk_digest", "value_chunk_digest")
+INPUT_FIELDS = {
+    "query_digest": "query",
+    "key_chunk_digest": "key_chunk",
+    "value_chunk_digest": "value_chunk",
+    "prefix_key_digest": "prefix_key",
+    "prefix_value_digest": "prefix_value",
+    "scale": "scale",
+    "causal_boundary": "causal_boundary",
+}
 
 
 def load(path: Path) -> list[dict[str, Any]]:
@@ -60,15 +69,37 @@ def align(
     return pairs
 
 
+def compare_inputs(
+    baseline: dict[str, Any], candidate: dict[str, Any]
+) -> tuple[list[str], list[str], list[str]]:
+    missing = set()
+    differing = []
+    equal = []
+    for field, label in INPUT_FIELDS.items():
+        if field not in baseline or field not in candidate:
+            missing.add(label)
+        elif baseline[field] != candidate[field]:
+            differing.append(label)
+        else:
+            equal.append(label)
+    for record in (baseline, candidate):
+        missing.update(record.get("uncompared_input_fields", []))
+    return sorted(missing), differing, equal
+
+
 def first_mismatch(
     pairs: list[tuple[dict[str, Any], dict[str, Any]]],
 ) -> dict[str, Any] | None:
     for baseline, candidate in pairs:
         if baseline["output_digest"] == candidate["output_digest"]:
             continue
-        inputs_equal = all(
-            baseline[field] == candidate[field] for field in INPUT_FIELDS
-        )
+        missing, differing, equal = compare_inputs(baseline, candidate)
+        if missing:
+            cause_class = "uncompared_input"
+        elif differing:
+            cause_class = "input_difference"
+        else:
+            cause_class = "attention_operation"
         return {
             "trace_index": baseline["trace_index"],
             "chunk": {
@@ -82,10 +113,11 @@ def first_mismatch(
                 "baseline": baseline["operation"],
                 "candidate": candidate["operation"],
             },
-            "input_digests_equal": inputs_equal,
-            "input_digest_equal_fields": [
-                field for field in INPUT_FIELDS if baseline[field] == candidate[field]
-            ],
+            "input_comparison_complete": not missing,
+            "input_digests_equal": not missing and not differing,
+            "input_digest_equal_fields": equal,
+            "input_differing_fields": differing,
+            "uncompared_input_fields": missing,
             "output_digest": {
                 "baseline": baseline["output_digest"],
                 "candidate": candidate["output_digest"],
@@ -94,11 +126,7 @@ def first_mismatch(
                 "baseline": baseline["output_stats"],
                 "candidate": candidate["output_stats"],
             },
-            "cause_class": (
-                "attention_operation"
-                if inputs_equal
-                else "upstream_input_or_attention_operation"
-            ),
+            "cause_class": cause_class,
         }
     return None
 
@@ -107,9 +135,7 @@ def first_input_mismatch(
     pairs: list[tuple[dict[str, Any], dict[str, Any]]],
 ) -> dict[str, Any] | None:
     for baseline, candidate in pairs:
-        differing = [
-            field for field in INPUT_FIELDS if baseline[field] != candidate[field]
-        ]
+        _missing, differing, _equal = compare_inputs(baseline, candidate)
         if differing:
             return {
                 "trace_index": baseline["trace_index"],
@@ -120,7 +146,7 @@ def first_input_mismatch(
                 },
                 "layer": baseline["layer"],
                 "layer_index": baseline["layer_index"],
-                "differing_input_digests": differing,
+                "differing_input_fields": differing,
             }
     return None
 
