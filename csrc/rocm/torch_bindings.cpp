@@ -74,6 +74,18 @@ TORCH_LIBRARY_EXPAND(TORCH_EXTENSION_NAME, rocm_ops) {
   rocm_ops.impl("moe_gptq_gemm_rdna3", torch::kCUDA, &moe_gptq_gemm_rdna3);
 #endif
 
+  // Experimental gfx1201 native FP8-WMMA W4A8 large-M path.  The Python
+  // boundary is opt-in and the production linear dispatch remains unchanged.
+  rocm_ops.def(
+      "gfx1201_w4a8_quantize(Tensor x, Tensor! quantized, Tensor! row_scale) "
+      "-> ()");
+  rocm_ops.impl("gfx1201_w4a8_quantize", torch::kCUDA, &gfx1201_w4a8_quantize);
+
+  rocm_ops.def(
+      "gfx1201_w4a8_gemm(Tensor quantized, Tensor row_scale, "
+      "Tensor packed_weight, Tensor weight_scale, Tensor! output) -> ()");
+  rocm_ops.impl("gfx1201_w4a8_gemm", torch::kCUDA, &gfx1201_w4a8_gemm);
+
   // Custom attention op
   // Compute the attention between an input query and the cached
   // keys/values using PagedAttention.

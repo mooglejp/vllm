@@ -1,6 +1,6 @@
 # gfx1201 long-prefill selective-port plan
 
-Status: P0 provenance gate recorded; P1 baseline profile complete; P2.1 reuse evaluation complete; P2.2 current candidates evaluated and rejected; P3 independent evaluation not started; default dispatch unchanged
+Status: P0 provenance gate recorded; P1 baseline profile complete; P2.1 reuse evaluation complete; P2.2 current candidates evaluated and rejected; P3 independent candidate implementation started; default dispatch unchanged
 
 Base revision: `787189270cc97f0671e2f2f4aa33a506b07df335`
 
@@ -612,8 +612,9 @@ This is a decision about these two implementations, not a proof that streaming
 attention is impossible and not a model-quality conclusion beyond the recorded
 gates. Reopening P2.2 requires a different implementation hypothesis and a new
 plan/adoption gate. P3 may be evaluated independently against the existing
-attention path; it does not depend on enabling or rescuing P2.2. This record
-does not start P3.
+attention path; it does not depend on enabling or rescuing P2.2. P3 work is now
+limited to a default-off implementation and diagnostic benchmark; no adoption
+or production dispatch change follows from this start.
 
 ## P3: native FP8-WMMA W4A8 large-M only
 
@@ -621,7 +622,10 @@ P3 is independent from failed A3. Small-M calls remain on the current software-f
 
 The existing `launch_gfx1201_w4a8_prefill()` placeholder is the Python boundary. The functional candidate must use a HIP/native route proven by disassembly to emit the intended gfx1201 FP8 matrix instruction. A Triton route that expands FP8/MXFP4 to BF16 and runs BF16 WMMA is not the target.
 
-Suggested HIP source: `csrc/quantization/gfx1201/mxfp4_w4a8_prefill.hip`, registered through `csrc/ops.h` / `csrc/torch_bindings.cpp` and appended to the ROCm `_C` target unless a separate ABI design says otherwise.
+The current candidate is implemented in `csrc/rocm/gfx1201_w4a8_prefill.cu`,
+registered through `csrc/rocm/ops.h` / `csrc/rocm/torch_bindings.cpp`, and
+appended to the ROCm `_rocm_C` target. This keeps the experiment behind the
+existing Python boundary and avoids changing the production linear dispatch.
 
 Initial contract:
 
@@ -645,6 +649,39 @@ Adoption gate:
 - record 12-prompt logits, MTP acceptance, and target inputs; bitwise W4A4 equality is not required.
 
 Suggested separate opt-in: `VLLM_ROCM_USE_GFX1201_MXFP4_W4A8_PREFILL`, default False.
+
+### P3 implementation kickoff (2026-09-13)
+
+The candidate exposes separate native quantization and GEMM custom ops. The
+quantization op converts BF16 rows to the runtime's native FP8 E4M3 byte
+representation and records one FP32 scale per row. The GEMM op consumes those
+bytes, decodes group32 MXFP4 weights, and uses a gfx1201 FP8 WMMA tile before
+producing BF16 output. The opt-in is default-off and the existing small-M/decode
+dispatch is unchanged. A small GPU input probe covered zero, tiny,
+saturation, scale-boundary, and non-finite BF16 rows before timing: zero rows
+keep scale `1`, finite boundary rows complete, and NaN/Inf rows propagate a NaN
+row scale and FP8 NaN bytes. The latter remains a diagnostic behavior, not a
+production-quality contract.
+
+Static gfx1201 assembly contains
+`v_wmma_f32_16x16x16_fp8_fp8`. Initial GPU probes on seeded random and boundary
+inputs matched a reference built from the candidate's actual FP8 bytes
+bit-for-bit for the tile-aligned cases. One edge-tile case differed from a Torch
+FP32 matmul reference by max-abs `0.5`, while the same output differed from an
+FP64 accumulation reference by at most `6.1e-5`; this is treated as a
+reduction-order distinction until a production-shaped oracle is applied. Torch's
+FP8 conversion also differed on a small number of rounding-boundary bytes in the
+same probes (12--26 bytes in the tested cases, with output max-abs differences
+up to 20). These are runtime semantic diagnostics, not adoption or production
+model-quality decisions.
+
+`benchmarks/kernels/benchmark_gfx1201_w4a8_prefill.py` now records correctness
+against the FP64 native-byte oracle and the Torch FP8-conversion reference, and
+separates quantization, GEMM, and combined timing with fixed workspaces. Its
+current baseline is explicitly a pre-dequantized BF16 weight plus activation-QDQ
+matrix multiply, so its ratios are exploratory only and are not yet the P3
+adoption gate. No cold-32K, quality, or production threshold decision has been
+made.
 
 ## P4: raw first-chunk prefill attention
 
@@ -705,4 +742,4 @@ If qualified K8/V4 remains far below historical Radiance, run an isolated FP8-KV
 7. `[ROCm] Fuse gfx1201 GDN prefill` — P5 only if profile-gated.
 8. `[gfx1201] Qualify long-prefill composition` — P6 report/quality/needles/prefix/soak; defaults unchanged.
 
-The P2.2 candidate remains behind its explicit default-off gate and is not enabled. P2.2 evaluation is closed for the current candidates. P3/P4/P5 scaffolds remain unimported until their own phase gates pass; no later production dispatch is enabled.
+The P2.2 candidate remains behind its explicit default-off gate and is not enabled. P2.2 evaluation is closed for the current candidates. The P3 candidate is implemented but remains default-off until its benchmark and quality gates pass; P4/P5 remain unimported and no later production dispatch is enabled.

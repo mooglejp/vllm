@@ -11,6 +11,7 @@ from vllm.model_executor.kernels.linear.mxfp4.gfx1201_w4a8 import (
     dequantize_mxfp4_weight_reference,
     gfx1201_w4a8_linear_reference,
     is_gfx1201_w4a8_candidate,
+    is_gfx1201_w4a8_prefill_candidate,
     quantize_activation_fp8_reference,
 )
 
@@ -149,4 +150,42 @@ def test_w4a8_candidate_accepts_only_decode_shapes():
     assert not is_gfx1201_w4a8_candidate(
         x=torch.zeros((1, 32), dtype=torch.bfloat16),
         bias=torch.zeros(1, dtype=torch.bfloat16),
+    )
+
+
+def test_w4a8_prefill_candidate_requires_large_m_and_group32_layout():
+    x = torch.zeros((128, 64), dtype=torch.bfloat16)
+    packed = torch.zeros((16, 32), dtype=torch.uint8)
+    scale = torch.zeros((16, 2), dtype=torch.uint8)
+    assert is_gfx1201_w4a8_prefill_candidate(
+        x=x, packed_weight=packed, weight_scale=scale
+    )
+    assert not is_gfx1201_w4a8_prefill_candidate(
+        x=x[:127], packed_weight=packed, weight_scale=scale
+    )
+    assert not is_gfx1201_w4a8_prefill_candidate(
+        x=torch.zeros((128, 48), dtype=torch.bfloat16),
+        packed_weight=torch.zeros((16, 24), dtype=torch.uint8),
+        weight_scale=torch.zeros((16, 1), dtype=torch.uint8),
+    )
+    assert not is_gfx1201_w4a8_prefill_candidate(
+        x=x,
+        packed_weight=packed,
+        weight_scale=torch.zeros((16, 1), dtype=torch.uint8),
+    )
+    assert not is_gfx1201_w4a8_prefill_candidate(
+        x=x,
+        packed_weight=torch.zeros((0, 32), dtype=torch.uint8),
+        weight_scale=torch.zeros((0, 2), dtype=torch.uint8),
+    )
+
+
+def test_w4a8_prefill_candidate_rejects_noncontiguous_final_dimension():
+    x = torch.zeros((128, 128), dtype=torch.bfloat16)[:, ::2]
+    packed = torch.zeros((16, 32), dtype=torch.uint8)
+    scale = torch.zeros((16, 2), dtype=torch.uint8)
+    assert x.shape == (128, 64)
+    assert x.stride(-1) == 2
+    assert not is_gfx1201_w4a8_prefill_candidate(
+        x=x, packed_weight=packed, weight_scale=scale
     )

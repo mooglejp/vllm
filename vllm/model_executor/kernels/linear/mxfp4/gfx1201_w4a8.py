@@ -399,7 +399,71 @@ def launch_gfx1201_w4a8_prefill(
     packed_weight: torch.Tensor,
     weight_scale: torch.Tensor,
 ) -> torch.Tensor:
-    """Planned large-M W4A8 launch entry point (A5)."""
+    """Launch the opt-in native FP8-WMMA large-M W4A8 candidate.
 
-    del x, packed_weight, weight_scale
-    raise NotImplementedError("gfx1201 W4A8 prefill kernel is not implemented")
+    This boundary is intentionally separate from ``apply_weights``.  It is
+    used by P3 measurements while the production linear dispatch remains on
+    its existing path.
+    """
+
+    if not envs.VLLM_ROCM_USE_GFX1201_MXFP4_W4A8_PREFILL:
+        raise RuntimeError(
+            "set VLLM_ROCM_USE_GFX1201_MXFP4_W4A8_PREFILL=1 to enable "
+            "the experimental gfx1201 W4A8 prefill candidate"
+        )
+    if not _on_gfx1201():
+        raise RuntimeError("gfx1201 W4A8 prefill requires a ROCm gfx1201 device")
+    if not is_gfx1201_w4a8_prefill_candidate(
+        x=x, packed_weight=packed_weight, weight_scale=weight_scale
+    ):
+        raise ValueError("inputs do not satisfy the gfx1201 W4A8 prefill contract")
+    if (
+        not hasattr(torch.ops, "_rocm_C")
+        or not hasattr(torch.ops._rocm_C, "gfx1201_w4a8_quantize")
+        or not hasattr(torch.ops._rocm_C, "gfx1201_w4a8_gemm")
+    ):
+        raise RuntimeError("_rocm_C lacks the native gfx1201 W4A8 prefill ops")
+
+    m, k = x.shape
+    quantized = torch.empty((m, k), dtype=torch.uint8, device=x.device)
+    activation_scale = torch.empty((m,), dtype=torch.float32, device=x.device)
+    output = torch.empty(
+        (m, packed_weight.shape[0]), dtype=torch.bfloat16, device=x.device
+    )
+    torch.ops._rocm_C.gfx1201_w4a8_quantize(x, quantized, activation_scale)
+    torch.ops._rocm_C.gfx1201_w4a8_gemm(
+        quantized, activation_scale, packed_weight, weight_scale, output
+    )
+    return output
+
+
+def is_gfx1201_w4a8_prefill_candidate(
+    *,
+    x: torch.Tensor,
+    packed_weight: torch.Tensor,
+    weight_scale: torch.Tensor,
+) -> bool:
+    """Return whether tensors satisfy the native large-M W4A8 contract."""
+
+    if (
+        x.ndim != 2
+        or packed_weight.ndim != 2
+        or weight_scale.ndim != 2
+        or x.dtype != torch.bfloat16
+        or packed_weight.dtype != torch.uint8
+        or weight_scale.dtype != torch.uint8
+        or not x.is_contiguous()
+        or not packed_weight.is_contiguous()
+        or not weight_scale.is_contiguous()
+    ):
+        return False
+    m, k = x.shape
+    n, packed_k = packed_weight.shape
+    return (
+        m >= 128
+        and n > 0
+        and k > 0
+        and k % MXFP4_GROUP_SIZE == 0
+        and packed_k * 2 == k
+        and tuple(weight_scale.shape) == (n, k // MXFP4_GROUP_SIZE)
+    )

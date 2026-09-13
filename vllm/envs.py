@@ -152,6 +152,7 @@ if TYPE_CHECKING:
     VLLM_TQ_GFX1201_K8V4_PREFILL: bool = False
     VLLM_ROCM_USE_GFX1201_MXFP4_GEMM: bool = False
     VLLM_ROCM_USE_GFX1201_MXFP4_W4A8: bool = False
+    VLLM_ROCM_USE_GFX1201_MXFP4_W4A8_PREFILL: bool = False
     VLLM_ROCM_USE_AITER_TRITON_GEMM: bool = True
     VLLM_ROCM_USE_SKINNY_GEMM: bool = True
     VLLM_ROCM_FP8_PADDING: bool = True
@@ -1365,6 +1366,11 @@ environment_variables: dict[str, Callable[[], Any]] = {
     # Use the experimental FP8-activation W4A8 decode path on gfx1201.
     "VLLM_ROCM_USE_GFX1201_MXFP4_W4A8": lambda: (
         os.getenv("VLLM_ROCM_USE_GFX1201_MXFP4_W4A8", "False").lower() in ("true", "1")
+    ),
+    # Use the experimental native FP8-WMMA large-M W4A8 prefill path.
+    "VLLM_ROCM_USE_GFX1201_MXFP4_W4A8_PREFILL": lambda: (
+        os.getenv("VLLM_ROCM_USE_GFX1201_MXFP4_W4A8_PREFILL", "False").lower()
+        in ("true", "1")
     ),
     # Whether to use aiter fusion shared experts ops.
     # By default is disabled.

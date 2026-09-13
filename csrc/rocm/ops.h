@@ -51,3 +51,9 @@ void paged_attention(
     const std::string& kv_cache_dtype, torch::Tensor& k_scale,
     torch::Tensor& v_scale, const std::optional<torch::Tensor>& fp8_out_scale,
     const std::string& mfma_type);
+void gfx1201_w4a8_quantize(torch::Tensor x, torch::Tensor& quantized,
+                           torch::Tensor& row_scale);
+
+void gfx1201_w4a8_gemm(torch::Tensor quantized, torch::Tensor row_scale,
+                       torch::Tensor packed_weight, torch::Tensor weight_scale,
+                       torch::Tensor& output);
