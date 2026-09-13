@@ -1,6 +1,6 @@
 # gfx1201 long-prefill selective-port plan
 
-Status: P0 provenance gate recorded; P1 baseline profile complete; P2.1 reuse evaluation complete; P2.2 candidate, smoke checks, and measurement hardening complete; adoption gate pending; default dispatch unchanged
+Status: P0 provenance gate recorded; P1 baseline profile complete; P2.1 reuse evaluation complete; P2.2 candidate and real-model validation complete; adoption gate not passed; default dispatch unchanged
 
 Base revision: `787189270cc97f0671e2f2f4aa33a506b07df335`
 
@@ -211,7 +211,7 @@ Workspace accounting confirms the split warning. At 32K/q512, current-large expl
 
 P2.1 reuse adoption gate: **not adopted**. The generic reader fails the speed gate. The specialized reader passes the device-time and workspace checks on the completed common points (including 32K/q256) and is much faster on the synthetic 32K/q512 control, but it violates the current raw-current-chunk numerical contract. The P1 model run remains the authority for capacity: chunk 512/32K old path OOMed, so the synthetic 32K/q512 timing is not used as an old-path speed ratio. Likewise, the P1 64K model result remains a 600-second timeout, not an OOM; the synthetic 64K/q64 completion does not infer a 120K result.
 
-No production threshold or default dispatch was changed. P2.2 now has a default-off candidate hook for the narrow target profile; the adoption gate remains pending model/cold-prefill and capacity qualification.
+No production threshold or default dispatch was changed. P2.2 has a default-off candidate hook for the narrow target profile; real-model speed and capacity observations are recorded, but the adoption gate is not passed because the quality evidence requires remediation.
 
 ### P2.2 dedicated streaming kernel
 
@@ -314,10 +314,52 @@ streaming output workspace was 3.0 MiB/q256 and 6.0 MiB/q512, while the old
 explicit accounting was 265.0 MiB and 274.3 MiB respectively; allocator peak
 deltas are retained separately in the JSONL records.
 
-These are kernel smoke results, not the P2.2 adoption gate: no captured model
-Q/K/V, cold 32K prefill, long-context capacity run, or quality evaluation has
-been completed. Therefore P2.2 remains **candidate implementation only** and
-the production hook is not an adoption decision.
+### P2.2 real-model validation (2026-09-13)
+
+Validation used revision `5163397b880244656ac427ab3bc14252b2b86607` in the
+gfx1201 container (PyTorch `2.12.0+git6bbd260`, HIP `7.2.53211`) with the
+official `amd-Qwen3.8-27B-Quark-AWQ-MXFP4` model, TP1, TurboQuant K8/V4,
+MTP2, adaptive verification disabled, AITER attention paths disabled, and
+`max_num_batched_tokens=256`. The production opt-in was toggled only for the
+candidate run; the default remains unchanged. The existing CPU contract tests
+passed (`25 passed`), and an additional GPU boundary case with block size 32,
+cached/q lengths 129/129, and permuted physical blocks completed with finite
+output. That case had raw-current relative L2 `0.002225` and max-abs
+`0.003906`.
+
+The real-model 4K smoke requests completed for both paths without errors and
+produced the same output hash (`a72956da...`). For cold 32K with chunk 256,
+the measured baseline TTFT was `131.988972 s` and the candidate was
+`86.218048 s`, a `1.531x` ratio (34.7% lower TTFT), so the cold-prefill speed
+gate passes. This is an end-to-end server measurement, not a kernel-only
+ratio. The regular output hash nevertheless changed (`6dd87b...` baseline vs
+`e2d8de...` candidate), and mean MTP acceptance fell from about `2.826` to
+`2.241` (accepted draft rate about 91.3% to 62.1%).
+
+The candidate also completed 32K/chunk512 (`74.820930 s` TTFT) where the P1
+baseline OOMed. This is recorded as a capacity/functional win only; no speed
+ratio is assigned. A sampled candidate run used about 29.404 GiB of
+34.209 GiB physical VRAM, not a guaranteed peak, and the model-level FP16
+workspace reservation was not changed. The earlier 64K baseline timeout was
+not rerun and no 64K/120K claim is made.
+
+For quality diagnosis, baseline and candidate were run on the same 32K prompt
+(prompt hash `e521e829...`) with saved final logits and layer probes. All
+captured tensors were finite, but the common first output-position logits had
+max-abs `5.0546875`, RMSE `0.859348`, KL `0.628086`, and top-10 overlap 9/10;
+the argmax changed from token `52782` to `27775`. At the saved layer-63 probe,
+the largest per-position max-abs difference was `29.5` (final-norm probe
+`49.0`). These captures are evidence that the real-model numeric/quality gate
+has not passed; they are not a model-quality approval. The initial CK-tile
+warmup SIGSEGV from an incomplete diagnostic environment was excluded from
+the results.
+
+The machine-readable records and diagnostic tensors are preserved under
+`/tmp/tq-p2.2-real-20260913/`. P2.2 therefore remains **candidate
+implementation only**: the speed and capacity observations are recorded, but
+the adoption gate is **not passed** because the production quality evidence
+is not acceptable. No threshold, default dispatch, or later P3 work is
+enabled.
 
 ## P3: native FP8-WMMA W4A8 large-M only
 
