@@ -361,6 +361,47 @@ the adoption gate is **not passed** because the production quality evidence
 is not acceptable. No threshold, default dispatch, or later P3 work is
 enabled.
 
+### P2.2 numerical diagnosis before any model re-evaluation (2026-09-13)
+
+A baseline-only capture was taken with the same production model and chunking,
+then replayed offline without sending candidate output into any later model
+step. The representative snapshot is full-attention layer 63 with query and
+raw current K/V shapes `[256,24,256]`, `[256,4,256]`, and a compact SoA cache
+`[2029,16,4,388]`; `cached_len=32208` and `seq_len=32464`. The captured
+baseline output and the old SDPA replay are bitwise identical.
+
+The candidate's exact cache-load/dequant expression was replayed in a
+diagnostic Triton dump. Compared with the old path's FP16 dequant workspace,
+both K and V have max-abs zero before and after the FP16-to-BF16 contract
+conversion (all elements equal). The cache layout, block mapping, and raw
+current tensors therefore do not explain the candidate difference in this
+case.
+
+The controlled attention ablations, all using the same Q/K/V and causal
+bound, are:
+
+| variant | max-abs vs old | RMSE vs old | relative L2 vs old |
+| --- | ---: | ---: | ---: |
+| streaming candidate | 0.250000 | 0.00390115 | 0.00076635 |
+| online PV FP32 | 0.125000 | 0.00098324 | 0.00019315 |
+| online PV FP64 | 0.125000 | 0.00096746 | 0.00019005 |
+| online QK + PV FP64 | 0.125000 | 0.00097193 | 0.00019093 |
+| tiled FP64 reference | 0.125000 | 0.00097193 | 0.00019093 |
+
+Promoting PV reduces the candidate error by about 75% in RMSE/relative L2,
+while promoting QK in addition changes it negligibly. The supported cause
+hypothesis is the candidate's PV-side BF16 conversion (`p` and the
+BF16-rounded `v`) before the dot product, not cache dequantization or QK.
+The proposed fix candidate is to retain the existing FP16-to-BF16 rounding of
+cache/current values, but keep the probability and rounded value operands in
+FP32 for the PV dot and FP32 accumulation. This remains a default-off
+diagnostic candidate; no production threshold, dispatch, or P3 setting is
+changed until model quality and speed are re-evaluated.
+
+The replay program and snapshot results are preserved under
+`/tmp/tq-p2.2-real-20260913/replaydiag/`; this single-layer diagnosis is a
+causal isolation result, not yet a model-quality gate.
+
 ## P3: native FP8-WMMA W4A8 large-M only
 
 P3 is independent from failed A3. Small-M calls remain on the current software-fused MXFP4 backend.
