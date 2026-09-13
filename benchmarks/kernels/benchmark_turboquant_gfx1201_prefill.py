@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-"""Measure P2.1 K8/V4 continuation-reader reuse candidates.
+"""Measure P2.2 K8/V4 continuation-reader and streaming candidates.
 
 This diagnostic deliberately does not change the production continuation
 threshold or dispatch.  It keeps two references separate:
@@ -13,8 +13,9 @@ threshold or dispatch.  It keeps two references separate:
 
 The generic reader is the existing SoA decode adapter with one request per
 query row (the shape produced by the current <=128-token path).  The
-specialized reader is the gfx1201 packed multi-token launcher.  Both readers
-consume a cache containing quantized prefix *and* current-chunk K/V.
+specialized reader is the gfx1201 packed multi-token launcher.  The streaming
+candidate reuses its stage-1 tile shape but reads quantized prefix K/V and raw
+current-chunk K/V in one online-softmax pass.
 """
 
 from __future__ import annotations
@@ -29,11 +30,15 @@ from pathlib import Path
 
 import torch
 import torch.nn.functional as F
+from torch.nn.attention import SDPBackend, sdpa_kernel
 
 from vllm.model_executor.layers.quantization.turboquant.config import (
     TurboQuantConfig,
 )
 from vllm.triton_utils import triton
+from vllm.v1.attention.ops.turboquant_soa import (
+    gfx1201_prefill as streaming_prefill,
+)
 from vllm.v1.attention.ops.turboquant_soa import (
     triton_turboquant_decode_gfx1201_k8v4 as specialized,
 )
@@ -85,10 +90,9 @@ def allocate_cache(
     total_len: int,
     config: TurboQuantConfig,
     device: torch.device,
+    permute_blocks: bool = False,
 ) -> tuple[torch.Tensor, torch.Tensor]:
-    if total_len % BLOCK_SIZE:
-        raise ValueError("all benchmark lengths must be multiples of block size")
-    num_blocks = total_len // BLOCK_SIZE
+    num_blocks = math.ceil(total_len / BLOCK_SIZE)
     cache = torch.empty(
         num_blocks,
         BLOCK_SIZE,
@@ -97,7 +101,10 @@ def allocate_cache(
         dtype=torch.uint8,
         device=device,
     )
-    block_table = torch.arange(num_blocks, dtype=torch.int32, device=device).view(1, -1)
+    physical_blocks = torch.arange(num_blocks, dtype=torch.int32, device=device)
+    if permute_blocks and num_blocks > 1:
+        physical_blocks = torch.roll(physical_blocks, shifts=1)
+    block_table = physical_blocks.view(1, -1)
     return cache, block_table
 
 
@@ -109,9 +116,19 @@ def store_cache(
     pit: torch.Tensor,
     midpoints: torch.Tensor,
     centroids: torch.Tensor,
+    block_table: torch.Tensor | None = None,
 ) -> None:
     total_len = key.shape[0]
-    slots = torch.arange(total_len, dtype=torch.int32, device=key.device)
+    if block_table is None:
+        slots = torch.arange(total_len, dtype=torch.int32, device=key.device)
+    else:
+        num_blocks = math.ceil(total_len / BLOCK_SIZE)
+        logical_blocks = torch.arange(num_blocks, dtype=torch.int32, device=key.device)
+        physical = block_table[0, logical_blocks]
+        slots = physical.repeat_interleave(BLOCK_SIZE)[:total_len] * BLOCK_SIZE
+        slots += (
+            torch.arange(total_len, dtype=torch.int32, device=key.device) % BLOCK_SIZE
+        )
     triton_turboquant_store(
         key=key,
         value=value,
@@ -138,9 +155,7 @@ def dequantize_cache(
     output_v: torch.Tensor | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Run the same SoA full-dequant kernel as large continuation."""
-    if length % BLOCK_SIZE:
-        raise ValueError("dequantized lengths must be multiples of block size")
-    alloc_len = length
+    alloc_len = math.ceil(length / BLOCK_SIZE) * BLOCK_SIZE
     if output_k is None:
         output_k = torch.empty(
             1, H_K, alloc_len, HEAD_DIM, dtype=torch.float16, device=cache.device
@@ -201,6 +216,7 @@ def sdpa_with_causal_continuation(
     value: torch.Tensor,
     cached_len: int,
     scale: float,
+    backend: str = "math",
 ) -> torch.Tensor:
     q_len = query.shape[0]
     seq_len = key.shape[0]
@@ -210,14 +226,23 @@ def sdpa_with_causal_continuation(
     q_pos = torch.arange(q_len, device=query.device).unsqueeze(1) + cached_len
     k_pos = torch.arange(seq_len, device=query.device).unsqueeze(0)
     mask = k_pos <= q_pos
-    return F.scaled_dot_product_attention(
-        q_t,
-        k_t,
-        v_t,
-        attn_mask=mask,
-        scale=scale,
-        enable_gqa=H_K < H_Q,
-    )[0].transpose(0, 1)
+
+    def call_sdpa() -> torch.Tensor:
+        return F.scaled_dot_product_attention(
+            q_t,
+            k_t,
+            v_t,
+            attn_mask=mask,
+            scale=scale,
+            enable_gqa=H_K < H_Q,
+        )[0].transpose(0, 1)
+
+    if backend == "math":
+        with sdpa_kernel(SDPBackend.MATH):
+            return call_sdpa()
+    if backend == "auto":
+        return call_sdpa()
+    raise ValueError(f"unsupported SDPA backend mode: {backend}")
 
 
 def build_references(
@@ -261,6 +286,7 @@ def build_references(
     raw_current_reference = sdpa_with_causal_continuation(
         query, raw_k, raw_v, case.cached_len, scale
     )
+    del prefix_k, prefix_v, all_k, all_v, quant_k, quant_v, raw_k, raw_v
     return quantized_reference, raw_current_reference
 
 
@@ -273,7 +299,10 @@ def workspace_bytes(
     dtype_bytes = torch.empty((), dtype=query_dtype).element_size()
     fp16_bytes = torch.empty((), dtype=torch.float16).element_size()
     cache_bytes = (
-        case.seq_len // BLOCK_SIZE * BLOCK_SIZE * H_K * config.slot_size_aligned
+        math.ceil(case.seq_len / BLOCK_SIZE)
+        * BLOCK_SIZE
+        * H_K
+        * config.slot_size_aligned
     )
     old_prefix = 2 * H_K * case.cached_len * HEAD_DIM * fp16_bytes
     old_full = 2 * H_K * case.seq_len * HEAD_DIM * dtype_bytes
@@ -300,6 +329,7 @@ def workspace_bytes(
             case.q_len / (2 if case.q_len <= 2 else 4)
         ),
         "mid_o_mib": specialized_mid / 2**20,
+        "streaming_additional_bytes": output,
     }
 
 
@@ -313,16 +343,20 @@ def run_generic(
     pit: torch.Tensor,
     output: torch.Tensor,
     splits: int,
+    seq_lens: torch.Tensor | None = None,
+    row_block_table: torch.Tensor | None = None,
 ) -> torch.Tensor:
     # This is the existing <=128 direct-reader shape: one synthetic request
     # per query row, with the row's causal visible length.
-    seq_lens = torch.arange(
-        case.cached_len + 1,
-        case.seq_len + 1,
-        dtype=torch.int32,
-        device=query.device,
-    )
-    row_block_table = block_table.expand(case.q_len, -1)
+    if seq_lens is None:
+        seq_lens = torch.arange(
+            case.cached_len + 1,
+            case.seq_len + 1,
+            dtype=torch.int32,
+            device=query.device,
+        )
+    if row_block_table is None:
+        row_block_table = block_table.expand(case.q_len, -1)
     return triton_turboquant_decode_attention_soa(
         query=query,
         kv_cache=cache,
@@ -406,7 +440,32 @@ def run_raw_current(
     )
     full_k[case.cached_len :] = key_chunk
     full_v[case.cached_len :] = value_chunk
-    return sdpa_with_causal_continuation(query, full_k, full_v, case.cached_len, scale)
+    return sdpa_with_causal_continuation(
+        query, full_k, full_v, case.cached_len, scale, backend="auto"
+    )
+
+
+def run_streaming_raw_current(
+    query: torch.Tensor,
+    key_chunk: torch.Tensor,
+    value_chunk: torch.Tensor,
+    cache: torch.Tensor,
+    block_table: torch.Tensor,
+    case: Case,
+    scale: float,
+    output: torch.Tensor,
+) -> torch.Tensor:
+    return streaming_prefill.launch_gfx1201_tq_continuation_prefill(
+        query=query,
+        key_chunk=key_chunk,
+        value_chunk=value_chunk,
+        kv_cache=cache,
+        block_table=block_table,
+        cached_len=case.cached_len,
+        seq_len=case.seq_len,
+        scale=scale,
+        output=output,
+    )
 
 
 def timed_samples(
@@ -433,6 +492,25 @@ def timed_samples(
     return output, times_us
 
 
+def memory_baseline(device: torch.device) -> int | None:
+    """Reset allocator peak tracking and return current allocated bytes."""
+    try:
+        torch.accelerator.reset_peak_memory_stats(device)
+        return int(torch.accelerator.memory_allocated(device))
+    except (AttributeError, RuntimeError):
+        return None
+
+
+def measured_peak_bytes(device: torch.device, baseline: int | None) -> int | None:
+    """Return allocator peak and the increase over the candidate baseline."""
+    if baseline is None:
+        return None
+    try:
+        return int(torch.accelerator.max_memory_allocated(device)) - baseline
+    except (AttributeError, RuntimeError):
+        return None
+
+
 def benchmark_case(
     case: Case,
     config: TurboQuantConfig,
@@ -444,6 +522,7 @@ def benchmark_case(
     flush: torch.Tensor,
     seed: int,
     do_correctness: bool,
+    permute_blocks: bool = False,
 ) -> list[dict]:
     generator = torch.Generator(device=device).manual_seed(seed)
     total_len = case.seq_len
@@ -456,55 +535,63 @@ def benchmark_case(
     key_chunk = key[case.cached_len :]
     value_chunk = value[case.cached_len :]
 
-    cache, block_table = allocate_cache(total_len, config, device)
+    cache, block_table = allocate_cache(total_len, config, device, permute_blocks)
     pit = torch.eye(HEAD_DIM, dtype=torch.float32, device=device)
     midpoints = torch.zeros(config.n_centroids - 1, dtype=torch.float32, device=device)
     centroids = torch.ones(config.n_centroids, dtype=torch.float32, device=device)
-    store_cache(key, value, cache, config, pit, midpoints, centroids)
+    store_cache(key, value, cache, config, pit, midpoints, centroids, block_table)
     torch.accelerator.synchronize()
 
     scale = HEAD_DIM**-0.5
-    quantized_reference, raw_reference = build_references(
-        query,
-        key_chunk,
-        value_chunk,
-        cache,
-        block_table,
-        case,
-        config,
-        centroids,
-        scale,
-    )
-    torch.accelerator.synchronize()
+    quantized_reference: torch.Tensor | None = None
+    raw_reference: torch.Tensor | None = None
+    reference_status = "skipped"
+    reference_error: str | None = None
+    if do_correctness:
+        try:
+            quantized_reference, raw_reference = build_references(
+                query,
+                key_chunk,
+                value_chunk,
+                cache,
+                block_table,
+                case,
+                config,
+                centroids,
+                scale,
+            )
+            reference_status = "complete"
+        except torch.OutOfMemoryError as exc:
+            reference_status = "reference_oom"
+            reference_error = str(exc)
+        except RuntimeError as exc:
+            reference_status = "reference_error"
+            reference_error = str(exc)
+        finally:
+            torch.accelerator.synchronize()
+            if reference_status != "complete":
+                torch.accelerator.empty_cache()
 
-    prefix_alloc = case.cached_len
-    dequant_k = torch.empty(
-        1, H_K, prefix_alloc, HEAD_DIM, dtype=torch.float16, device=device
-    )
-    dequant_v = torch.empty_like(dequant_k)
-    generic_output = {split: torch.empty_like(query) for split in splits}
-    specialized_buffers = {
-        split: (
-            torch.empty_like(query),
-            torch.empty(
-                case.q_len,
-                H_Q,
-                split,
-                HEAD_DIM + 1,
-                dtype=torch.float32,
-                device=device,
-            ),
-            torch.empty(case.q_len, H_Q, dtype=torch.float32, device=device),
-        )
-        for split in splits
-    }
+    # Keep metadata fixed for candidate-internal measurements. The generic
+    # whole-path record below deliberately omits these arguments so its setup
+    # cost remains visible.
     seq_lens = torch.tensor([case.seq_len], dtype=torch.int32, device=device)
     qsl = torch.tensor([0, case.q_len], dtype=torch.int32, device=device)
     qsl_cpu = torch.tensor([0, case.q_len], dtype=torch.int32)
+    row_seq_lens = torch.arange(
+        case.cached_len + 1,
+        case.seq_len + 1,
+        dtype=torch.int32,
+        device=device,
+    )
+    row_block_table = block_table.expand(case.q_len, -1)
     workspaces = {
         split: workspace_bytes(case, dtype, config, split) for split in splits
     }
+    if 1 not in workspaces:
+        workspaces[1] = workspace_bytes(case, dtype, config, 1)
     results: list[dict] = []
+    raw_methods = {"current_large_continuation", "streaming_raw_current_prefill"}
 
     def append_result(
         method: str,
@@ -513,9 +600,12 @@ def benchmark_case(
         times_us: list[float] | None = None,
         output: torch.Tensor | None = None,
         error: str | None = None,
+        measurement_scope: str = "whole_path",
+        measured_peak: int | None = None,
+        calculated_workspace: int | None = None,
     ) -> None:
         result: dict = {
-            "record_type": "p2.1",
+            "record_type": "p2.2",
             "case": {"cached_len": case.cached_len, "q_len": case.q_len},
             "shape": {"Hq": H_Q, "Hk": H_K, "D": HEAD_DIM},
             "block_size": BLOCK_SIZE,
@@ -523,11 +613,19 @@ def benchmark_case(
             "method": method,
             "split": split,
             "status": status,
-            "current_chunk_source": (
-                "raw" if method == "current_large_continuation" else "quantized"
-            ),
+            "measurement_scope": measurement_scope,
+            "current_chunk_source": ("raw" if method in raw_methods else "quantized"),
             "dequant_workspace_dtype": "torch.float16",
             "query_attention_dtype": str(dtype),
+            "attention_backend": (
+                "runtime_auto_sdpa"
+                if method == "current_large_continuation"
+                else "fused_online_softmax"
+                if method == "streaming_raw_current_prefill"
+                else "quantized_reader"
+            ),
+            "reference_status": reference_status,
+            "reference_backend": "SDPBackend.MATH",
             "reference_contract": {
                 "quantized": (
                     "all visible K/V dequantized to FP16, then cast to query dtype"
@@ -541,8 +639,14 @@ def benchmark_case(
                 ),
             },
         }
+        if reference_error is not None:
+            result["reference_error"] = reference_error
         if split is not None:
             result["workspace"] = workspaces[split]
+        if calculated_workspace is not None:
+            result["calculated_workspace_bytes"] = calculated_workspace
+        if measured_peak is not None:
+            result["measured_peak_delta_bytes"] = measured_peak
         if times_us:
             median = statistics.median(times_us)
             result.update(
@@ -553,7 +657,7 @@ def benchmark_case(
                     "min_us": min(times_us),
                 }
             )
-        if output is not None:
+        if output is not None and quantized_reference is not None:
             output_cpu = output.detach().float().cpu()
             result["vs_quantized_reference"] = error_metrics(
                 output_cpu, quantized_reference.float().cpu()
@@ -565,7 +669,13 @@ def benchmark_case(
             result["error"] = error
         results.append(result)
 
+    prefix_alloc = math.ceil(case.cached_len / BLOCK_SIZE) * BLOCK_SIZE
     try:
+        baseline = memory_baseline(device)
+        dequant_k = torch.empty(
+            1, H_K, prefix_alloc, HEAD_DIM, dtype=torch.float16, device=device
+        )
+        dequant_v = torch.empty_like(dequant_k)
         output, times = timed_samples(
             lambda: run_raw_current(
                 query,
@@ -584,67 +694,178 @@ def benchmark_case(
             samples,
             flush,
         )
-        append_result("current_large_continuation", None, "complete", times, output)
+        append_result(
+            "current_large_continuation",
+            None,
+            "complete",
+            times,
+            output,
+            measurement_scope="whole_path",
+            measured_peak=measured_peak_bytes(device, baseline),
+            calculated_workspace=workspaces[splits[0]]["old_additional_bytes"]
+            if splits
+            else None,
+        )
     except torch.OutOfMemoryError as exc:
         append_result("current_large_continuation", None, "oom", error=str(exc))
     except RuntimeError as exc:
         append_result("current_large_continuation", None, "error", error=str(exc))
+    finally:
+        if "dequant_k" in locals():
+            del dequant_k, dequant_v
 
-    for split in splits:
+    if case.q_len > 128:
+        baseline = memory_baseline(device)
+        streaming_output = None
         try:
+            streaming_output = torch.empty_like(query)
             output, times = timed_samples(
-                lambda split=split: run_generic(
+                lambda output=streaming_output: run_streaming_raw_current(
                     query,
+                    key_chunk,
+                    value_chunk,
                     cache,
                     block_table,
                     case,
-                    config,
-                    centroids,
-                    pit,
-                    generic_output[split],
-                    split,
+                    scale,
+                    output,
                 ),
                 warmups,
                 samples,
                 flush,
             )
             append_result(
-                "generic_soa_direct_rowwise", split, "complete", times, output
+                "streaming_raw_current_prefill",
+                1,
+                "complete",
+                times,
+                output,
+                measurement_scope="fixed_metadata",
+                measured_peak=measured_peak_bytes(device, baseline),
+                calculated_workspace=workspace_bytes(case, dtype, config, 1)[
+                    "streaming_additional_bytes"
+                ],
             )
         except torch.OutOfMemoryError as exc:
-            append_result("generic_soa_direct_rowwise", split, "oom", error=str(exc))
+            append_result("streaming_raw_current_prefill", 1, "oom", error=str(exc))
         except RuntimeError as exc:
-            append_result("generic_soa_direct_rowwise", split, "error", error=str(exc))
+            append_result("streaming_raw_current_prefill", 1, "error", error=str(exc))
+        finally:
+            del streaming_output
+    else:
+        append_result(
+            "streaming_raw_current_prefill",
+            1,
+            "not_eligible",
+            measurement_scope="fixed_metadata",
+        )
 
-        try:
-            output, times = timed_samples(
-                lambda split=split: run_specialized(
-                    query,
-                    cache,
-                    block_table,
-                    case,
-                    specialized_buffers[split][0],
-                    specialized_buffers[split][1],
-                    specialized_buffers[split][2],
-                    split,
-                    qsl,
-                    qsl_cpu,
-                    seq_lens,
-                ),
-                warmups,
-                samples,
-                flush,
-            )
-            append_result("specialized_multi_token", split, "complete", times, output)
-        except torch.OutOfMemoryError as exc:
-            append_result("specialized_multi_token", split, "oom", error=str(exc))
-        except RuntimeError as exc:
-            append_result("specialized_multi_token", split, "error", error=str(exc))
+    for split in splits:
+        methods = [
+            "generic_soa_direct_rowwise",
+            "specialized_multi_token",
+            "generic_soa_direct_rowwise_fixed",
+        ]
+        if (seed + split) % 2:
+            methods.reverse()
+        for method in methods:
+            baseline = memory_baseline(device)
+            output_buf = mid_o = lse = None
+            try:
+                if method.startswith("generic"):
+                    output_buf = torch.empty_like(query)
+                    fixed = method.endswith("_fixed")
+                    output, times = timed_samples(
+                        lambda fixed=fixed, output_buf=output_buf, split=split: (
+                            run_generic(  # noqa: E501
+                                query,
+                                cache,
+                                block_table,
+                                case,
+                                config,
+                                centroids,
+                                pit,
+                                output_buf,
+                                split,
+                                seq_lens=row_seq_lens if fixed else None,
+                                row_block_table=row_block_table if fixed else None,
+                            )
+                        ),
+                        warmups,
+                        samples,
+                        flush,
+                    )
+                    append_result(
+                        method,
+                        split,
+                        "complete",
+                        times,
+                        output,
+                        measurement_scope=("fixed_metadata" if fixed else "whole_path"),
+                        measured_peak=measured_peak_bytes(device, baseline),
+                        calculated_workspace=workspaces[split][
+                            "generic_additional_bytes"
+                        ],
+                    )
+                else:
+                    output_buf = torch.empty_like(query)
+                    mid_o = torch.empty(
+                        case.q_len,
+                        H_Q,
+                        split,
+                        HEAD_DIM + 1,
+                        dtype=torch.float32,
+                        device=device,
+                    )
+                    lse = torch.empty(
+                        case.q_len, H_Q, dtype=torch.float32, device=device
+                    )
 
-    if not do_correctness:
-        for result in results:
-            result.pop("vs_quantized_reference", None)
-            result.pop("vs_raw_current_reference", None)
+                    def run_specialized_candidate(
+                        output_buf=output_buf,
+                        mid_o=mid_o,
+                        lse=lse,
+                        split=split,
+                    ):
+                        return run_specialized(
+                            query,
+                            cache,
+                            block_table,
+                            case,
+                            output_buf,
+                            mid_o,
+                            lse,
+                            split,
+                            qsl,
+                            qsl_cpu,
+                            seq_lens,
+                        )
+
+                    output, times = timed_samples(
+                        run_specialized_candidate,
+                        warmups,
+                        samples,
+                        flush,
+                    )
+                    append_result(
+                        method,
+                        split,
+                        "complete",
+                        times,
+                        output,
+                        measurement_scope="fixed_metadata",
+                        measured_peak=measured_peak_bytes(device, baseline),
+                        calculated_workspace=workspaces[split][
+                            "specialized_additional_bytes"
+                        ],
+                    )
+            except torch.OutOfMemoryError as exc:
+                append_result(method, split, "oom", error=str(exc))
+            except RuntimeError as exc:
+                append_result(method, split, "error", error=str(exc))
+            finally:
+                del output_buf, mid_o, lse
+
     return results
 
 
@@ -673,6 +894,7 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=1201)
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--skip-correctness", action="store_true")
+    parser.add_argument("--permute-blocks", action="store_true")
     args = parser.parse_args()
 
     if args.output.exists():
@@ -708,6 +930,7 @@ def main() -> None:
                 flush,
                 args.seed + index,
                 not args.skip_correctness,
+                args.permute_blocks,
             ):
                 encoded = json.dumps(result, sort_keys=True)
                 output_file.write(encoded + "\n")

@@ -1,6 +1,6 @@
 # gfx1201 long-prefill selective-port plan
 
-Status: P0 provenance gate recorded; P1 baseline profile complete; P2.1 reuse evaluation complete; P2.2+ not started; production dispatch unchanged
+Status: P0 provenance gate recorded; P1 baseline profile complete; P2.1 reuse evaluation complete; P2.2 candidate implementation and smoke checks complete; adoption gate pending; default dispatch unchanged
 
 Base revision: `787189270cc97f0671e2f2f4aa33a506b07df335`
 
@@ -211,7 +211,7 @@ Workspace accounting confirms the split warning. At 32K/q512, current-large expl
 
 P2.1 reuse adoption gate: **not adopted**. The generic reader fails the speed gate. The specialized reader passes the device-time and workspace checks on the completed common points (including 32K/q256) and is much faster on the synthetic 32K/q512 control, but it violates the current raw-current-chunk numerical contract. The P1 model run remains the authority for capacity: chunk 512/32K old path OOMed, so the synthetic 32K/q512 timing is not used as an old-path speed ratio. Likewise, the P1 64K model result remains a 600-second timeout, not an OOM; the synthetic 64K/q64 completion does not infer a 120K result.
 
-No production threshold or dispatch was changed. A dedicated P2.2 streaming candidate (quantized prefix plus raw current K/V, causal bound `kv_pos <= cached_len + query_row`) is required if work continues; no P2.2 production kernel was implemented in this commit.
+No production threshold or default dispatch was changed. P2.2 now has a default-off candidate hook for the narrow target profile; the adoption gate remains pending model/cold-prefill and capacity qualification.
 
 ### P2.2 dedicated streaming kernel
 
@@ -259,7 +259,53 @@ Performance/adoption gate:
 - peak workspace lower than current dequant + `k_full/v_full` path and no O(cached_len*Hk*D) full K/V buffer;
 - 64K/120K no regression if baseline completed; if baseline failed only from workspace and candidate completes, record as functional win and continue qualification.
 
-Suggested opt-in after benchmark pass: `VLLM_TQ_GFX1201_PREFILL`, default False.
+Suggested opt-in after benchmark pass: `VLLM_TQ_GFX1201_K8V4_PREFILL`, default False.
+
+### P2.2 implementation record
+
+P2.2 implementation is present as a benchmarked, default-off candidate. It
+reuses the gfx1201 K8/V4 stage-1 tile shape and online softmax, but selects
+the input source per KV position: `[0,cached_len)` is decoded from the SoA
+cache and `[cached_len,seq_len)` is loaded from raw current-chunk K/V. Both
+ranges update one softmax state, and boundary loads are masked before either
+cache or raw pointer is dereferenced. The first launcher is splitless and
+one-request only; it has no `mid_o` scratch. The optional production hook is
+limited to `VLLM_TQ_GFX1201_K8V4_PREFILL=True`, the existing target profile,
+`cached_len > 0`, and `q_len > 128`. The default remains unchanged.
+
+The benchmark now separates reference generation from candidate execution.
+Math SDPA is fixed for numerical references, while the old whole-path record
+uses runtime-auto SDPA and records that selection separately. A reference OOM
+is retained as `reference_oom` and does not prevent candidate execution.
+Split scratch is allocated one candidate at a time; calculated workspace and
+allocator peak deltas are recorded independently. Generic whole-path timing,
+fixed-metadata timing, specialized-reader timing, and the raw-current
+streaming candidate are distinguished, with candidate order alternated.
+
+Initial gfx1201 smoke checks (PyTorch 2.12 / HIP 7.2 container, synthetic
+K/V) completed without non-finite output:
+
+| case | block table | dtype | streaming time | raw-current relative L2 |
+| --- | --- | --- | ---: | ---: |
+| cached 128 / q129 | contiguous | BF16 | 241 us | 0.00223 |
+| cached 129 / q129 | permuted physical blocks | BF16 | 272 us | 0.00222 |
+| cached 129 / q129 | permuted physical blocks | FP16 | 237 us | 0.000278 |
+| cached 255 / q257 | permuted physical blocks | BF16 | 829 us | correctness skipped |
+
+The representative synthetic 32K runs used the separated `--skip-correctness`
+mode so old SDPA reference allocation could not gate the candidates. At
+32K/q256, runtime-auto old continuation was 81.87 ms and splitless streaming
+was 22.09 ms (3.71x); at 32K/q512 they were 154.16 ms and 41.99 ms (3.67x).
+The q512 synthetic run completed in this container, so it is not a model OOM
+result and is not substituted for the P1 model capacity evidence. Calculated
+streaming output workspace was 3.0 MiB/q256 and 6.0 MiB/q512, while the old
+explicit accounting was 265.0 MiB and 274.3 MiB respectively; allocator peak
+deltas are retained separately in the JSONL records.
+
+These are kernel smoke results, not the P2.2 adoption gate: no captured model
+Q/K/V, cold 32K prefill, long-context capacity run, or quality evaluation has
+been completed. Therefore P2.2 remains **candidate implementation only** and
+the production hook is not an adoption decision.
 
 ## P3: native FP8-WMMA W4A8 large-M only
 
@@ -345,10 +391,10 @@ If qualified K8/V4 remains far below historical Radiance, run an isolated FP8-KV
 1. `[gfx1201] Plan long-prefill Radiance follow-up` — this plan + inert P2/P5 scaffolds; runtime unchanged.
 2. `[gfx1201] Profile K8V4 long prefill` — P1 helpers/report only.
 3. `[TurboQuant] Audit wide-query direct prefill reuse` — P2.1 benchmark/decision only.
-4. `[TurboQuant] Stream gfx1201 K8V4 continuation prefill` — P2.2 only if needed and gated.
+4. `[TurboQuant] Stream gfx1201 K8V4 continuation prefill` — P2.2 candidate only; adoption gate remains pending.
 5. `[MXFP4] Add gfx1201 native W4A8 prefill` — P3, independent of failed A3.
 6. `[TurboQuant] Add gfx1201 raw prefill attention` — P4 only if profile-gated.
 7. `[ROCm] Fuse gfx1201 GDN prefill` — P5 only if profile-gated.
 8. `[gfx1201] Qualify long-prefill composition` — P6 report/quality/needles/prefix/soak; defaults unchanged.
 
-The scaffold modules are intentionally not imported. Until their own functional phases, candidate checks return False and launch functions raise `NotImplementedError`.
+The P2.2 candidate is imported only through its explicit default-off gate. P3/P4/P5 scaffolds remain unimported until their own phase gates pass; no later production dispatch is enabled.

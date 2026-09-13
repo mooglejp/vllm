@@ -416,6 +416,35 @@ class TestGfx1201TargetProfile:
             sliding_window=profile["sliding_window"],
         )
 
+    @pytest.mark.parametrize(
+        ("q_len", "cached_len", "expected"),
+        [(128, 129, False), (129, 0, False), (129, 129, True)],
+    )
+    def test_raw_current_prefill_profile(self, q_len, cached_len, expected):
+        from vllm.v1.attention.ops.turboquant_soa.gfx1201_prefill import (
+            is_gfx1201_tq_prefill_candidate,
+        )
+
+        query = torch.empty(q_len, 24, 256, dtype=torch.bfloat16)
+        key_chunk = torch.empty(q_len, 4, 256, dtype=torch.bfloat16)
+        value_chunk = torch.empty_like(key_chunk)
+        assert (
+            is_gfx1201_tq_prefill_candidate(
+                query=query,
+                key_chunk=key_chunk,
+                value_chunk=value_chunk,
+                cached_len=cached_len,
+            )
+            is expected
+        )
+
+    def test_raw_current_prefill_contract_is_splitless(self):
+        from vllm.v1.attention.ops.turboquant_soa.gfx1201_prefill import (
+            Gfx1201TurboQuantPrefillContract,
+        )
+
+        assert Gfx1201TurboQuantPrefillContract().max_num_kv_splits == 1
+
 
 class TestTurboQuantKVCacheSpec:
     @pytest.mark.parametrize("preset", ALL_PRESETS)

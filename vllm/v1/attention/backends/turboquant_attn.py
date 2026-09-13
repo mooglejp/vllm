@@ -1034,6 +1034,32 @@ class TurboQuantAttentionImpl(AttentionImpl["TurboQuantMetadata"]):
         chunk's raw K/V, then runs flash_attn with causal masking.
         """
         q_len, Hq, D = query.shape
+        if envs.VLLM_TQ_GFX1201_K8V4_PREFILL and self._use_gfx1201_fast:
+            from vllm.v1.attention.ops.turboquant_soa.gfx1201_prefill import (
+                is_gfx1201_tq_prefill_candidate,
+                launch_gfx1201_tq_continuation_prefill,
+            )
+
+            if is_gfx1201_tq_prefill_candidate(
+                query=query,
+                key_chunk=key_chunk,
+                value_chunk=val_chunk,
+                cached_len=cached_len,
+            ):
+                # Keep the first production connection deliberately narrow:
+                # only an opted-in, target-profile large continuation uses
+                # the splitless raw-current candidate.
+                return launch_gfx1201_tq_continuation_prefill(
+                    query=query,
+                    key_chunk=key_chunk,
+                    value_chunk=val_chunk,
+                    kv_cache=kv_cache,
+                    block_table=block_table,
+                    cached_len=cached_len,
+                    seq_len=seq_len,
+                    scale=self.scale,
+                )
+
         Hk = key_chunk.shape[1]
         device = query.device
         block_size = kv_cache.shape[1]
