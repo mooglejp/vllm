@@ -173,22 +173,25 @@ def _scope_rows(path: Path) -> tuple[list[dict[str, Any]], int]:
 
 
 def _cpu_attention_ops(
-    path: Path, first_scope: dict[str, Any]
-) -> tuple[list[tuple[float, float]], dict[str, int], float]:
-    """Collect first-scope outer SDPA intervals and operation counts."""
+    path: Path, scopes: list[dict[str, Any]]
+) -> tuple[
+    dict[int, list[tuple[float, float]]], dict[int, dict[str, int]], dict[int, float]
+]:
+    """Collect outer SDPA intervals and operation counts for every scope."""
 
-    intervals: list[tuple[float, float]] = []
-    counts: dict[str, int] = defaultdict(int)
-    inclusive_us = 0.0
-    start = first_scope["ts"]
-    end = first_scope["end"]
+    intervals: dict[int, list[tuple[float, float]]] = defaultdict(list)
+    counts: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    inclusive_us: dict[int, float] = defaultdict(float)
+    starts = [float(row["ts"]) for row in scopes]
+    ends = [float(row["end"]) for row in scopes]
     for event in _trace_events(path):
         if event.get("cat") != "cpu_op":
             continue
         timestamp = float(event.get("ts", 0.0))
         duration = float(event.get("dur", 0.0))
         event_end = timestamp + duration
-        if timestamp < start or event_end > end:
+        scope_index = bisect.bisect_right(starts, timestamp) - 1
+        if scope_index < 0 or event_end > ends[scope_index]:
             continue
         name = str(event.get("name", ""))
         if name not in (
@@ -196,25 +199,34 @@ def _cpu_attention_ops(
             "aten::_scaled_dot_product_attention_math",
         ):
             continue
-        counts[name] += 1
+        counts[scope_index][name] += 1
         if name == "aten::scaled_dot_product_attention":
-            intervals.append((timestamp, event_end))
-            inclusive_us += duration
-    intervals.sort()
-    return intervals, dict(counts), inclusive_us
+            intervals[scope_index].append((timestamp, event_end))
+            inclusive_us[scope_index] += duration
+    for scope_intervals in intervals.values():
+        scope_intervals.sort()
+    return (
+        dict(intervals),
+        {index: dict(scope_counts) for index, scope_counts in counts.items()},
+        dict(inclusive_us),
+    )
 
 
 def _runtime_correlations(
     path: Path,
     scopes: list[dict[str, Any]],
-    attention_intervals: list[tuple[float, float]],
-) -> tuple[dict[int, int], set[int], int]:
-    """Map launch correlations to execute scopes and first SDPA operations."""
+    attention_intervals: dict[int, list[tuple[float, float]]],
+) -> tuple[dict[int, int], set[tuple[int, int]], int]:
+    """Map launches to execute scopes and all outer SDPA operations."""
 
     starts = [float(row["ts"]) for row in scopes]
     scope_by_correlation: dict[int, int] = {}
-    raw_attention: set[int] = set()
+    attention_correlations: set[tuple[int, int]] = set()
     runtime_count = 0
+    interval_starts = {
+        scope_index: [interval[0] for interval in intervals]
+        for scope_index, intervals in attention_intervals.items()
+    }
     for event in _trace_events(path):
         if event.get("cat") != "cuda_runtime":
             continue
@@ -229,11 +241,14 @@ def _runtime_correlations(
             continue
         correlation = int(correlation)
         scope_by_correlation[correlation] = scope_index
-        if scope_index != 0:
+        starts_for_scope = interval_starts.get(scope_index, [])
+        if not starts_for_scope:
             continue
-        if any(start <= timestamp <= end for start, end in attention_intervals):
-            raw_attention.add(correlation)
-    return scope_by_correlation, raw_attention, runtime_count
+        intervals = attention_intervals[scope_index]
+        interval_index = bisect.bisect_right(starts_for_scope, timestamp) - 1
+        if interval_index >= 0 and timestamp <= intervals[interval_index][1]:
+            attention_correlations.add((scope_index, correlation))
+    return scope_by_correlation, attention_correlations, runtime_count
 
 
 def analyze_trace(path: Path) -> dict[str, Any]:
@@ -242,8 +257,10 @@ def analyze_trace(path: Path) -> dict[str, Any]:
     scopes, event_count = _scope_rows(path)
     if not scopes:
         raise ValueError("trace has no execute_context_1 prefill scopes")
-    attention_intervals, cpu_ops, sdpa_cpu_us = _cpu_attention_ops(path, scopes[0])
-    correlations, raw_attention, runtime_count = _runtime_correlations(
+    attention_intervals, cpu_ops_by_scope, sdpa_cpu_us_by_scope = _cpu_attention_ops(
+        path, scopes
+    )
+    correlations, attention_correlations, runtime_count = _runtime_correlations(
         path, scopes, attention_intervals
     )
 
@@ -268,10 +285,13 @@ def analyze_trace(path: Path) -> dict[str, Any]:
         scope_index = correlations[correlation]
         name = str(event.get("name", ""))
         duration = float(event.get("dur", 0.0))
-        if correlation in raw_attention:
+        attention_key = (scope_index, correlation)
+        if attention_key in attention_correlations and scope_index == 0:
             family = "first_chunk_raw_attention"
             row = raw_kernel_names[name]
-        elif scope_index > 0 and _is_attention_kernel(name):
+        elif attention_key in attention_correlations or (
+            scope_index > 0 and _is_attention_kernel(name)
+        ):
             family = "continuation_attention"
             row = continuation_attention_names[name]
         else:
@@ -301,8 +321,16 @@ def analyze_trace(path: Path) -> dict[str, Any]:
         )
     family_rows.sort(key=lambda row: row["gpu_ms"], reverse=True)
     first_raw_ms = float(totals["first_chunk_raw_attention"][0]) / 1000.0
+    first_cpu_ops = cpu_ops_by_scope.get(0, {})
+    first_sdpa_cpu_us = sdpa_cpu_us_by_scope.get(0, 0.0)
+    continuation_cpu_ops: dict[str, int] = defaultdict(int)
+    continuation_sdpa_cpu_us = 0.0
+    for scope_index in range(1, len(scopes)):
+        for name, count in cpu_ops_by_scope.get(scope_index, {}).items():
+            continuation_cpu_ops[name] += count
+        continuation_sdpa_cpu_us += sdpa_cpu_us_by_scope.get(scope_index, 0.0)
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "trace": str(path),
         "trace_event_count": event_count,
         "runtime_event_count": runtime_count,
@@ -322,10 +350,12 @@ def analyze_trace(path: Path) -> dict[str, Any]:
         "prefill_q_tokens": sum(int(row["q_len"]) for row in scopes),
         "first_chunk": {
             "q_len": int(scopes[0]["q_len"]),
-            "outer_sdpa_calls": len(attention_intervals),
-            "cpu_ops": cpu_ops,
-            "sdpa_cpu_inclusive_ms": sdpa_cpu_us / 1000.0,
-            "raw_attention_launch_correlations": len(raw_attention),
+            "outer_sdpa_calls": len(attention_intervals.get(0, [])),
+            "cpu_ops": first_cpu_ops,
+            "sdpa_cpu_inclusive_ms": first_sdpa_cpu_us / 1000.0,
+            "raw_attention_launch_correlations": sum(
+                1 for scope_index, _ in attention_correlations if scope_index == 0
+            ),
             "raw_attention_kernel_ms": first_raw_ms,
             "raw_attention_kernel_calls": int(totals["first_chunk_raw_attention"][1]),
             "raw_attention_kernel_names": {
@@ -338,6 +368,18 @@ def analyze_trace(path: Path) -> dict[str, Any]:
         "continuation": {
             "scope_count": max(0, len(scopes) - 1),
             "q_tokens": sum(int(row["q_len"]) for row in scopes[1:]),
+            "outer_sdpa_calls": sum(
+                len(attention_intervals.get(scope_index, []))
+                for scope_index in range(1, len(scopes))
+            ),
+            "cpu_ops": dict(continuation_cpu_ops),
+            "sdpa_cpu_inclusive_ms": continuation_sdpa_cpu_us / 1000.0,
+            "math_sdpa_ops": continuation_cpu_ops.get(
+                "aten::_scaled_dot_product_attention_math", 0
+            ),
+            "attention_launch_correlations": sum(
+                1 for scope_index, _ in attention_correlations if scope_index > 0
+            ),
             "attention_kernel_ms": float(totals["continuation_attention"][0]) / 1000.0,
             "attention_kernel_calls": int(totals["continuation_attention"][1]),
             "attention_kernel_names": {
@@ -369,19 +411,19 @@ def analyze_trace(path: Path) -> dict[str, Any]:
                 if total_us
                 else False
             ),
-            "first_chunk_math_sdpa_fallback": cpu_ops.get(
+            "first_chunk_math_sdpa_fallback": first_cpu_ops.get(
                 "aten::_scaled_dot_product_attention_math", 0
             )
             > 0,
             "status": (
                 "pass"
-                if cpu_ops.get("aten::_scaled_dot_product_attention_math", 0) > 0
+                if first_cpu_ops.get("aten::_scaled_dot_product_attention_math", 0) > 0
                 or (total_us > 0 and 100.0 * first_raw_ms / (total_us / 1000.0) >= 10.0)
                 else "stop"
             ),
             "reason": (
                 "first chunk uses explicit Math SDPA fallback"
-                if cpu_ops.get("aten::_scaled_dot_product_attention_math", 0) > 0
+                if first_cpu_ops.get("aten::_scaled_dot_product_attention_math", 0) > 0
                 else "first-chunk raw attention is below the 10% residual-time gate"
             ),
         },

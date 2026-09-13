@@ -1,6 +1,6 @@
 # gfx1201 long-prefill selective-port plan
 
-Status: P0 provenance gate recorded; P1 baseline profile complete; P2.1 reuse evaluation complete; P2.2 current candidates evaluated and rejected; P3 current native W4A8 candidate speed gate failed; P4.1 raw first-chunk candidate speed gate failed; default dispatch unchanged
+Status: P0 provenance gate recorded; P1 baseline profile complete; P2.1 reuse evaluation complete; P2.2 current candidates evaluated and rejected; P3 current native W4A8 candidate speed gate failed; P4.1 raw first-chunk candidate speed gate failed; P5 GDN gate not met; plan closed with defaults unchanged
 
 Base revision: `787189270cc97f0671e2f2f4aa33a506b07df335`
 
@@ -790,34 +790,36 @@ Suggested opt-in: `VLLM_TQ_GFX1201_RAW_PREFILL`, default False.
 
 The P4.0 run re-used the current source at `6ee9b59eed7f5bf1f3a3f782c625ab70bc60777f` and the P1 official lane: Quark MXFP4, TP1, TurboQuant K8/V4, MTP2, adaptive verification disabled, the validated software-fused gfx1201 MXFP4 decode path, compilation disabled with `FULL_DECODE_ONLY`, maximum sequence count one, a cold 32K prompt, chunk size 256, and 64 output tokens with EOS ignored. P2.2/P3/P4/P5 opt-ins were off. The request completed with TTFT 135.2091 s (242.35 prefill tok/s); the output token hash matched the P1 chunk-256 run. The preserved request row is in `/tmp/tq-p4-profile-20260913/client.jsonl`.
 
-The trace was analyzed by `benchmarks/benchmark_gfx1201_p4_profile.py`. It uses the `execute_context_1(<q_len>)` scopes to separate the first raw chunk (ordinal 0) from 141 continuation chunks, and follows CUDA runtime launch correlations for the 16 first-scope `aten::scaled_dot_product_attention` calls. This avoids treating CPU-side SDPA wait time or Math SDPA Cijk kernels as dense MXFP4 GEMM.
+The trace was analyzed by `benchmarks/benchmark_gfx1201_p4_profile.py`. It uses the `execute_context_1(<q_len>)` scopes to separate the first raw chunk (ordinal 0) from 141 continuation chunks, and follows CUDA runtime launch correlations for the outer `aten::scaled_dot_product_attention` calls in every scope. This avoids treating CPU-side SDPA wait time or Math SDPA Cijk kernels as dense MXFP4 GEMM.
+
+The first saved summary used launch correlation only for the first scope. Because `_kernel_family()` intentionally classifies a bare `Cijk_*` name as dense GEMM, continuation Math SDPA GEMMs were then counted under MXFP4/dense GEMM. No model rerun was needed: the analyzer was corrected to correlate every scope, and the saved trace was re-read. The original `/tmp/tq-p4-profile-20260913/p4-summary-final.json` is retained as a superseded artifact; the corrected schema-2 result is `/tmp/tq-p4-profile-20260913/p4-summary-continuation-correlation.json`.
 
 The mutually exclusive kernel-time split for the 32K prefill is:
 
 | cost center | GPU ms | share | calls |
 | --- | ---: | ---: | ---: |
 | first-chunk raw attention | 9.456 | 0.008% | 352 |
-| continuation attention | 4,284.259 | 3.552% | 272 |
-| MXFP4 dequant / dense GEMM | 90,856.013 | 75.334% | 133,472 |
+| continuation attention | 77,576.713 | 64.324% | 39,952 |
+| MXFP4 dequant / dense GEMM | 37,565.136 | 31.148% | 129,504 |
 | TurboQuant store | 39.633 | 0.033% | 2,272 |
 | GDN / FLA prefill | 962.418 | 0.798% | 54,528 |
-| norm / activation / indexing | 6,683.267 | 5.542% | 189,149 |
-| copies / conversions | 7,943.623 | 6.587% | 122,189 |
-| cached-prefix dequantization | 1,334.648 | 1.107% | 71,836 |
-| other | 8,490.164 | 7.040% | 93,735 |
+| norm / activation / indexing | 1,351.893 | 1.121% | 177,245 |
+| copies / conversions | 1,592.416 | 1.320% | 114,253 |
+| cached-prefix dequantization | 714.887 | 0.593% | 65,884 |
+| other | 790.929 | 0.656% | 83,815 |
 | **scoped prefill kernel sum** | **120,603.481** | **100.000%** | **667,805** |
 
-The first context has q_len 256 and 309.902 ms of correlated kernel time. The 16 outer SDPA calls have 176.468 ms of inclusive CPU operation time but only 9.456 ms of launch-correlated GPU kernel time; both values are retained to distinguish host wait/launch overhead from device execution. The first raw kernel share is therefore far below the 10% quantitative gate.
+The first context has q_len 256 and 309.902 ms of correlated kernel time. Its 16 outer SDPA calls have 176.468 ms of inclusive CPU operation time but only 9.456 ms of launch-correlated GPU kernel time; both values are retained to distinguish host wait/launch overhead from device execution. The continuation scopes contain 1,984 outer Math SDPA calls and 77.577 s of launch-correlated device kernels. The corrected table therefore changes the cost-center priority, but it does not change the first raw kernel share, which remains far below the 10% quantitative gate.
 
 The runnable first-chunk backend is nevertheless an inefficient fallback. With `TQ_DISABLE_FLASH_PREFILL=1` (the same fallback control used for the P1 trace), the first scope contains 16 `aten::_scaled_dot_product_attention_math` operations. A second startup with that override removed confirmed that the installed gfx1201 CK flash path is not a usable alternative in this environment: the first 32K request segfaulted in the `ck_tile::FmhaFwdKernel` path before producing a result. Its server log is preserved at `/tmp/tq-p4-profile-20260913-flash/server.log`. The P4.0 adoption condition therefore passes only through the “no working efficient flash path and SDPA fallback” clause, not through the 10% share clause.
 
-P4.0 artifacts are `/tmp/tq-p4-profile-20260913/rank0.1789304974030962018.pt.trace.json.gz`, `/tmp/tq-p4-profile-20260913/p4-summary-final.json`, and `benchmarks/benchmark_gfx1201_p4_profile.py`. The reproduction command is:
+P4.0 artifacts are `/tmp/tq-p4-profile-20260913/rank0.1789304974030962018.pt.trace.json.gz`, `/tmp/tq-p4-profile-20260913/p4-summary-continuation-correlation.json` (corrected), `/tmp/tq-p4-profile-20260913/p4-summary-final.json` (superseded), and `benchmarks/benchmark_gfx1201_p4_profile.py`. The reproduction command is:
 
 ```bash
 .venv/bin/python benchmarks/benchmark_gfx1201_p4_profile.py \
   --trace /tmp/tq-p4-profile-20260913/rank0.1789304974030962018.pt.trace.json.gz \
   --requests /tmp/tq-p4-profile-20260913/client.jsonl \
-  --output /tmp/tq-p4-profile-20260913/p4-summary-final.json
+  --output /tmp/tq-p4-profile-20260913/p4-summary-continuation-correlation.json
 ```
 
 ### P4.1 raw attention microbenchmark (2026-09-13)
@@ -851,6 +853,15 @@ The complete raw samples and gate result are preserved at `/tmp/tq-p4.1-raw-pref
 
 Re-profile after P2--P4. Proceed only if GDN/FLA prefill is at least 10% of remaining 32K prefill kernel time.
 
+### P5 gate closure (2026-09-13)
+
+The corrected P4 trace assigns GDN/FLA prefill `962.418 ms`, or `0.798%` of
+the `120,603.481 ms` scoped prefill kernel sum. The continuation Math SDPA
+reclassification changes attention and dense-GEMM shares, but does not move
+GDN kernels. Since `0.798% < 10%`, the P5 entry gate is **not met**. No GDN
+kernel, opt-in, dispatch, or model run was added. The existing hybrid
+prefix-cache ownership/hash/replay semantics remain unchanged.
+
 Do not alter hybrid prefix-cache ownership/hash/replay semantics established by `ef9433f115`.
 
 Confirm live GDN geometry before writing the kernel. Radiance uses head-K128/head-V128/chunk64 and fuses the high-traffic WY/state-scan/output portion; treat that as a hypothesis, not an assumed local contract.
@@ -863,9 +874,21 @@ Gate: fused subsection at least 1.3x faster than replaced kernels, cold 32K pref
 
 Suggested opt-in: `VLLM_ROCM_USE_GFX1201_GDN_PREFILL`, default False.
 
-## P6: compose and qualify only successful phases
+## P6: composition qualification (not run)
 
-Do not compose rejected phases. Enable accepted components one by one and record incremental/cumulative deltas.
+P2.2, P3, and P4 have no adopted production component, and P5 does not meet
+its entry gate. Therefore there is nothing to compose and the expensive P6
+full qualification matrix is **skipped**. This is a plan closure, not a
+quality-pass claim: the validated baseline remains the only production lane.
+No baseline-changing opt-in, default dispatch, decode path, K8/V4 layout, or
+MTP2 setting was changed.
+
+A later plan may run a lightweight baseline re-confirmation and an isolated
+FP8-KV/Radiance diagnostic control, but it must be a new plan with separate
+gates rather than a continuation of this closed P6 phase.
+
+The matrix below is retained as the qualification requirements for a future
+accepted path; it was not executed in this closed plan.
 
 Final matrix:
 
@@ -881,9 +904,14 @@ Report prefill tok/s, TTFT, decode/E2E rates, acceptance by draft position and m
 
 After official qualification, optionally run MTP8 for historical comparison. Print ratios to historical 2100/1735/1326 tok/s at 32K/64K/120K, but matched baseline gates decide adoption.
 
-## Diagnostic FP8-KV control
+## Next-plan diagnostic: FP8-KV / Radiance control
 
-If qualified K8/V4 remains far below historical Radiance, run an isolated FP8-KV/Radiance control to identify whether the gap is cache-format/attention, W4A8/GDN, runtime/chunking, or compiler related. Keep that diagnostic out of production commits unless a later design explicitly changes the cache contract.
+The next plan should use an isolated FP8-KV/Radiance control to separate
+cache-format/attention, W4A8, GDN, runtime/chunking, and compiler effects.
+The control is diagnostic only; keep it out of production commits unless a
+later design explicitly changes the cache contract and supplies new numerical,
+quality, capacity, and performance gates. Radiance source remains subject to
+the P0 provenance restriction; use clean-room behavior and measurements.
 
 ## Planned commit sequence
 
@@ -893,7 +921,13 @@ If qualified K8/V4 remains far below historical Radiance, run an isolated FP8-KV
 4. `[TurboQuant] Stream gfx1201 K8V4 continuation prefill` — P2.2 current candidates evaluated and rejected; evaluation closed. Reopen only with a different implementation hypothesis and a new gate.
 5. `[MXFP4] Add gfx1201 native W4A8 prefill` — P3, independent of failed A3.
 6. `[TurboQuant] Evaluate gfx1201 raw prefill attention` — P4.0/P4.1 profile and benchmark-only decision; current candidate rejected, no production integration.
-7. `[ROCm] Fuse gfx1201 GDN prefill` — P5 only if profile-gated.
-8. `[gfx1201] Qualify long-prefill composition` — P6 report/quality/needles/prefix/soak; defaults unchanged.
+7. `[ROCm] Fuse gfx1201 GDN prefill` — P5 gate not met; no implementation.
+8. `[gfx1201] Qualify long-prefill composition` — P6 skipped because no phase was adopted; baseline remains validated.
+9. `[gfx1201] Diagnose Radiance delta` — future plan; isolated FP8-KV/Radiance control with new gates.
 
 The P2.2 candidate remains behind its explicit default-off gate and is not enabled. P2.2 evaluation is closed for the current candidates. The current P3 candidate failed its production-weighted speed gate and remains default-off; reopening it requires a new kernel hypothesis. P4.0/P4.1 are complete for the current candidate and failed the kernel speed gate; no P4 production dispatch or later production change is enabled.
+
+The P5 entry gate was not met (`0.798%` GDN/FLA share), so no P5 kernel was
+implemented. Because P2--P5 produced no accepted production path, P6 full
+qualification was not run. This plan is closed with the existing validated
+baseline and production defaults unchanged.
