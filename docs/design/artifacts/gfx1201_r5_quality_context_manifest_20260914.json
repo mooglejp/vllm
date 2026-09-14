@@ -1,0 +1,69 @@
+{
+  "suite_id": "r5-context-2048-20260914",
+  "source_suite_sha256": "8476e86f75bc2b08a19f187e6ca11bef4af161bed203a0817c39a50b1150338a",
+  "source_suite_bytes_sha256": "8476e86f75bc2b08a19f187e6ca11bef4af161bed203a0817c39a50b1150338a",
+  "suite_sha256": "0df298d4bf625a93246ada772c07fe4e5b721eb2f26ccedddc043bf340bda1de",
+  "counts": {
+    "gsm8k": 64,
+    "humaneval": 164,
+    "mmlu": 80
+  },
+  "target_prompt_tokens": 2048,
+  "prompt_token_counts": [
+    2048
+  ],
+  "reference_document_sha256": "2ee6e4ad91530837ce1fa25c36fc5417c3589cd68fb5f9778b13ccdadc05e696",
+  "reference_document_token_count": 2138,
+  "max_tokens": {
+    "gsm8k": 1024,
+    "mmlu": 64,
+    "humaneval": 2048
+  },
+  "sampling": {
+    "seed": 1201,
+    "temperature": 0,
+    "top_p": 1,
+    "top_k": -1,
+    "ignore_eos": false,
+    "add_special_tokens": false
+  },
+  "insertion": {
+    "location": "before original user-body token sequence",
+    "token_level": true,
+    "template_and_original_body_preserved": true,
+    "problem_positions": "absolute prompt token offsets [start,end)"
+  },
+  "construction_checks": {
+    "original_task_restored_after_removing_inserted_tokens": true,
+    "reference_answers_or_hidden_tests_in_context": false,
+    "baseline_candidate_prompt_ids_identical": true,
+    "source_max_tokens_not_reused": true
+  },
+  "judging": {
+    "human_eval": "interactive isolated judge_humaneval.py",
+    "completed_pair_format": "compare only both finish_reason=stop",
+    "truncation": "count finish_reason=length; do not repair or exclude",
+    "no_new_errors_empty_nonfinite": true
+  },
+  "gate": {
+    "task_correct_noninferior": true,
+    "task_truncated_noninferior": true,
+    "completed_pair_format_noninferior": true,
+    "all_308_candidate_requests_apply": true,
+    "at_least_one_applied_chunk_overlaps_problem": true
+  },
+  "historical_results_preserved": [
+    "308-case R5 quality stop",
+    "HumanEval/129 format observation",
+    "strict Math ratio failure",
+    "32K TTFT 2.1733x pass"
+  ],
+  "evaluation_code": {
+    "benchmarks/r5_quality/build_context_suite.py": "1ed0214ad65d2f1212f24d3fb54e8f2ba885c3c8ebdcbbe940095f5394c35c31",
+    "benchmarks/r5_quality/judge_humaneval.py": "2a55f636173a2eeb9a9c210fc64d24ed7a056370f56c943b0f5501e226254032",
+    "benchmarks/r5_quality/judge_controls.py": "5a8a34df8072cd6772a42fb481dfc062d24659570ae3afc8a6960587f87178da",
+    "benchmarks/r5_quality/score.py": "cf5542c3dbb5f6333d2b6eed1a1875852d985ecb5c5792a213c13854c5debcb8",
+    "benchmarks/r5_quality/run_context.py": "3697d9e0e6656dc815600fb2fcae76a4e8561325105351029b5f6d8494a2bac1",
+    "benchmarks/r5_quality/score_context.py": "5e118de8f747bdd48b708ba299d9177d58659d733e677d00765b26ce1165f1d1"
+  }
+}

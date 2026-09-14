@@ -39,17 +39,32 @@ _COUNTS: dict[str, Any] = {
     "calls": 0,
     "shapes": {},
     "layers": {},
+    "overlap_calls": 0,
+    "applied_overlap_calls": 0,
     "applied_calls": 0,
     "restored_globals": True,
 }
 
 
-def _record(cached_len: int, q_len: int) -> None:
+def _record(cached_len: int, q_len: int) -> bool:
+    problem_start = _COUNTS.get("problem_token_start")
+    problem_end = _COUNTS.get("problem_token_end")
+    query_start = cached_len
+    query_end = cached_len + q_len
+    overlaps_problem = (
+        problem_start is not None
+        and problem_end is not None
+        and query_start < problem_end
+        and query_end > problem_start
+    )
     with _LOCK:
         _COUNTS["calls"] += 1
         key = f"cached{cached_len}_q{q_len}"
         shapes = _COUNTS["shapes"]
         shapes[key] = int(shapes.get(key, 0)) + 1
+        if overlaps_problem:
+            _COUNTS["overlap_calls"] += 1
+    return overlaps_problem
 
 
 def _refresh_control() -> None:
@@ -61,9 +76,18 @@ def _refresh_control() -> None:
     if mode not in {"baseline", "candidate"}:
         raise ValueError(f"Invalid diagnostic mode: {mode}")
     if _COUNTS.get("run_id") != control["run_id"]:
-        _COUNTS.update(calls=0, applied_calls=0, shapes={}, layers={})
+        _COUNTS.update(
+            calls=0,
+            applied_calls=0,
+            overlap_calls=0,
+            applied_overlap_calls=0,
+            shapes={},
+            layers={},
+        )
         _COUNTS["enabled"] = mode == "candidate"
         _COUNTS["run_id"] = control["run_id"]
+        _COUNTS["problem_token_start"] = control.get("problem_token_start")
+        _COUNTS["problem_token_end"] = control.get("problem_token_end")
         _write_stats()
     elif _COUNTS["enabled"] != (mode == "candidate"):
         raise RuntimeError("Diagnostic mode changed within a run ID")
@@ -87,10 +111,12 @@ def _patched(self: TurboQuantAttentionImpl, *args: Any, **kwargs: Any):
         return _ORIGINAL(self, *args, **kwargs)
 
     _refresh_control()
-    _record(cached_len, q_len)
+    overlaps_problem = _record(cached_len, q_len)
     _COUNTS["layers"][layer_name] = _COUNTS["layers"].get(layer_name, 0) + 1
     if _COUNTS["enabled"]:
         _COUNTS["applied_calls"] += 1
+        if overlaps_problem:
+            _COUNTS["applied_overlap_calls"] += 1
     if ".layers.63." in layer_name:
         _write_stats()
     if not _COUNTS["enabled"]:

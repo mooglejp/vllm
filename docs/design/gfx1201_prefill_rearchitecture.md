@@ -450,6 +450,11 @@ invalid results are retained separately from corrected isolated execution.
 See `gfx1201_r5_quality_operations_20260914.md`. Neither the TTFT pass nor the
 strict Math diagnostic was overwritten, and no production path was adopted.
 
+The historical HumanEval 164/164 result from the no-stdin judge is not a valid
+functional evaluation. A repaired interactive judge is required for all later
+R5 quality runs; the old artifact remains preserved and is never promoted by a
+new score.
+
 ### R6: composition, capacity and final experience
 
 Compose only accepted stages and preserve component toggles for rollback.
