@@ -102,3 +102,20 @@ the cold-32K TTFT improvement of 2.1733x are unchanged. Decode regression,
 prefix reuse, soak, 64K/120K, and production adoption remain unevaluated and
 unauthorized. No kernel, backend, dispatch, input contract, or fixture was
 changed after the prepared suite.
+
+## Follow-up — cause and corrective warmup
+
+The stop was an operational warmup failure, not an OOM or a content result.
+The saved server log reports `attn_fwd` Triton JIT compilation during the first
+candidate request, after the ordinary startup warmup had been disabled by the
+diagnostic hook to keep the old Math path comparable. The same environment's
+earlier model A/B artifact records an untimed candidate 32K warmup of about
+326 seconds, consistent with the observed multi-minute delay. The retention
+runner had not separated that candidate compilation from the scored request.
+
+The corrective runner adds one fixed, unscored 32K warmup for each mode before
+the nine cases. Its prompt is distinct from the scored suite only by swapping
+two different filler-token IDs; the target sentence and question remain
+unchanged. Warmup responses and hook counters are written to `warmup.jsonl` and
+are excluded from the retention result. The scored suite, model, backend,
+kernel, dispatch, and production settings remain unchanged.

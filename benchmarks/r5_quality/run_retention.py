@@ -9,6 +9,7 @@ import hashlib
 import json
 import time
 from pathlib import Path
+from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -52,6 +53,27 @@ def load_suite(path: Path, manifest_path: Path) -> tuple[dict[str, dict], dict]:
 def cache_salt(run_id: str) -> str:
     digest = _sha256(run_id.encode())
     return f"r5-retention-{digest}"
+
+
+def make_warmup_case(case: dict[str, Any]) -> dict[str, Any]:
+    """Make a distinct, fixed 32K prompt for one untimed kernel warmup."""
+    prompt = list(case["prompt_token_ids"])
+    start = case["document_token_start"]
+    end = case["target_token_start"]
+    for left in range(start, end):
+        for right in range(left + 1, end):
+            if prompt[left] == prompt[right]:
+                continue
+            prompt[left], prompt[right] = prompt[right], prompt[left]
+            warmup = dict(case)
+            warmup["case_id"] = "__warmup__"
+            warmup["prompt_token_ids"] = prompt
+            warmup["prompt_sha256"] = _sha256(
+                json.dumps(prompt, separators=(",", ":")).encode()
+            )
+            warmup["max_tokens"] = 1
+            return warmup
+    raise ValueError("warmup document has no pair of distinct filler tokens")
 
 
 def metrics(base: str) -> list[str]:
@@ -234,6 +256,17 @@ def main() -> None:
         "profiling": False,
         "automatic_retry": False,
         "mode_scope": "existing target continuation attention only",
+        "warmup": {
+            "required": True,
+            "scores_excluded": True,
+            "prompt_tokens": suite_manifest["target_prompt_tokens"],
+            "max_tokens": 1,
+            "input": (
+                "first suite prompt with two distinct document-filler token IDs "
+                "swapped; target sentence and question are unchanged"
+            ),
+            "modes": [],
+        },
     }
     (args.output / "run_manifest.json").write_text(
         json.dumps(run_manifest, indent=2) + "\n"
@@ -245,6 +278,75 @@ def main() -> None:
         raise RuntimeError("requires RAM <=16 GiB and swap disabled")
 
     output_rows = {"baseline": [], "candidate": []}
+    warmup_case = make_warmup_case(next(iter(cases.values())))
+    warmup_path = args.output / "warmup.jsonl"
+    for mode in ("baseline", "candidate"):
+        before_metrics = idle_metrics(args.base_url)
+        request_id = f"{args.run_id}-warmup-{mode}"
+        control = {
+            "mode": mode,
+            "run_id": request_id,
+            "problem_token_start": warmup_case["target_token_start"],
+            "problem_token_end": warmup_case["target_token_end"],
+            "question_token_start": warmup_case["question_token_start"],
+            "question_token_end": warmup_case["question_token_end"],
+        }
+        temporary = args.control.with_suffix(".tmp")
+        temporary.write_text(json.dumps(control))
+        temporary.replace(args.control)
+        resources_before = resources()
+        started = time.monotonic()
+        row = _request(args.base_url, args.model, warmup_case, request_id, mode)
+        row["client_elapsed_seconds"] = time.monotonic() - started
+        row["warmup"] = True
+        row["metrics_before"] = before_metrics
+        row["metrics_after"] = metrics(args.base_url)
+        row["resources_before"] = resources_before
+        row["resources_after"] = resources()
+        row["hook"] = _read_hook_stats(args.stats_prefix, request_id)
+        row["coverage_expected"] = (
+            row["hook"].get("applied_calls", 0) == 0
+            if mode == "baseline"
+            else row["hook"].get("applied_calls", 0) > 0
+        )
+        row["target_overlap_expected"] = (
+            mode == "baseline" or row["hook"].get("applied_overlap_calls", 0) > 0
+        )
+        with warmup_path.open("a") as output:
+            output.write(json.dumps(row, allow_nan=False) + "\n")
+            output.flush()
+        run_manifest["warmup"]["modes"].append(
+            {
+                "mode": mode,
+                "run_id": request_id,
+                "prompt_sha256": warmup_case["prompt_sha256"],
+                "finish_reason": row["finish_reason"],
+                "output_tokens": len(row["output_token_ids"]),
+                "elapsed_seconds": row["elapsed_seconds"],
+                "applied_calls": row["hook"].get("applied_calls", 0),
+                "applied_overlap_calls": row["hook"].get("applied_overlap_calls", 0),
+            }
+        )
+        (args.output / "run_manifest.json").write_text(
+            json.dumps(run_manifest, indent=2) + "\n"
+        )
+        if row["stream_errors"] or not row["output_token_ids"]:
+            raise RuntimeError(
+                f"warmup generation failed for {request_id}; artifact saved"
+            )
+        if row["finish_reason"] not in {"stop", "length"}:
+            raise RuntimeError(
+                f"unexpected warmup finish reason for {request_id}: "
+                f"{row['finish_reason']}; artifact saved"
+            )
+        check_oom(initial, row["resources_after"])
+        print(
+            f"warmup {mode} tokens={len(row['output_token_ids'])} "
+            f"applied={row['hook'].get('applied_calls', 0)} "
+            f"elapsed={row['elapsed_seconds']:.2f}",
+            flush=True,
+        )
+
     for index, case in enumerate(cases.values()):
         order = (
             ("baseline", "candidate") if index % 2 == 0 else ("candidate", "baseline")

@@ -4,7 +4,9 @@
 
 import json
 from pathlib import Path
+from typing import Any
 
+from benchmarks.r5_quality.run_retention import make_warmup_case
 from benchmarks.r5_quality.score_retention import score_text
 
 
@@ -36,3 +38,24 @@ def test_checked_in_retention_fixture_has_nine_fixed_cases():
     assert all(row["max_tokens"] == 128 for row in rows)
     assert all(row["target_token_start"] < row["target_token_end"] for row in rows)
     assert data["construction"]["prompt_ids_equal_for_baseline_candidate"]
+
+
+def test_warmup_prompt_is_distinct_without_changing_target_or_length():
+    case: dict[str, Any] = {
+        "case_id": "case",
+        "prompt_token_ids": [10, 20, 21, 30, 31, 32],
+        "prompt_sha256": "original",
+        "document_token_start": 1,
+        "target_token_start": 4,
+        "target_token_end": 5,
+        "question_token_start": 5,
+        "question_token_end": 6,
+        "max_tokens": 128,
+    }
+    warmup = make_warmup_case(case)
+    assert warmup["case_id"] == "__warmup__"
+    assert len(warmup["prompt_token_ids"]) == len(case["prompt_token_ids"])
+    assert warmup["prompt_token_ids"] != case["prompt_token_ids"]
+    assert warmup["prompt_token_ids"][4:] == case["prompt_token_ids"][4:]
+    assert warmup["max_tokens"] == 1
+    assert warmup["prompt_sha256"] != case["prompt_sha256"]
