@@ -110,15 +110,13 @@ def _measure_round_robin(
 
 
 def _fp8_bytes(shape: tuple[int, int], seed: int) -> torch.Tensor:
-    generator = torch.Generator(device="cuda")
+    generator = torch.Generator(device="cpu")
     generator.manual_seed(seed)
-    # Keep values finite and moderate so the FP64 oracle remains informative;
-    # the benchmark's source of truth is the resulting raw FP8 byte tensor.
-    values = torch.randn(
-        shape, device="cuda", dtype=torch.bfloat16, generator=generator
-    )
+    # Generate on CPU so setup does not depend on a GPU RNG kernel; the raw
+    # FP8 byte tensor remains the benchmark's source of truth.
+    values = torch.randn(shape, device="cpu", dtype=torch.bfloat16, generator=generator)
     values = (values.float() * 0.25).clamp(-4.0, 4.0)
-    return values.to(FP8_DTYPE).view(torch.uint8)
+    return values.to(FP8_DTYPE).view(torch.uint8).to("cuda")
 
 
 def _oracle_slice(

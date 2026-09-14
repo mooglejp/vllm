@@ -1,7 +1,8 @@
 # gfx1201 P3-v2 Radiance W4A8 clean-room design
 
 Status: black-box characterization complete; benchmark-only P3-v2a
-implementation present; GPU mapping gate unmeasured; no production integration
+implementation measured; GPU correctness passed; 5x mapping gate failed; no
+production integration
 
 Base revision: `f7f3643b00` (`[gfx1201] Link Radiance control summary artifact`)
 
@@ -317,7 +318,7 @@ No production launcher or threshold has changed, and no Radiance source has
 been copied.  Until v2a passes, the validated baseline remains the rollback
 target.
 
-## 8. P3-v2a benchmark implementation (2026-09-14)
+## 8. P3-v2a benchmark implementation and result (2026-09-14)
 
 The benchmark-only v2a implementation is now present in:
 
@@ -343,7 +344,7 @@ An eligible candidate is not rejected because a different candidate failed;
 `--skip-correctness` and missing cases never qualify any candidate.  The
 artifact records the eligible candidate list and the missing/completed cases.
 
-The intended invocation is:
+The standard invocation is:
 
 ```text
 .venv/bin/python benchmarks/kernels/benchmark_gfx1201_fp8_wmma_v2a.py \
@@ -351,12 +352,36 @@ The intended invocation is:
   --rows 64 256
 ```
 
-This worktree has the Python/static checks needed for the benchmark, but the
-default `/opt/rocm/core-7.14/include` tree is runtime-only and lacks both
-`hip/hip_runtime.h` and rocWMMA.  The same-release ROCm 7.14 core payload in
-the venv supplies the HIP headers, but the out-of-tree build then stops at the
-missing `thrust/complex.h`; the matching rocWMMA/rocThrust development payload
-is not installed.  Temporary or mismatched header checkouts are not treated as
-a validated SDK.  Therefore no GPU timing or v2a mapping-gate result is
-claimed here.  v2b MXFP4 work remains blocked until a complete, same-session
-ROCm/rocWMMA development environment measures the v2a 5x gate.
+The benchmark was then built and run in a coherent ROCm 7.14 session with the
+matching HIP, rocWMMA/rocThrust development headers, and the gfx1201 device
+bundle.  The session used `torch 2.12.0+rocm7.14.0`, HIP `7.14.60850`, and
+`gfx1201`; the extension was compiled for `--offload-arch=gfx1201`.  No
+production module or launcher was rebuilt or changed.
+
+GPU correctness passed for A0--A4 on both the random
+`M=129, N=17, K=64` tail and the column-distinct full
+`M=129, N=129, K=64` case.  The full-output FP64-byte-oracle checks reported
+finite outputs and zero max-abs/RMSE for every candidate.  The standard run
+used all six fixed model shapes, `M=64,256`, five warmups, twenty rotating
+samples, preallocated buffers, and a recorded 64 MiB flush.  The complete raw
+artifact is committed at
+[`gfx1201_p3_v2a_standard_20260914.json`](artifacts/gfx1201_p3_v2a_standard_20260914.json).
+
+All twelve requested shape/row cases completed with correctness enabled.  The
+candidate speedup ranges over those cases were:
+
+| candidate | minimum speedup over A0 | maximum speedup over A0 |
+| --- | ---: | ---: |
+| A1 `2wave_64x64` | 0.475x | 10.404x |
+| A2 `4wave_64x64` | 0.908x | 9.594x |
+| A3 `4wave_64x128` | 0.646x | 11.781x |
+| A4 `4wave_128x64` | 0.588x | 11.286x |
+
+The minimum is the fixed-shape result used by the gate, not a missing or
+skipped measurement.  Because no candidate reached `5x` for every selected
+shape/row case, the candidate-wise mapping gate is **failed** and the recorded
+decision is to stop P3-v2a before adding MXFP4 decode/scale fusion.  The large
+shapes do show substantial wins, but they do not satisfy the fixed target-shape
+gate and therefore do not authorize v2b.  This closes the current v2a
+implementation without changing production defaults, decode/MTP lanes, P2.2,
+or any other phase.
