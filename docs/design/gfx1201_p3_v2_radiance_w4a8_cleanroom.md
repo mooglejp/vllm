@@ -1,7 +1,7 @@
 # gfx1201 P3-v2 Radiance W4A8 clean-room design
 
-Status: black-box characterization complete; design only; no kernel or
-production integration
+Status: black-box characterization complete; benchmark-only P3-v2a
+implementation present; GPU mapping gate unmeasured; no production integration
 
 Base revision: `f7f3643b00` (`[gfx1201] Link Radiance control summary artifact`)
 
@@ -330,6 +330,19 @@ The benchmark-only v2a implementation is now present in:
   configurations.  It is not included in `_rocm_C`, registered with vLLM, or
   reachable from production dispatch.
 
+Before GPU measurement, review found and fixed a multi-wave address issue:
+the B fragment load now includes each wave's `wave_n_start` column offset.
+The tail probe retains the random `M=129, N=17, K=64` case and adds a full
+`M=129, N=129, K=64` case with column-distinct B values, so a right-wave
+offset error cannot be hidden by the prior narrow-N slice.
+
+The mapping gate is candidate-wise.  A candidate is eligible for v2b only if
+every selected `(shape_index, M)` case is complete, correctness was run (the
+tail cases included), and every measured speedup is at least `5x` over A0.
+An eligible candidate is not rejected because a different candidate failed;
+`--skip-correctness` and missing cases never qualify any candidate.  The
+artifact records the eligible candidate list and the missing/completed cases.
+
 The intended invocation is:
 
 ```text
@@ -339,9 +352,11 @@ The intended invocation is:
 ```
 
 This worktree has the Python/static checks needed for the benchmark, but the
-local ROCm SDK image is missing the HIP development headers and rocWMMA header
-needed by the out-of-tree extension (`hip/hip_runtime.h` is absent from the
-configured `/opt/rocm/core-7.14/include` tree).  Therefore no GPU timing or
-v2a mapping-gate result is claimed here.  The next run must use a complete
-ROCm/rocWMMA development environment; v2b MXFP4 work remains blocked until
-the v2a 5x gate is measured.
+default `/opt/rocm/core-7.14/include` tree is runtime-only and lacks both
+`hip/hip_runtime.h` and rocWMMA.  The same-release ROCm 7.14 core payload in
+the venv supplies the HIP headers, but the out-of-tree build then stops at the
+missing `thrust/complex.h`; the matching rocWMMA/rocThrust development payload
+is not installed.  Temporary or mismatched header checkouts are not treated as
+a validated SDK.  Therefore no GPU timing or v2a mapping-gate result is
+claimed here.  v2b MXFP4 work remains blocked until a complete, same-session
+ROCm/rocWMMA development environment measures the v2a 5x gate.

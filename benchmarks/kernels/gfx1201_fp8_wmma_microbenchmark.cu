@@ -196,8 +196,8 @@ __global__ void fp8_wmma_large_kernel(const uint8_t* a, const uint8_t* b,
           kTile);
     }
     for (int frag_n = 0; frag_n < kFragN; ++frag_n) {
-      rocwmma::load_matrix_sync(frag_b[frag_n], tile_b + frag_n * kTile,
-                                BlockN);
+      rocwmma::load_matrix_sync(frag_b[frag_n],
+                                tile_b + wave_n_start + frag_n * kTile, BlockN);
     }
     for (int frag_m = 0; frag_m < kFragM; ++frag_m) {
       for (int frag_n = 0; frag_n < kFragN; ++frag_n) {

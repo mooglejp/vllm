@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import statistics
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
@@ -177,18 +178,48 @@ def _correctness_case(
 
 def _tail_correctness_probe(
     extension: Any, specs: list[tuple[str, str, int, int, int]]
-) -> dict[str, object]:
+) -> list[dict[str, object]]:
+    """Check both the existing tail and a full multi-wave column tail."""
+
+    def column_distinct_inputs(
+        m: int, n: int, k: int
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        a_values = torch.ones((m, k), device="cuda", dtype=torch.float32)
+        column_values = torch.linspace(-4.0, 4.0, n, device="cuda")
+        b_values = column_values[:, None].expand(n, k)
+        return (
+            a_values.to(FP8_DTYPE).view(torch.uint8),
+            b_values.to(FP8_DTYPE).view(torch.uint8),
+        )
+
+    cases: list[tuple[str, int, int, int, torch.Tensor, torch.Tensor]] = []
     m, n, k = 129, 17, 64
-    a = _fp8_bytes((m, k), 1201001)
-    b = _fp8_bytes((n, k), 1201002)
-    outputs = {
-        name: torch.empty((m, n), device="cuda", dtype=torch.float32)
-        for name, *_ in specs
-    }
-    result = _correctness_case(extension, a, b, outputs, specs)
-    result["shape"] = [m, n, k]
-    result["purpose"] = "M/N tail correctness before timing"
-    return result
+    cases.append(
+        (
+            "random_tail",
+            m,
+            n,
+            k,
+            _fp8_bytes((m, k), 1201001),
+            _fp8_bytes((n, k), 1201002),
+        )
+    )
+    m, n, k = 129, 129, 64
+    distinct_a, distinct_b = column_distinct_inputs(m, n, k)
+    cases.append(("column_distinct_full", m, n, k, distinct_a, distinct_b))
+
+    results: list[dict[str, object]] = []
+    for name, m, n, k, a, b in cases:
+        outputs = {
+            candidate_name: torch.empty((m, n), device="cuda", dtype=torch.float32)
+            for candidate_name, *_ in specs
+        }
+        result = _correctness_case(extension, a, b, outputs, specs)
+        result["case"] = name
+        result["shape"] = [m, n, k]
+        result["purpose"] = "M/N tail correctness before timing"
+        results.append(result)
+    return results
 
 
 def _benchmark_case(
@@ -216,8 +247,6 @@ def _benchmark_case(
         if skip_correctness
         else _correctness_case(extension, a, b, outputs, specs)
     )
-    if not skip_correctness and not correctness["passed"]:
-        raise RuntimeError(f"pure-FP8 correctness failed for M={m}, N={n}, K={k}")
 
     operations = {
         name: lambda method=method, output=outputs[name]: _invoke(
@@ -260,29 +289,117 @@ def _benchmark_case(
     }
 
 
+def _candidate_correctness_passed(
+    record: dict[str, object], name: str, requested: bool
+) -> bool:
+    if not requested:
+        return False
+    correctness = record.get("correctness")
+    if not isinstance(correctness, dict) or correctness.get("skipped"):
+        return False
+    candidate_results = correctness.get("candidates")
+    if not isinstance(candidate_results, dict):
+        return False
+    result = candidate_results.get(name)
+    return isinstance(result, dict) and bool(result.get("sanity_passed", False))
+
+
 def _aggregate_gate(
     records: list[dict[str, object]],
     specs: list[tuple[str, str, int, int, int]],
+    expected_cases: list[tuple[int, int]],
+    correctness_requested: bool,
+    tail_correctness: list[dict[str, object]],
 ) -> dict[str, object]:
-    minima: dict[str, float] = {name: float("inf") for name, *_ in specs}
-    for record in records:
-        speedups = record["speedup_over_a0"]
-        assert isinstance(speedups, dict)
-        for name in minima:
-            minima[name] = min(minima[name], float(speedups[name]))
+    expected_records = {
+        (int(record["shape_index"]), int(record["m"])): record
+        for record in records
+        if "shape_index" in record
+    }
+    completed_cases = [case for case in expected_cases if case in expected_records]
+    missing_cases = [case for case in expected_cases if case not in expected_records]
+    candidate_gates: dict[str, dict[str, object]] = {}
+    for name, *_ in specs:
+        case_records = [expected_records.get(case) for case in expected_cases]
+        all_cases_completed = not missing_cases
+        speedups: list[float] = []
+        correctness_passed = correctness_requested and bool(expected_cases)
+        for record in case_records:
+            if record is None:
+                correctness_passed = False
+                continue
+            speedup_data = record.get("speedup_over_a0")
+            speedup = speedup_data.get(name) if isinstance(speedup_data, dict) else None
+            if isinstance(speedup, (int, float)) and math.isfinite(float(speedup)):
+                speedups.append(float(speedup))
+            else:
+                all_cases_completed = False
+            if not _candidate_correctness_passed(record, name, correctness_requested):
+                correctness_passed = False
+        tail_passed = (
+            correctness_requested
+            and bool(tail_correctness)
+            and all(
+                _candidate_correctness_passed(
+                    {"correctness": case}, name, correctness_requested
+                )
+                for case in tail_correctness
+            )
+        )
+        correctness_passed = correctness_passed and tail_passed
+        speedup_passed = (
+            all_cases_completed
+            and len(speedups) == len(expected_cases)
+            and all(value >= MAPPING_SPEEDUP_GATE for value in speedups)
+        )
+        eligible = (
+            bool(expected_cases)
+            and all_cases_completed
+            and correctness_passed
+            and speedup_passed
+        )
+        candidate_gates[name] = {
+            "min_speedup_over_a0": min(speedups) if speedups else None,
+            "all_cases_completed": all_cases_completed,
+            "correctness_passed": correctness_passed,
+            "speedup_passed": speedup_passed,
+            "eligible_for_v2b": eligible,
+        }
+    large_tile_names = [name for name, *_ in specs[1:]]
+    eligible_candidates = [
+        name
+        for name in large_tile_names
+        if bool(candidate_gates[name]["eligible_for_v2b"])
+    ]
+    if eligible_candidates:
+        decision = "continue to P3-v2b with eligible candidates: " + ", ".join(
+            eligible_candidates
+        )
+    else:
+        decision = (
+            "stop P3-v2a; no large-tile candidate completed every required "
+            "case with correctness and the 5x mapping gate"
+        )
     return {
         "baseline": specs[0][0],
         "threshold": MAPPING_SPEEDUP_GATE,
-        "min_speedup_over_a0": minima,
-        "pass": {
-            name: value >= MAPPING_SPEEDUP_GATE
-            for name, value in minima.items()
-            if name != specs[0][0]
+        "expected_cases": [list(case) for case in expected_cases],
+        "completed_cases": [list(case) for case in completed_cases],
+        "missing_cases": [list(case) for case in missing_cases],
+        "correctness_required": True,
+        "correctness_run": correctness_requested,
+        "tail_correctness_required": correctness_requested,
+        "candidates": candidate_gates,
+        "min_speedup_over_a0": {
+            name: candidate["min_speedup_over_a0"]
+            for name, candidate in candidate_gates.items()
         },
-        "decision": (
-            "continue to P3-v2b only if every selected large-tile candidate "
-            "under test meets the 5x mapping gate; otherwise stop"
-        ),
+        "pass": {
+            name: bool(candidate_gates[name]["eligible_for_v2b"])
+            for name in large_tile_names
+        },
+        "eligible_candidates": eligible_candidates,
+        "decision": decision,
     }
 
 
@@ -319,12 +436,10 @@ def main() -> None:
     flush = torch.empty(args.flush_mib * 1024 * 1024, device="cuda", dtype=torch.uint8)
     if not args.skip_correctness:
         tail_correctness = _tail_correctness_probe(extension, specs)
-        if not tail_correctness["passed"]:
-            raise RuntimeError(f"tail correctness failed: {tail_correctness}")
     else:
         tail_correctness = {"skipped": True}
 
-    selected = (
+    selected = list(
         range(len(MODEL_SHAPES)) if args.shape_index is None else args.shape_index
     )
     for index in selected:
@@ -358,6 +473,10 @@ def main() -> None:
             "baseline": CANDIDATES[0][0],
             "threshold": MAPPING_SPEEDUP_GATE,
             "scope": "same-shape preexpanded FP8 GEMM median latency",
+            "correctness_required": not args.skip_correctness,
+            "eligibility": (
+                "tail and selected cases must be complete, correct, and at least 5x A0"
+            ),
         },
         "scope": (
             "diagnostic only; no MXFP4 decode, E8M0 scale, production "
@@ -384,11 +503,18 @@ def main() -> None:
                     specs,
                     args.skip_correctness,
                 )
+                record["shape_index"] = shape_index
                 records.append(record)
                 output_file.write(json.dumps(record) + "\n")
                 output_file.flush()
                 print(json.dumps(record), flush=True)
-        gate = _aggregate_gate(records, specs)
+        expected_cases = [
+            (shape_index, m) for shape_index in selected for m in args.rows
+        ]
+        tail_cases = tail_correctness if isinstance(tail_correctness, list) else []
+        gate = _aggregate_gate(
+            records, specs, expected_cases, not args.skip_correctness, tail_cases
+        )
         output_file.write(json.dumps({"mapping_gate": gate}) + "\n")
         output_file.flush()
         print(json.dumps({"mapping_gate": gate}), flush=True)
