@@ -1,0 +1,12 @@
+{
+  "suite_id": "r5-retention-32k-20260915",
+  "suite_sha256": "49a70721080202893a316267f5708685edc3f2edb3c31033aafed762839b7ae3",
+  "run_id": "r5-retention-20260915",
+  "case_count": 9,
+  "order": "B/C then C/B alternating by case",
+  "model": "qwen38-27b-tq-mtp",
+  "cache_salt": "unique SHA-256 salt for each mode/case",
+  "profiling": false,
+  "automatic_retry": false,
+  "mode_scope": "existing target continuation attention only"
+}

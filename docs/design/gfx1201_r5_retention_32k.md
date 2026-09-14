@@ -64,3 +64,41 @@ previous supplemental quality failure, or approve production use.
 Decode regression, prefix reuse, soak, 64K/120K, further kernel work, and
 production integration are outside this run. A later result section will be
 added in a separate commit after the one-pass measurement.
+
+## Result — stopped at progress stall
+
+The environment record was captured at source commit `cf53f01da7`, before the
+document-boundary-only correction. That first attempt sent no model request.
+The stopped candidate run used the corrected runner at `d84919273d`; no model,
+kernel, or production source changed between those commits. It loaded one
+model process under the 16 GiB RAM / no-swap limit and began the required
+alternating order. The first baseline case, `archive_lantern-early`, completed
+normally and returned the exact value `R7N4-K2P9-V6X1` in 13 output tokens after
+138.509 seconds. The first candidate request then completed its 32K prefill
+scope (16 target layers, 1,248 recorded attention calls, 16 calls overlapping
+the answer-bearing sentence) but emitted no response while the EngineCore
+remained busy for approximately five minutes. GPU activity was idle at the
+stall observation. The client and server were stopped safely; no retry or
+additional case was run.
+
+This is an operational progress-stop, not a content-quality verdict. No
+baseline/candidate pair table can be formed for the remaining eight cases, and
+the nine-case content-retention result is **not evaluated**. The saved baseline,
+candidate hook counters, server log, environment, and run manifest are in
+`artifacts/gfx1201_r5_retention_32k_20260915_run/`; the machine-readable stop
+record is `status.json`.
+
+| placement | completed cases | result |
+| --- | ---: | --- |
+| early | 1 baseline / 0 candidate | candidate progress stall on first case |
+| middle | 0 / 0 | not run |
+| late | 0 / 0 | not run |
+
+The cgroup OOM, OOM-kill, and group-kill counters remained zero. The recorded
+peak GPU allocator values were 32,097,141,760 bytes allocated and
+33,294,385,152 bytes reserved in both arms. The previous
+R5 supplemental quality failure, the completed-pair format item passing, and
+the cold-32K TTFT improvement of 2.1733x are unchanged. Decode regression,
+prefix reuse, soak, 64K/120K, and production adoption remain unevaluated and
+unauthorized. No kernel, backend, dispatch, input contract, or fixture was
+changed after the prepared suite.

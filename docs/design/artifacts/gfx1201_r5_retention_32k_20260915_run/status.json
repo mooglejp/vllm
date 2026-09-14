@@ -1,0 +1,55 @@
+{
+  "suite_id": "r5-retention-32k-20260915",
+  "suite_sha256": "49a70721080202893a316267f5708685edc3f2edb3c31033aafed762839b7ae3",
+  "run_id": "r5-retention-20260915",
+  "status": "stopped_progress_stall",
+  "completed_pairs": 1,
+  "expected_pairs": 9,
+  "completed_records": {
+    "baseline": 1,
+    "candidate": 0
+  },
+  "first_case": "archive_lantern-early",
+  "in_flight_case": "archive_lantern-early",
+  "in_flight_mode": "candidate",
+  "stop_reason": "The first candidate request completed the 32K prefill but emitted no response while the EngineCore remained busy for approximately five minutes. GPU activity fell to idle, the client was stopped, and the server was then terminated. No automatic retry was made.",
+  "candidate_prefill_observation": {
+    "attention_calls": 1248,
+    "layers": 16,
+    "chunks_per_layer": 78,
+    "target_overlap_calls": 16,
+    "response_received": false
+  },
+  "baseline_observation": {
+    "finish_reason": "stop",
+    "output_tokens": 13,
+    "exact_answer": true,
+    "elapsed_seconds": 138.50859337195288,
+    "first_token_seconds": 138.2442743720021
+  },
+  "resource_observation": {
+    "memory_limit_bytes": 17179869184,
+    "swap_limit_bytes": 0,
+    "oom": 0,
+    "oom_kill": 0,
+    "oom_group_kill": 0,
+    "memory_events_max_counter": 2398,
+    "sampled_memory_current_peak_bytes": 15268548608,
+    "post_abort_memory_current_bytes": 12946821120,
+    "baseline_peak_gpu_allocated_bytes": 32097141760,
+    "baseline_peak_gpu_reserved_bytes": 33294385152,
+    "candidate_peak_gpu_allocated_bytes": 32097141760,
+    "candidate_peak_gpu_reserved_bytes": 33294385152,
+    "gpu_activity_at_stall_percent": 3
+  },
+  "provenance_note": "environment.json was captured at source commit cf53f01da7 before the document-boundary-only correction. The first attempt sent no model request; the stopped candidate run used the corrected runner at d84919273d. No model, kernel, or production source changed between those commits.",
+  "quality_result": "not evaluated",
+  "position_results": {
+    "early": "not completed",
+    "middle": "not run",
+    "late": "not run"
+  },
+  "historical_quality_gate_unchanged": true,
+  "historical_ttft_2_1733x_unchanged": true,
+  "production_adoption": "not authorized"
+}
