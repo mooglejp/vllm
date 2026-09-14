@@ -1,0 +1,80 @@
+{
+  "suite_id": "r5-retention-32k-20260915",
+  "suite_sha256": "49a70721080202893a316267f5708685edc3f2edb3c31033aafed762839b7ae3",
+  "case_count": 9,
+  "content_count": 3,
+  "positions": [
+    "early",
+    "middle",
+    "late"
+  ],
+  "target_prompt_tokens": 32768,
+  "max_tokens": 128,
+  "sampling": {
+    "seed": 1201,
+    "temperature": 0,
+    "top_p": 1,
+    "top_k": -1,
+    "ignore_eos": false,
+    "add_special_tokens": false,
+    "enable_thinking": false
+  },
+  "model_path": "/srv/ai/models/llm/hf/amd-Qwen3.8-27B-Quark-AWQ-MXFP4",
+  "tokenizer_files": {
+    "tokenizer.json": "0997f410c57a1f4e53b09e4be8f4a172d90edd9564368fb0847030937229b9f3",
+    "tokenizer_config.json": "b11349aafa7cdc6a320767cf7ceb29ed82f7eda5d65e8e0819e76f0ce947bf27",
+    "chat_template.jinja": "c3cf9e34abf4f9e36c2d72165aa9c132d3e2a725b6c2586aaa3a8af9d7a81041",
+    "vocab.json": "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003",
+    "merges.txt": "a9d356d7bdf1ef4949e3e748e95b8e10ad9d4e2e838eddc38a0a7b6b94d1db8d"
+  },
+  "template": {
+    "chat_template": "model tokenizer config",
+    "add_generation_prompt": true,
+    "enable_thinking": false,
+    "document_and_question_in_one_user_message": true
+  },
+  "construction": {
+    "document_target_positions": {
+      "early": 0.1,
+      "middle": 0.5,
+      "late": 0.9
+    },
+    "target_sentence_occurs_once_in_document": true,
+    "answer_occurs_once_in_document": true,
+    "answer_not_in_question_or_filler": true,
+    "no_contradictory_content_answers": true,
+    "prompt_ids_equal_for_baseline_candidate": true,
+    "whole_prompt_includes_template_document_question": true,
+    "token_boundaries_do_not_split_sentences": true
+  },
+  "scoring": {
+    "main": "response_text.strip() == answer exactly",
+    "normalization": "remove only leading/trailing whitespace",
+    "contains_answer": "auxiliary only; never substitutes for exact match",
+    "retry_or_repair": false
+  },
+  "execution": {
+    "arms": [
+      "baseline",
+      "candidate"
+    ],
+    "order": "B/C then C/B alternating by case",
+    "requests_per_case_per_arm": 1,
+    "cache_salt": "unique per suite/run/mode/case; no A/B sharing",
+    "ram_limit_bytes": 17179869184,
+    "swap_limit_bytes": 0,
+    "candidate_scope": "existing target continuation attention only"
+  },
+  "historical_results_preserved": {
+    "additional_quality_gate": "failed and unchanged",
+    "cold_32k_ttft_speedup": "2.1733x and unchanged"
+  },
+  "evaluation_code": {
+    "benchmarks/r5_quality/build_retention_suite.py": "8d415dff4440ba393dfb7fdfe6648c5152f79ec48fac9cb5bfdf9480dddcde0d",
+    "benchmarks/r5_quality/run_retention.py": "a91bcc91df64f54cc2d478fbde58cd73e9e64eb75d9c57299b0e226727198ed0",
+    "benchmarks/r5_quality/score_retention.py": "82cbaf09594ae35bb9738b6e3feb5251a869fa69e80d4f475eb007e42e80d095",
+    "benchmarks/r5_quality/retention_environment.py": "7e083b7cb86d5cf4dd1916be9088b463dec3a609fe812fddc8540d290fb6946e",
+    "benchmarks/r5_model_ab/sitecustomize.py": "fb5a783015a11fae639b924ebb2a871a2537a1370c762a5b4570f10d50facc3e",
+    "benchmarks/benchmark_gfx1201_r5_model_ab_hook.py": "2a7b23bcee9412d4de1031572326effb7b8cffd5ff482a8205f925238219d5f4"
+  }
+}
