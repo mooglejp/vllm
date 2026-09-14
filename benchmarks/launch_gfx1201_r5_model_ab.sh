@@ -8,8 +8,8 @@ stats_path=${4:-/dev/shm/r5_hook_stats.json}
 
 memory_limit=$(</sys/fs/cgroup/memory.max)
 swap_limit=$(</sys/fs/cgroup/memory.swap.max)
-if [[ "$memory_limit" == max || "$memory_limit" -gt 12884901888 || "$swap_limit" != 0 ]]; then
-  echo "R5 requires an isolated cgroup with RAM <=12 GiB and swap disabled" >&2
+if [[ "$memory_limit" == max || "$memory_limit" -gt 17179869184 || "$swap_limit" != 0 ]]; then
+  echo "R5 requires an isolated cgroup with RAM <=16 GiB and swap disabled" >&2
   exit 2
 fi
 
