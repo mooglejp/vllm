@@ -419,6 +419,14 @@ both cache format and numerical backend in one experiment. R4D-off ablation
 is not the same as our Math-SDPA fallback. No new GDN work without a measured
 material cost fraction or a correctness requirement.
 
+The 2026-09-14 R5 diagnostic loaded the pinned AMD Triton FlashAttention wheel
+and observed `attn_fwd.kd`, but its fixed same-input numerical gate failed
+(18/19 required cases). Timing and model integration were therefore not run;
+R5 is stopped at the numerical gate. See
+`gfx1201_prefill_rearchitecture_r5_20260914.md` and its machine-readable
+artifact for the provenance, contract, and per-case results. This does not
+reopen P2.2 or reject K8/V4 storage as a format.
+
 ### R6: composition, capacity and final experience
 
 Compose only accepted stages and preserve component toggles for rollback.

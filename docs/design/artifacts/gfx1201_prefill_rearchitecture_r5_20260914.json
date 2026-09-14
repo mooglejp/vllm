@@ -1,0 +1,2437 @@
+{
+  "backend": {
+    "amd_interface_file": "/tmp/r5-flash-site/flash_attn/flash_attn_triton_amd/interface_fa.py",
+    "amd_interface_sha256": "d0ff887fd3481101e2cda88244aa2fc272bf53c18db981235d1d09b69b0e4e03",
+    "amd_prefill_file": "/tmp/r5-flash-site/flash_attn/flash_attn_triton_amd/fwd_prefill.py",
+    "amd_prefill_sha256": "0205ca50fd19c7cadf7731dc5effc5748322d01938939e4efe0939463bc3e2f1",
+    "amd_selector": "TRUE",
+    "amd_use_triton_rocm": true,
+    "distribution_direct_url": {
+      "archive_info": {
+        "hash": "sha256=af2d6326747cd49a43843d04d01ebcdf3b452ca3f873b7435a21d140ff598b1a",
+        "hashes": {
+          "sha256": "af2d6326747cd49a43843d04d01ebcdf3b452ca3f873b7435a21d140ff598b1a"
+        }
+      },
+      "url": "file:///install/flash_attn-2.8.3-cp312-cp312-linux_x86_64.whl"
+    },
+    "entry_point": "flash_attn.flash_attn_varlen_func",
+    "entry_source": "/tmp/r5-flash-site/flash_attn/flash_attn_interface.py",
+    "interface_file": "/tmp/r5-flash-site/flash_attn/flash_attn_interface.py",
+    "package": "flash_attn",
+    "package_file": "/tmp/r5-flash-site/flash_attn/__init__.py",
+    "source_commit": null,
+    "source_commit_note": "wheel metadata did not expose an upstream commit",
+    "upstream_test_file": "/tmp/r5-flash-site/flash_attn/flash_attn_triton_amd/test.py",
+    "upstream_test_sha256": "8bef6fb5f48c615194e517cfd49949de2312d7591a7996c91f6f09eec7cd9d19",
+    "version": "2.8.3"
+  },
+  "boundary_fixture": {
+    "case": {
+      "cached_len": 3,
+      "q_len": 2,
+      "seq_len": 5
+    },
+    "expected_head0_dim0": [
+      1.5,
+      2.0
+    ],
+    "flash_head0_dim0": [
+      1.5,
+      2.0
+    ],
+    "flash_pass": true,
+    "mask": [
+      [
+        1,
+        1,
+        1,
+        1,
+        0
+      ],
+      [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    ],
+    "math_head0_dim0": [
+      1.5,
+      2.0
+    ],
+    "math_pass": true,
+    "pass": true
+  },
+  "cases": [
+    {
+      "baseline_math": {
+        "final_bf16": {
+          "elements": 6144,
+          "finite": true,
+          "max_abs": 0.0,
+          "mismatch_elements": 0,
+          "relative_l2": 0.0,
+          "rmse": 0.0
+        },
+        "oracle_row_count": 24,
+        "precast_fp64": {
+          "elements": 6144,
+          "finite": true,
+          "max_abs": 0.0,
+          "mismatch_elements": 0,
+          "relative_l2": 0.0,
+          "rmse": 0.0
+        }
+      },
+      "candidate_flash_triton_amd": {
+        "final_bf16": {
+          "elements": 6144,
+          "finite": true,
+          "max_abs": 0.0,
+          "mismatch_elements": 0,
+          "relative_l2": 0.0,
+          "rmse": 0.0
+        },
+        "oracle_row_count": 24,
+        "precast_fp64": {
+          "elements": 6144,
+          "finite": true,
+          "max_abs": 0.0,
+          "mismatch_elements": 0,
+          "relative_l2": 0.0,
+          "rmse": 0.0
+        }
+      },
+      "case": {
+        "cached_len": 0,
+        "q_len": 1,
+        "seq_len": 1
+      },
+      "causal": true,
+      "dtype": "torch.bfloat16",
+      "materialization": {
+        "current": "raw BF16",
+        "prefix": "none",
+        "prefix_fp16_roundtrip": false
+      },
+      "numeric_gate": {
+        "margin": 1.1,
+        "max_abs_limit": 0.0,
+        "max_abs_pass": true,
+        "pass": true,
+        "rmse_limit": 0.0,
+        "rmse_pass": true
+      },
+      "official_upstream_forward_criterion": {
+        "baseline": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "candidate": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "formula": "torch.testing.assert_close",
+        "source": "flash_attn_triton_amd/test.py"
+      },
+      "oracle_scope": {
+        "full_output": true,
+        "row_policy": "all query rows x all query heads",
+        "rows": null
+      },
+      "scale": 0.0625,
+      "seed": 20260914,
+      "shape": {
+        "D": 256,
+        "GQA": 6,
+        "Hk": 4,
+        "Hq": 24
+      },
+      "status": "numeric_pass",
+      "timing": {
+        "status": "not_measured_until_all_numerical_cases_pass"
+      }
+    },
+    {
+      "baseline_math": {
+        "final_bf16": {
+          "elements": 780288,
+          "finite": true,
+          "max_abs": 0.00390625,
+          "mismatch_elements": 146,
+          "relative_l2": 2.7289303648823912e-05,
+          "rmse": 7.634964276803657e-06
+        },
+        "oracle_row_count": 3048,
+        "precast_fp64": {
+          "elements": 780288,
+          "finite": true,
+          "max_abs": 0.007796287536621094,
+          "mismatch_elements": 774144,
+          "relative_l2": 0.0015663699228341235,
+          "rmse": 0.0004382429178804159
+        }
+      },
+      "candidate_flash_triton_amd": {
+        "final_bf16": {
+          "elements": 780288,
+          "finite": true,
+          "max_abs": 0.015625,
+          "mismatch_elements": 275375,
+          "relative_l2": 0.001901258773717353,
+          "rmse": 0.0005319359479472041
+        },
+        "oracle_row_count": 3048,
+        "precast_fp64": {
+          "elements": 780288,
+          "finite": true,
+          "max_abs": 0.00846099853515625,
+          "mismatch_elements": 774144,
+          "relative_l2": 0.0018869964327730784,
+          "rmse": 0.000527933007106185
+        }
+      },
+      "case": {
+        "cached_len": 0,
+        "q_len": 127,
+        "seq_len": 127
+      },
+      "causal": true,
+      "dtype": "torch.bfloat16",
+      "materialization": {
+        "current": "raw BF16",
+        "prefix": "none",
+        "prefix_fp16_roundtrip": false
+      },
+      "numeric_gate": {
+        "margin": 1.1,
+        "max_abs_limit": 0.004296875,
+        "max_abs_pass": false,
+        "pass": false,
+        "rmse_limit": 8.398460704484024e-06,
+        "rmse_pass": false
+      },
+      "official_upstream_forward_criterion": {
+        "baseline": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "candidate": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "formula": "torch.testing.assert_close",
+        "source": "flash_attn_triton_amd/test.py"
+      },
+      "oracle_scope": {
+        "full_output": true,
+        "row_policy": "all query rows x all query heads",
+        "rows": null
+      },
+      "scale": 0.0625,
+      "seed": 20260915,
+      "shape": {
+        "D": 256,
+        "GQA": 6,
+        "Hk": 4,
+        "Hq": 24
+      },
+      "status": "numeric_fail",
+      "timing": {
+        "status": "not_measured_until_all_numerical_cases_pass"
+      }
+    },
+    {
+      "baseline_math": {
+        "final_bf16": {
+          "elements": 786432,
+          "finite": true,
+          "max_abs": 0.001953125,
+          "mismatch_elements": 171,
+          "relative_l2": 1.8880768990026616e-05,
+          "rmse": 5.311059339874191e-06
+        },
+        "oracle_row_count": 3072,
+        "precast_fp64": {
+          "elements": 786432,
+          "finite": true,
+          "max_abs": 0.0077860355377197266,
+          "mismatch_elements": 780288,
+          "relative_l2": 0.0015706741934609725,
+          "rmse": 0.00044182786950841546
+        }
+      },
+      "candidate_flash_triton_amd": {
+        "final_bf16": {
+          "elements": 786432,
+          "finite": true,
+          "max_abs": 0.015625,
+          "mismatch_elements": 275391,
+          "relative_l2": 0.0019075847965455445,
+          "rmse": 0.0005365979159250855
+        },
+        "oracle_row_count": 3072,
+        "precast_fp64": {
+          "elements": 786432,
+          "finite": true,
+          "max_abs": 0.008018255233764648,
+          "mismatch_elements": 780288,
+          "relative_l2": 0.0018892056611208685,
+          "rmse": 0.0005314149893820286
+        }
+      },
+      "case": {
+        "cached_len": 0,
+        "q_len": 128,
+        "seq_len": 128
+      },
+      "causal": true,
+      "dtype": "torch.bfloat16",
+      "materialization": {
+        "current": "raw BF16",
+        "prefix": "none",
+        "prefix_fp16_roundtrip": false
+      },
+      "numeric_gate": {
+        "margin": 1.1,
+        "max_abs_limit": 0.0021484375,
+        "max_abs_pass": false,
+        "pass": false,
+        "rmse_limit": 5.842165273861611e-06,
+        "rmse_pass": false
+      },
+      "official_upstream_forward_criterion": {
+        "baseline": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "candidate": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "formula": "torch.testing.assert_close",
+        "source": "flash_attn_triton_amd/test.py"
+      },
+      "oracle_scope": {
+        "full_output": true,
+        "row_policy": "all query rows x all query heads",
+        "rows": null
+      },
+      "scale": 0.0625,
+      "seed": 20260916,
+      "shape": {
+        "D": 256,
+        "GQA": 6,
+        "Hk": 4,
+        "Hq": 24
+      },
+      "status": "numeric_fail",
+      "timing": {
+        "status": "not_measured_until_all_numerical_cases_pass"
+      }
+    },
+    {
+      "baseline_math": {
+        "final_bf16": {
+          "elements": 792576,
+          "finite": true,
+          "max_abs": 0.001953125,
+          "mismatch_elements": 189,
+          "relative_l2": 2.494088775697224e-05,
+          "rmse": 7.063303200993687e-06
+        },
+        "oracle_row_count": 3096,
+        "precast_fp64": {
+          "elements": 792576,
+          "finite": true,
+          "max_abs": 0.007802248001098633,
+          "mismatch_elements": 786422,
+          "relative_l2": 0.0015749771255181223,
+          "rmse": 0.0004460419004317373
+        }
+      },
+      "candidate_flash_triton_amd": {
+        "final_bf16": {
+          "elements": 792576,
+          "finite": true,
+          "max_abs": 0.015625,
+          "mismatch_elements": 277608,
+          "relative_l2": 0.0018679984357149243,
+          "rmse": 0.000529024749994278
+        },
+        "oracle_row_count": 3096,
+        "precast_fp64": {
+          "elements": 792576,
+          "finite": true,
+          "max_abs": 0.008275508880615234,
+          "mismatch_elements": 786422,
+          "relative_l2": 0.0018787072328535594,
+          "rmse": 0.000532042293343693
+        }
+      },
+      "case": {
+        "cached_len": 0,
+        "q_len": 129,
+        "seq_len": 129
+      },
+      "causal": true,
+      "dtype": "torch.bfloat16",
+      "materialization": {
+        "current": "raw BF16",
+        "prefix": "none",
+        "prefix_fp16_roundtrip": false
+      },
+      "numeric_gate": {
+        "margin": 1.1,
+        "max_abs_limit": 0.0021484375,
+        "max_abs_pass": false,
+        "pass": false,
+        "rmse_limit": 7.769633521093056e-06,
+        "rmse_pass": false
+      },
+      "official_upstream_forward_criterion": {
+        "baseline": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "candidate": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "formula": "torch.testing.assert_close",
+        "source": "flash_attn_triton_amd/test.py"
+      },
+      "oracle_scope": {
+        "full_output": true,
+        "row_policy": "all query rows x all query heads",
+        "rows": null
+      },
+      "scale": 0.0625,
+      "seed": 20260917,
+      "shape": {
+        "D": 256,
+        "GQA": 6,
+        "Hk": 4,
+        "Hq": 24
+      },
+      "status": "numeric_fail",
+      "timing": {
+        "status": "not_measured_until_all_numerical_cases_pass"
+      }
+    },
+    {
+      "baseline_math": {
+        "final_bf16": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 6.103515625e-05,
+          "mismatch_elements": 2,
+          "relative_l2": 2.108437350519648e-06,
+          "rmse": 1.271604560315609e-06
+        },
+        "oracle_row_count": 9,
+        "precast_fp64": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.000965118408203125,
+          "mismatch_elements": 1536,
+          "relative_l2": 0.0002703997588131813,
+          "rmse": 0.00016307852638419718
+        }
+      },
+      "candidate_flash_triton_amd": {
+        "final_bf16": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.001953125,
+          "mismatch_elements": 613,
+          "relative_l2": 0.000384167560752027,
+          "rmse": 0.00023169253836385906
+        },
+        "oracle_row_count": 9,
+        "precast_fp64": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.0012834668159484863,
+          "mismatch_elements": 1536,
+          "relative_l2": 0.00036730931334438035,
+          "rmse": 0.00022152486781124026
+        }
+      },
+      "case": {
+        "cached_len": 0,
+        "q_len": 256,
+        "seq_len": 256
+      },
+      "causal": true,
+      "dtype": "torch.bfloat16",
+      "materialization": {
+        "current": "raw BF16",
+        "prefix": "none",
+        "prefix_fp16_roundtrip": false
+      },
+      "numeric_gate": {
+        "margin": 1.1,
+        "max_abs_limit": 6.7138671875e-05,
+        "max_abs_pass": false,
+        "pass": false,
+        "rmse_limit": 1.39876501634717e-06,
+        "rmse_pass": false
+      },
+      "official_upstream_forward_criterion": {
+        "baseline": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "candidate": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "formula": "torch.testing.assert_close",
+        "source": "flash_attn_triton_amd/test.py"
+      },
+      "oracle_scope": {
+        "full_output": false,
+        "rows": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            12
+          ],
+          [
+            0,
+            23
+          ],
+          [
+            128,
+            0
+          ],
+          [
+            128,
+            12
+          ],
+          [
+            128,
+            23
+          ],
+          [
+            255,
+            0
+          ],
+          [
+            255,
+            12
+          ],
+          [
+            255,
+            23
+          ]
+        ]
+      },
+      "scale": 0.0625,
+      "seed": 20260918,
+      "shape": {
+        "D": 256,
+        "GQA": 6,
+        "Hk": 4,
+        "Hq": 24
+      },
+      "status": "numeric_fail",
+      "timing": {
+        "status": "not_measured_until_all_numerical_cases_pass"
+      }
+    },
+    {
+      "baseline_math": {
+        "final_bf16": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.0,
+          "mismatch_elements": 0,
+          "relative_l2": 0.0,
+          "rmse": 0.0
+        },
+        "oracle_row_count": 9,
+        "precast_fp64": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.0009008347988128662,
+          "mismatch_elements": 1536,
+          "relative_l2": 0.00020186977123014534,
+          "rmse": 0.00011469737364677712
+        }
+      },
+      "candidate_flash_triton_amd": {
+        "final_bf16": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.0009765625,
+          "mismatch_elements": 582,
+          "relative_l2": 0.0002897328248834395,
+          "rmse": 0.00016461881750728935
+        },
+        "oracle_row_count": 9,
+        "precast_fp64": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.0009008347988128662,
+          "mismatch_elements": 1536,
+          "relative_l2": 0.0002646244482412433,
+          "rmse": 0.00015035303658805788
+        }
+      },
+      "case": {
+        "cached_len": 0,
+        "q_len": 512,
+        "seq_len": 512
+      },
+      "causal": true,
+      "dtype": "torch.bfloat16",
+      "materialization": {
+        "current": "raw BF16",
+        "prefix": "none",
+        "prefix_fp16_roundtrip": false
+      },
+      "numeric_gate": {
+        "margin": 1.1,
+        "max_abs_limit": 0.0,
+        "max_abs_pass": false,
+        "pass": false,
+        "rmse_limit": 0.0,
+        "rmse_pass": false
+      },
+      "official_upstream_forward_criterion": {
+        "baseline": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "candidate": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "formula": "torch.testing.assert_close",
+        "source": "flash_attn_triton_amd/test.py"
+      },
+      "oracle_scope": {
+        "full_output": false,
+        "rows": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            12
+          ],
+          [
+            0,
+            23
+          ],
+          [
+            256,
+            0
+          ],
+          [
+            256,
+            12
+          ],
+          [
+            256,
+            23
+          ],
+          [
+            511,
+            0
+          ],
+          [
+            511,
+            12
+          ],
+          [
+            511,
+            23
+          ]
+        ]
+      },
+      "scale": 0.0625,
+      "seed": 20260919,
+      "shape": {
+        "D": 256,
+        "GQA": 6,
+        "Hk": 4,
+        "Hq": 24
+      },
+      "status": "numeric_fail",
+      "timing": {
+        "status": "not_measured_until_all_numerical_cases_pass"
+      }
+    },
+    {
+      "baseline_math": {
+        "final_bf16": {
+          "elements": 6144,
+          "finite": true,
+          "max_abs": 0.0,
+          "mismatch_elements": 0,
+          "relative_l2": 0.0,
+          "rmse": 0.0
+        },
+        "oracle_row_count": 24,
+        "precast_fp64": {
+          "elements": 6144,
+          "finite": true,
+          "max_abs": 0.006962299346923828,
+          "mismatch_elements": 6144,
+          "relative_l2": 0.0016294342002432154,
+          "rmse": 0.0010490884305909276
+        }
+      },
+      "candidate_flash_triton_amd": {
+        "final_bf16": {
+          "elements": 6144,
+          "finite": true,
+          "max_abs": 0.0078125,
+          "mismatch_elements": 1471,
+          "relative_l2": 0.001608491514443624,
+          "rmse": 0.0010356060229241848
+        },
+        "oracle_row_count": 24,
+        "precast_fp64": {
+          "elements": 6144,
+          "finite": true,
+          "max_abs": 0.006962299346923828,
+          "mismatch_elements": 6144,
+          "relative_l2": 0.0018033523001798567,
+          "rmse": 0.0011610633227974176
+        }
+      },
+      "case": {
+        "cached_len": 3,
+        "q_len": 1,
+        "seq_len": 4
+      },
+      "causal": true,
+      "dtype": "torch.bfloat16",
+      "materialization": {
+        "current": "raw BF16",
+        "prefix": "K8/V4 SoA cache -> existing reader FP16 -> BF16",
+        "prefix_fp16_roundtrip": true
+      },
+      "numeric_gate": {
+        "margin": 1.1,
+        "max_abs_limit": 0.0,
+        "max_abs_pass": false,
+        "pass": false,
+        "rmse_limit": 0.0,
+        "rmse_pass": false
+      },
+      "official_upstream_forward_criterion": {
+        "baseline": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "candidate": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "formula": "torch.testing.assert_close",
+        "source": "flash_attn_triton_amd/test.py"
+      },
+      "oracle_scope": {
+        "full_output": true,
+        "row_policy": "all query rows x all query heads",
+        "rows": null
+      },
+      "scale": 0.0625,
+      "seed": 20260920,
+      "shape": {
+        "D": 256,
+        "GQA": 6,
+        "Hk": 4,
+        "Hq": 24
+      },
+      "status": "numeric_fail",
+      "timing": {
+        "status": "not_measured_until_all_numerical_cases_pass"
+      }
+    },
+    {
+      "baseline_math": {
+        "final_bf16": {
+          "elements": 780288,
+          "finite": true,
+          "max_abs": 0.00390625,
+          "mismatch_elements": 191,
+          "relative_l2": 3.235830617031816e-05,
+          "rmse": 8.007923497643787e-06
+        },
+        "oracle_row_count": 3048,
+        "precast_fp64": {
+          "elements": 780288,
+          "finite": true,
+          "max_abs": 0.007216453552246094,
+          "mismatch_elements": 780288,
+          "relative_l2": 0.001661669423182811,
+          "rmse": 0.00041121518006548285
+        }
+      },
+      "candidate_flash_triton_amd": {
+        "final_bf16": {
+          "elements": 780288,
+          "finite": true,
+          "max_abs": 0.0078125,
+          "mismatch_elements": 277289,
+          "relative_l2": 0.0020656063083012953,
+          "rmse": 0.0005111935897730291
+        },
+        "oracle_row_count": 3048,
+        "precast_fp64": {
+          "elements": 780288,
+          "finite": true,
+          "max_abs": 0.007216453552246094,
+          "mismatch_elements": 780288,
+          "relative_l2": 0.00202151023533529,
+          "rmse": 0.000500257418025285
+        }
+      },
+      "case": {
+        "cached_len": 3,
+        "q_len": 127,
+        "seq_len": 130
+      },
+      "causal": true,
+      "dtype": "torch.bfloat16",
+      "materialization": {
+        "current": "raw BF16",
+        "prefix": "K8/V4 SoA cache -> existing reader FP16 -> BF16",
+        "prefix_fp16_roundtrip": true
+      },
+      "numeric_gate": {
+        "margin": 1.1,
+        "max_abs_limit": 0.004296875,
+        "max_abs_pass": false,
+        "pass": false,
+        "rmse_limit": 8.808715847408166e-06,
+        "rmse_pass": false
+      },
+      "official_upstream_forward_criterion": {
+        "baseline": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "candidate": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "formula": "torch.testing.assert_close",
+        "source": "flash_attn_triton_amd/test.py"
+      },
+      "oracle_scope": {
+        "full_output": true,
+        "row_policy": "all query rows x all query heads",
+        "rows": null
+      },
+      "scale": 0.0625,
+      "seed": 20260921,
+      "shape": {
+        "D": 256,
+        "GQA": 6,
+        "Hk": 4,
+        "Hq": 24
+      },
+      "status": "numeric_fail",
+      "timing": {
+        "status": "not_measured_until_all_numerical_cases_pass"
+      }
+    },
+    {
+      "baseline_math": {
+        "final_bf16": {
+          "elements": 786432,
+          "finite": true,
+          "max_abs": 0.001953125,
+          "mismatch_elements": 154,
+          "relative_l2": 1.8341661906925513e-05,
+          "rmse": 4.578189418680267e-06
+        },
+        "oracle_row_count": 3072,
+        "precast_fp64": {
+          "elements": 786432,
+          "finite": true,
+          "max_abs": 0.007139682769775391,
+          "mismatch_elements": 786432,
+          "relative_l2": 0.0016545695761017332,
+          "rmse": 0.00041298315045423806
+        }
+      },
+      "candidate_flash_triton_amd": {
+        "final_bf16": {
+          "elements": 786432,
+          "finite": true,
+          "max_abs": 0.0078125,
+          "mismatch_elements": 280620,
+          "relative_l2": 0.002045162316086286,
+          "rmse": 0.0005104891024529934
+        },
+        "oracle_row_count": 3072,
+        "precast_fp64": {
+          "elements": 786432,
+          "finite": true,
+          "max_abs": 0.007139682769775391,
+          "mismatch_elements": 786432,
+          "relative_l2": 0.002009527624505542,
+          "rmse": 0.0005015708738937974
+        }
+      },
+      "case": {
+        "cached_len": 3,
+        "q_len": 128,
+        "seq_len": 131
+      },
+      "causal": true,
+      "dtype": "torch.bfloat16",
+      "materialization": {
+        "current": "raw BF16",
+        "prefix": "K8/V4 SoA cache -> existing reader FP16 -> BF16",
+        "prefix_fp16_roundtrip": true
+      },
+      "numeric_gate": {
+        "margin": 1.1,
+        "max_abs_limit": 0.0021484375,
+        "max_abs_pass": false,
+        "pass": false,
+        "rmse_limit": 5.036008360548294e-06,
+        "rmse_pass": false
+      },
+      "official_upstream_forward_criterion": {
+        "baseline": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "candidate": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "formula": "torch.testing.assert_close",
+        "source": "flash_attn_triton_amd/test.py"
+      },
+      "oracle_scope": {
+        "full_output": true,
+        "row_policy": "all query rows x all query heads",
+        "rows": null
+      },
+      "scale": 0.0625,
+      "seed": 20260922,
+      "shape": {
+        "D": 256,
+        "GQA": 6,
+        "Hk": 4,
+        "Hq": 24
+      },
+      "status": "numeric_fail",
+      "timing": {
+        "status": "not_measured_until_all_numerical_cases_pass"
+      }
+    },
+    {
+      "baseline_math": {
+        "final_bf16": {
+          "elements": 792576,
+          "finite": true,
+          "max_abs": 0.00390625,
+          "mismatch_elements": 179,
+          "relative_l2": 2.833645723411303e-05,
+          "rmse": 7.08909783497802e-06
+        },
+        "oracle_row_count": 3096,
+        "precast_fp64": {
+          "elements": 792576,
+          "finite": true,
+          "max_abs": 0.007721900939941406,
+          "mismatch_elements": 792576,
+          "relative_l2": 0.0016584592087466009,
+          "rmse": 0.0004149046144448221
+        }
+      },
+      "candidate_flash_triton_amd": {
+        "final_bf16": {
+          "elements": 792576,
+          "finite": true,
+          "max_abs": 0.015625,
+          "mismatch_elements": 284060,
+          "relative_l2": 0.002052875208347578,
+          "rmse": 0.0005135840619914234
+        },
+        "oracle_row_count": 3096,
+        "precast_fp64": {
+          "elements": 792576,
+          "finite": true,
+          "max_abs": 0.007903099060058594,
+          "mismatch_elements": 792576,
+          "relative_l2": 0.0020164544171452927,
+          "rmse": 0.0005044552963227034
+        }
+      },
+      "case": {
+        "cached_len": 3,
+        "q_len": 129,
+        "seq_len": 132
+      },
+      "causal": true,
+      "dtype": "torch.bfloat16",
+      "materialization": {
+        "current": "raw BF16",
+        "prefix": "K8/V4 SoA cache -> existing reader FP16 -> BF16",
+        "prefix_fp16_roundtrip": true
+      },
+      "numeric_gate": {
+        "margin": 1.1,
+        "max_abs_limit": 0.004296875,
+        "max_abs_pass": false,
+        "pass": false,
+        "rmse_limit": 7.798007618475822e-06,
+        "rmse_pass": false
+      },
+      "official_upstream_forward_criterion": {
+        "baseline": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "candidate": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "formula": "torch.testing.assert_close",
+        "source": "flash_attn_triton_amd/test.py"
+      },
+      "oracle_scope": {
+        "full_output": true,
+        "row_policy": "all query rows x all query heads",
+        "rows": null
+      },
+      "scale": 0.0625,
+      "seed": 20260923,
+      "shape": {
+        "D": 256,
+        "GQA": 6,
+        "Hk": 4,
+        "Hq": 24
+      },
+      "status": "numeric_fail",
+      "timing": {
+        "status": "not_measured_until_all_numerical_cases_pass"
+      }
+    },
+    {
+      "baseline_math": {
+        "final_bf16": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.0,
+          "mismatch_elements": 0,
+          "relative_l2": 0.0,
+          "rmse": 0.0
+        },
+        "oracle_row_count": 9,
+        "precast_fp64": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.0064849853515625,
+          "mismatch_elements": 2304,
+          "relative_l2": 0.0016942942901648976,
+          "rmse": 0.0006330455071292818
+        }
+      },
+      "candidate_flash_triton_amd": {
+        "final_bf16": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.0078125,
+          "mismatch_elements": 775,
+          "relative_l2": 0.0018530263502585722,
+          "rmse": 0.0006922951433807611
+        },
+        "oracle_row_count": 9,
+        "precast_fp64": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.0064849853515625,
+          "mismatch_elements": 2304,
+          "relative_l2": 0.0019644838173203728,
+          "rmse": 0.0007339973817579448
+        }
+      },
+      "case": {
+        "cached_len": 3,
+        "q_len": 256,
+        "seq_len": 259
+      },
+      "causal": true,
+      "dtype": "torch.bfloat16",
+      "materialization": {
+        "current": "raw BF16",
+        "prefix": "K8/V4 SoA cache -> existing reader FP16 -> BF16",
+        "prefix_fp16_roundtrip": true
+      },
+      "numeric_gate": {
+        "margin": 1.1,
+        "max_abs_limit": 0.0,
+        "max_abs_pass": false,
+        "pass": false,
+        "rmse_limit": 0.0,
+        "rmse_pass": false
+      },
+      "official_upstream_forward_criterion": {
+        "baseline": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "candidate": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "formula": "torch.testing.assert_close",
+        "source": "flash_attn_triton_amd/test.py"
+      },
+      "oracle_scope": {
+        "full_output": false,
+        "rows": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            12
+          ],
+          [
+            0,
+            23
+          ],
+          [
+            128,
+            0
+          ],
+          [
+            128,
+            12
+          ],
+          [
+            128,
+            23
+          ],
+          [
+            255,
+            0
+          ],
+          [
+            255,
+            12
+          ],
+          [
+            255,
+            23
+          ]
+        ]
+      },
+      "scale": 0.0625,
+      "seed": 20260924,
+      "shape": {
+        "D": 256,
+        "GQA": 6,
+        "Hk": 4,
+        "Hq": 24
+      },
+      "status": "numeric_fail",
+      "timing": {
+        "status": "not_measured_until_all_numerical_cases_pass"
+      }
+    },
+    {
+      "baseline_math": {
+        "final_bf16": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 7.62939453125e-06,
+          "mismatch_elements": 1,
+          "relative_l2": 4.304728733752205e-07,
+          "rmse": 1.5894572413799324e-07
+        },
+        "oracle_row_count": 9,
+        "precast_fp64": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.003892064094543457,
+          "mismatch_elements": 2304,
+          "relative_l2": 0.0016124241498878945,
+          "rmse": 0.000595337594859302
+        }
+      },
+      "candidate_flash_triton_amd": {
+        "final_bf16": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.0078125,
+          "mismatch_elements": 729,
+          "relative_l2": 0.0016258689279917892,
+          "rmse": 0.0006003279704600573
+        },
+        "oracle_row_count": 9,
+        "precast_fp64": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.004576444625854492,
+          "mismatch_elements": 2304,
+          "relative_l2": 0.0017546146278477428,
+          "rmse": 0.0006478370632976294
+        }
+      },
+      "case": {
+        "cached_len": 3,
+        "q_len": 512,
+        "seq_len": 515
+      },
+      "causal": true,
+      "dtype": "torch.bfloat16",
+      "materialization": {
+        "current": "raw BF16",
+        "prefix": "K8/V4 SoA cache -> existing reader FP16 -> BF16",
+        "prefix_fp16_roundtrip": true
+      },
+      "numeric_gate": {
+        "margin": 1.1,
+        "max_abs_limit": 8.392333984375e-06,
+        "max_abs_pass": false,
+        "pass": false,
+        "rmse_limit": 1.7484029655179258e-07,
+        "rmse_pass": false
+      },
+      "official_upstream_forward_criterion": {
+        "baseline": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "candidate": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "formula": "torch.testing.assert_close",
+        "source": "flash_attn_triton_amd/test.py"
+      },
+      "oracle_scope": {
+        "full_output": false,
+        "rows": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            12
+          ],
+          [
+            0,
+            23
+          ],
+          [
+            256,
+            0
+          ],
+          [
+            256,
+            12
+          ],
+          [
+            256,
+            23
+          ],
+          [
+            511,
+            0
+          ],
+          [
+            511,
+            12
+          ],
+          [
+            511,
+            23
+          ]
+        ]
+      },
+      "scale": 0.0625,
+      "seed": 20260925,
+      "shape": {
+        "D": 256,
+        "GQA": 6,
+        "Hk": 4,
+        "Hq": 24
+      },
+      "status": "numeric_fail",
+      "timing": {
+        "status": "not_measured_until_all_numerical_cases_pass"
+      }
+    },
+    {
+      "baseline_math": {
+        "final_bf16": {
+          "elements": 768,
+          "finite": true,
+          "max_abs": 0.0,
+          "mismatch_elements": 0,
+          "relative_l2": 0.0,
+          "rmse": 0.0
+        },
+        "oracle_row_count": 3,
+        "precast_fp64": {
+          "elements": 768,
+          "finite": true,
+          "max_abs": 0.00021371990442276,
+          "mismatch_elements": 768,
+          "relative_l2": 0.0016401151191954217,
+          "rmse": 4.377828736323863e-05
+        }
+      },
+      "candidate_flash_triton_amd": {
+        "final_bf16": {
+          "elements": 768,
+          "finite": true,
+          "max_abs": 0.000244140625,
+          "mismatch_elements": 317,
+          "relative_l2": 0.0024037328088909863,
+          "rmse": 6.415622920030728e-05
+        },
+        "oracle_row_count": 3,
+        "precast_fp64": {
+          "elements": 768,
+          "finite": true,
+          "max_abs": 0.00021371990442276,
+          "mismatch_elements": 768,
+          "relative_l2": 0.0022522814906051195,
+          "rmse": 6.0118363762740046e-05
+        }
+      },
+      "case": {
+        "cached_len": 4096,
+        "q_len": 1,
+        "seq_len": 4097
+      },
+      "causal": true,
+      "dtype": "torch.bfloat16",
+      "materialization": {
+        "current": "raw BF16",
+        "prefix": "K8/V4 SoA cache -> existing reader FP16 -> BF16",
+        "prefix_fp16_roundtrip": true
+      },
+      "numeric_gate": {
+        "margin": 1.1,
+        "max_abs_limit": 0.0,
+        "max_abs_pass": false,
+        "pass": false,
+        "rmse_limit": 0.0,
+        "rmse_pass": false
+      },
+      "official_upstream_forward_criterion": {
+        "baseline": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "candidate": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "formula": "torch.testing.assert_close",
+        "source": "flash_attn_triton_amd/test.py"
+      },
+      "oracle_scope": {
+        "full_output": false,
+        "rows": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            12
+          ],
+          [
+            0,
+            23
+          ]
+        ]
+      },
+      "scale": 0.0625,
+      "seed": 20260926,
+      "shape": {
+        "D": 256,
+        "GQA": 6,
+        "Hk": 4,
+        "Hq": 24
+      },
+      "status": "numeric_fail",
+      "timing": {
+        "status": "not_measured_until_all_numerical_cases_pass"
+      }
+    },
+    {
+      "baseline_math": {
+        "final_bf16": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.0,
+          "mismatch_elements": 0,
+          "relative_l2": 0.0,
+          "rmse": 0.0
+        },
+        "oracle_row_count": 9,
+        "precast_fp64": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.00024058669805526733,
+          "mismatch_elements": 2304,
+          "relative_l2": 0.0017001575519382413,
+          "rmse": 4.342482498032041e-05
+        }
+      },
+      "candidate_flash_triton_amd": {
+        "final_bf16": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.00048828125,
+          "mismatch_elements": 957,
+          "relative_l2": 0.0025425940425707148,
+          "rmse": 6.494035915238783e-05
+        },
+        "oracle_row_count": 9,
+        "precast_fp64": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.00034027546644210815,
+          "mismatch_elements": 2304,
+          "relative_l2": 0.002335434711548316,
+          "rmse": 5.965085802017711e-05
+        }
+      },
+      "case": {
+        "cached_len": 4096,
+        "q_len": 127,
+        "seq_len": 4223
+      },
+      "causal": true,
+      "dtype": "torch.bfloat16",
+      "materialization": {
+        "current": "raw BF16",
+        "prefix": "K8/V4 SoA cache -> existing reader FP16 -> BF16",
+        "prefix_fp16_roundtrip": true
+      },
+      "numeric_gate": {
+        "margin": 1.1,
+        "max_abs_limit": 0.0,
+        "max_abs_pass": false,
+        "pass": false,
+        "rmse_limit": 0.0,
+        "rmse_pass": false
+      },
+      "official_upstream_forward_criterion": {
+        "baseline": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "candidate": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "formula": "torch.testing.assert_close",
+        "source": "flash_attn_triton_amd/test.py"
+      },
+      "oracle_scope": {
+        "full_output": false,
+        "rows": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            12
+          ],
+          [
+            0,
+            23
+          ],
+          [
+            63,
+            0
+          ],
+          [
+            63,
+            12
+          ],
+          [
+            63,
+            23
+          ],
+          [
+            126,
+            0
+          ],
+          [
+            126,
+            12
+          ],
+          [
+            126,
+            23
+          ]
+        ]
+      },
+      "scale": 0.0625,
+      "seed": 20260927,
+      "shape": {
+        "D": 256,
+        "GQA": 6,
+        "Hk": 4,
+        "Hq": 24
+      },
+      "status": "numeric_fail",
+      "timing": {
+        "status": "not_measured_until_all_numerical_cases_pass"
+      }
+    },
+    {
+      "baseline_math": {
+        "final_bf16": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 1.1920928955078125e-07,
+          "mismatch_elements": 3,
+          "relative_l2": 1.1455461198700301e-07,
+          "rmse": 2.8452373790344154e-09
+        },
+        "oracle_row_count": 9,
+        "precast_fp64": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.00023861229419708252,
+          "mismatch_elements": 2304,
+          "relative_l2": 0.0016333755029421908,
+          "rmse": 4.0565446397522464e-05
+        }
+      },
+      "candidate_flash_triton_amd": {
+        "final_bf16": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.00048828125,
+          "mismatch_elements": 982,
+          "relative_l2": 0.0024800700379562584,
+          "rmse": 6.15984681644477e-05
+        },
+        "oracle_row_count": 9,
+        "precast_fp64": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.0002535879611968994,
+          "mismatch_elements": 2304,
+          "relative_l2": 0.0023225646750495072,
+          "rmse": 5.768169285147451e-05
+        }
+      },
+      "case": {
+        "cached_len": 4096,
+        "q_len": 128,
+        "seq_len": 4224
+      },
+      "causal": true,
+      "dtype": "torch.bfloat16",
+      "materialization": {
+        "current": "raw BF16",
+        "prefix": "K8/V4 SoA cache -> existing reader FP16 -> BF16",
+        "prefix_fp16_roundtrip": true
+      },
+      "numeric_gate": {
+        "margin": 1.1,
+        "max_abs_limit": 1.3113021850585939e-07,
+        "max_abs_pass": false,
+        "pass": false,
+        "rmse_limit": 3.1297611169378574e-09,
+        "rmse_pass": false
+      },
+      "official_upstream_forward_criterion": {
+        "baseline": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "candidate": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "formula": "torch.testing.assert_close",
+        "source": "flash_attn_triton_amd/test.py"
+      },
+      "oracle_scope": {
+        "full_output": false,
+        "rows": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            12
+          ],
+          [
+            0,
+            23
+          ],
+          [
+            64,
+            0
+          ],
+          [
+            64,
+            12
+          ],
+          [
+            64,
+            23
+          ],
+          [
+            127,
+            0
+          ],
+          [
+            127,
+            12
+          ],
+          [
+            127,
+            23
+          ]
+        ]
+      },
+      "scale": 0.0625,
+      "seed": 20260928,
+      "shape": {
+        "D": 256,
+        "GQA": 6,
+        "Hk": 4,
+        "Hq": 24
+      },
+      "status": "numeric_fail",
+      "timing": {
+        "status": "not_measured_until_all_numerical_cases_pass"
+      }
+    },
+    {
+      "baseline_math": {
+        "final_bf16": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 3.0517578125e-05,
+          "mismatch_elements": 2,
+          "relative_l2": 3.3230064872613885e-05,
+          "rmse": 8.991327717922104e-07
+        },
+        "oracle_row_count": 9,
+        "precast_fp64": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.00024093687534332275,
+          "mismatch_elements": 2304,
+          "relative_l2": 0.0016806832689668105,
+          "rmse": 4.547500066109933e-05
+        }
+      },
+      "candidate_flash_triton_amd": {
+        "final_bf16": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.00048828125,
+          "mismatch_elements": 961,
+          "relative_l2": 0.0024678688849442856,
+          "rmse": 6.677512283204123e-05
+        },
+        "oracle_row_count": 9,
+        "precast_fp64": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.00031129270792007446,
+          "mismatch_elements": 2304,
+          "relative_l2": 0.0022931452194530438,
+          "rmse": 6.204665260156617e-05
+        }
+      },
+      "case": {
+        "cached_len": 4096,
+        "q_len": 129,
+        "seq_len": 4225
+      },
+      "causal": true,
+      "dtype": "torch.bfloat16",
+      "materialization": {
+        "current": "raw BF16",
+        "prefix": "K8/V4 SoA cache -> existing reader FP16 -> BF16",
+        "prefix_fp16_roundtrip": true
+      },
+      "numeric_gate": {
+        "margin": 1.1,
+        "max_abs_limit": 3.35693359375e-05,
+        "max_abs_pass": false,
+        "pass": false,
+        "rmse_limit": 9.890460489714315e-07,
+        "rmse_pass": false
+      },
+      "official_upstream_forward_criterion": {
+        "baseline": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "candidate": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "formula": "torch.testing.assert_close",
+        "source": "flash_attn_triton_amd/test.py"
+      },
+      "oracle_scope": {
+        "full_output": false,
+        "rows": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            12
+          ],
+          [
+            0,
+            23
+          ],
+          [
+            64,
+            0
+          ],
+          [
+            64,
+            12
+          ],
+          [
+            64,
+            23
+          ],
+          [
+            128,
+            0
+          ],
+          [
+            128,
+            12
+          ],
+          [
+            128,
+            23
+          ]
+        ]
+      },
+      "scale": 0.0625,
+      "seed": 20260929,
+      "shape": {
+        "D": 256,
+        "GQA": 6,
+        "Hk": 4,
+        "Hq": 24
+      },
+      "status": "numeric_fail",
+      "timing": {
+        "status": "not_measured_until_all_numerical_cases_pass"
+      }
+    },
+    {
+      "baseline_math": {
+        "final_bf16": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.0,
+          "mismatch_elements": 0,
+          "relative_l2": 0.0,
+          "rmse": 0.0
+        },
+        "oracle_row_count": 9,
+        "precast_fp64": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.00024061650037765503,
+          "mismatch_elements": 2304,
+          "relative_l2": 0.0016786850384911227,
+          "rmse": 4.292684388929047e-05
+        }
+      },
+      "candidate_flash_triton_amd": {
+        "final_bf16": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.00048828125,
+          "mismatch_elements": 975,
+          "relative_l2": 0.002665144424386488,
+          "rmse": 6.814968946855515e-05
+        },
+        "oracle_row_count": 9,
+        "precast_fp64": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.0003092437982559204,
+          "mismatch_elements": 2304,
+          "relative_l2": 0.0023471347871564497,
+          "rmse": 6.0020254750270396e-05
+        }
+      },
+      "case": {
+        "cached_len": 4096,
+        "q_len": 256,
+        "seq_len": 4352
+      },
+      "causal": true,
+      "dtype": "torch.bfloat16",
+      "materialization": {
+        "current": "raw BF16",
+        "prefix": "K8/V4 SoA cache -> existing reader FP16 -> BF16",
+        "prefix_fp16_roundtrip": true
+      },
+      "numeric_gate": {
+        "margin": 1.1,
+        "max_abs_limit": 0.0,
+        "max_abs_pass": false,
+        "pass": false,
+        "rmse_limit": 0.0,
+        "rmse_pass": false
+      },
+      "official_upstream_forward_criterion": {
+        "baseline": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "candidate": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "formula": "torch.testing.assert_close",
+        "source": "flash_attn_triton_amd/test.py"
+      },
+      "oracle_scope": {
+        "full_output": false,
+        "rows": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            12
+          ],
+          [
+            0,
+            23
+          ],
+          [
+            128,
+            0
+          ],
+          [
+            128,
+            12
+          ],
+          [
+            128,
+            23
+          ],
+          [
+            255,
+            0
+          ],
+          [
+            255,
+            12
+          ],
+          [
+            255,
+            23
+          ]
+        ]
+      },
+      "scale": 0.0625,
+      "seed": 20260930,
+      "shape": {
+        "D": 256,
+        "GQA": 6,
+        "Hk": 4,
+        "Hq": 24
+      },
+      "status": "numeric_fail",
+      "timing": {
+        "status": "not_measured_until_all_numerical_cases_pass"
+      }
+    },
+    {
+      "baseline_math": {
+        "final_bf16": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.0,
+          "mismatch_elements": 0,
+          "relative_l2": 0.0,
+          "rmse": 0.0
+        },
+        "oracle_row_count": 9,
+        "precast_fp64": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.00023034214973449707,
+          "mismatch_elements": 2304,
+          "relative_l2": 0.001649203133103682,
+          "rmse": 3.882330929627642e-05
+        }
+      },
+      "candidate_flash_triton_amd": {
+        "final_bf16": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.00048828125,
+          "mismatch_elements": 967,
+          "relative_l2": 0.0025187935971577526,
+          "rmse": 5.9297424741089344e-05
+        },
+        "oracle_row_count": 9,
+        "precast_fp64": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.00027364492416381836,
+          "mismatch_elements": 2304,
+          "relative_l2": 0.002353471162721301,
+          "rmse": 5.5402229918399826e-05
+        }
+      },
+      "case": {
+        "cached_len": 4096,
+        "q_len": 512,
+        "seq_len": 4608
+      },
+      "causal": true,
+      "dtype": "torch.bfloat16",
+      "materialization": {
+        "current": "raw BF16",
+        "prefix": "K8/V4 SoA cache -> existing reader FP16 -> BF16",
+        "prefix_fp16_roundtrip": true
+      },
+      "numeric_gate": {
+        "margin": 1.1,
+        "max_abs_limit": 0.0,
+        "max_abs_pass": false,
+        "pass": false,
+        "rmse_limit": 0.0,
+        "rmse_pass": false
+      },
+      "official_upstream_forward_criterion": {
+        "baseline": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "candidate": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "formula": "torch.testing.assert_close",
+        "source": "flash_attn_triton_amd/test.py"
+      },
+      "oracle_scope": {
+        "full_output": false,
+        "rows": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            12
+          ],
+          [
+            0,
+            23
+          ],
+          [
+            256,
+            0
+          ],
+          [
+            256,
+            12
+          ],
+          [
+            256,
+            23
+          ],
+          [
+            511,
+            0
+          ],
+          [
+            511,
+            12
+          ],
+          [
+            511,
+            23
+          ]
+        ]
+      },
+      "scale": 0.0625,
+      "seed": 20260931,
+      "shape": {
+        "D": 256,
+        "GQA": 6,
+        "Hk": 4,
+        "Hq": 24
+      },
+      "status": "numeric_fail",
+      "timing": {
+        "status": "not_measured_until_all_numerical_cases_pass"
+      }
+    },
+    {
+      "baseline_math": {
+        "final_bf16": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 7.62939453125e-06,
+          "mismatch_elements": 2,
+          "relative_l2": 1.7801670879240112e-05,
+          "rmse": 1.589518632272302e-07
+        },
+        "oracle_row_count": 9,
+        "precast_fp64": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 6.0619786381721497e-05,
+          "mismatch_elements": 2304,
+          "relative_l2": 0.0016640107565952513,
+          "rmse": 1.4856131201668177e-05
+        }
+      },
+      "candidate_flash_triton_amd": {
+        "final_bf16": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.0001220703125,
+          "mismatch_elements": 981,
+          "relative_l2": 0.0025492278784363894,
+          "rmse": 2.276216218888294e-05
+        },
+        "oracle_row_count": 9,
+        "precast_fp64": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 8.803233504295349e-05,
+          "mismatch_elements": 2304,
+          "relative_l2": 0.002350631752759625,
+          "rmse": 2.0986217350582592e-05
+        }
+      },
+      "case": {
+        "cached_len": 32768,
+        "q_len": 256,
+        "seq_len": 33024
+      },
+      "causal": true,
+      "dtype": "torch.bfloat16",
+      "materialization": {
+        "current": "raw BF16",
+        "prefix": "K8/V4 SoA cache -> existing reader FP16 -> BF16",
+        "prefix_fp16_roundtrip": true
+      },
+      "numeric_gate": {
+        "margin": 1.1,
+        "max_abs_limit": 8.392333984375e-06,
+        "max_abs_pass": false,
+        "pass": false,
+        "rmse_limit": 1.7484704954995324e-07,
+        "rmse_pass": false
+      },
+      "official_upstream_forward_criterion": {
+        "baseline": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "candidate": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "formula": "torch.testing.assert_close",
+        "source": "flash_attn_triton_amd/test.py"
+      },
+      "oracle_scope": {
+        "full_output": false,
+        "rows": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            12
+          ],
+          [
+            0,
+            23
+          ],
+          [
+            128,
+            0
+          ],
+          [
+            128,
+            12
+          ],
+          [
+            128,
+            23
+          ],
+          [
+            255,
+            0
+          ],
+          [
+            255,
+            12
+          ],
+          [
+            255,
+            23
+          ]
+        ]
+      },
+      "scale": 0.0625,
+      "seed": 20260932,
+      "shape": {
+        "D": 256,
+        "GQA": 6,
+        "Hk": 4,
+        "Hq": 24
+      },
+      "status": "numeric_fail",
+      "timing": {
+        "status": "not_measured_until_all_numerical_cases_pass"
+      }
+    }
+  ],
+  "contract": {
+    "D": 256,
+    "GQA": 6,
+    "Hk": 4,
+    "Hq": 24,
+    "causal": "bottom-right rectangular: j <= cached_len + i",
+    "current": "raw BF16 K/V",
+    "dropout": 0.0,
+    "dtype": "BF16",
+    "prefix": "same synthetic K8/V4 SoA cache, existing reader FP16 -> BF16",
+    "prefix_requantization": false,
+    "sinks": false,
+    "sliding_window": false
+  },
+  "gpu": {
+    "capability": [
+      12,
+      0
+    ],
+    "name": "AMD Radeon AI PRO R9700",
+    "properties": "_CudaDeviceProperties(name='AMD Radeon AI PRO R9700', major=12, minor=0, gcnArchName='gfx1201', total_memory=32624MB, multi_processor_count=32, uuid=63366137-3861-6439-6264-643139613934, pci_bus_id=8, pci_device_id=0, pci_domain_id=0, L2_cache_size=8MB)"
+  },
+  "hip": "7.14.60850",
+  "measurement_manifest": {
+    "attention_only": "prepared effective BF16 K/V -> output",
+    "continuation": "K8/V4 dequant + FP16->BF16 assembly + raw current K/V + attention",
+    "flush_mib": 64,
+    "rotating_order": true,
+    "samples": 20,
+    "timing_status": "conditional on all numerical gates",
+    "warmups": 5
+  },
+  "numeric_gate_summary": {
+    "all_cases_complete": false,
+    "all_cases_pass": false,
+    "case_count": 19
+  },
+  "numerical_manifest": {
+    "candidate_vs_current_margin": 1.1,
+    "final_reference": "FP64 oracle cast to BF16",
+    "gate": "candidate final BF16 max-abs and RMSE <= 1.10x explicit Math SDPA",
+    "official_source": "flash_attn_triton_amd/test.py in loaded wheel",
+    "official_upstream_atol": 0.01,
+    "official_upstream_rtol": 0.01,
+    "reference": "independent FP64 online row oracle from effective BF16 K/V"
+  },
+  "schema_version": 1,
+  "start_commit": "c8b800ef786230644ac29bb0a3bd9b1b9c904a5f",
+  "status": "numeric_gate_failed",
+  "torch": "2.12.0+rocm7.14.0",
+  "trace": {
+    "candidate_kernel_names": [
+      "FlashAttnVarlenFunc",
+      "attn_fwd.kd",
+      "flash_attn::_flash_attn_varlen_forward"
+    ],
+    "case": {
+      "cached_len": 4096,
+      "q_len": 128
+    },
+    "events": [
+      {
+        "device_time_us": 0.0,
+        "name": "aten::empty"
+      },
+      {
+        "device_time_us": 3.3589999999999236,
+        "name": "aten::to"
+      },
+      {
+        "device_time_us": 3.3589999999999236,
+        "name": "aten::_to_copy"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "aten::empty_strided"
+      },
+      {
+        "device_time_us": 3.3589999999999236,
+        "name": "aten::copy_"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "hipDevicePrimaryCtxGetState"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "hipStreamIsCapturing"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "hipMemcpyWithStream"
+      },
+      {
+        "device_time_us": 3.3589999999999236,
+        "name": "__amd_rocclr_copyBuffer.kd"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "aten::lift_fresh"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "aten::detach_"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "detach_"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "aten::empty"
+      },
+      {
+        "device_time_us": 3.199000000000069,
+        "name": "aten::to"
+      },
+      {
+        "device_time_us": 3.199000000000069,
+        "name": "aten::_to_copy"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "aten::empty_strided"
+      },
+      {
+        "device_time_us": 3.199000000000069,
+        "name": "aten::copy_"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "hipDevicePrimaryCtxGetState"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "hipStreamIsCapturing"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "hipMemcpyWithStream"
+      },
+      {
+        "device_time_us": 3.199000000000069,
+        "name": "__amd_rocclr_copyBuffer.kd"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "aten::lift_fresh"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "aten::detach_"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "detach_"
+      },
+      {
+        "device_time_us": 415.1980000000003,
+        "name": "FlashAttnVarlenFunc"
+      },
+      {
+        "device_time_us": 415.1980000000003,
+        "name": "flash_attn::_flash_attn_varlen_forward"
+      },
+      {
+        "device_time_us": 2.7590000000000146,
+        "name": "aten::zeros_like"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "aten::empty_like"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "aten::empty_strided"
+      },
+      {
+        "device_time_us": 2.7590000000000146,
+        "name": "aten::zero_"
+      },
+      {
+        "device_time_us": 2.7590000000000146,
+        "name": "aten::fill_"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "hipLaunchKernel"
+      },
+      {
+        "device_time_us": 2.7590000000000146,
+        "name": "void at::native::vectorized_elementwise_kernel<8, at::native::FillFunctor<c10::BFloat16>, std::array<char*, 1ul> >(int, at::native::FillFunctor<c10::BFloat16>, std::array<char*, 1ul>) [clone .kd]"
+      },
+      {
+        "device_time_us": 1.6390000000001237,
+        "name": "aten::zeros"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "aten::empty"
+      },
+      {
+        "device_time_us": 1.6390000000001237,
+        "name": "aten::zero_"
+      },
+      {
+        "device_time_us": 1.6390000000001237,
+        "name": "aten::fill_"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "hipLaunchKernel"
+      },
+      {
+        "device_time_us": 1.6390000000001237,
+        "name": "void at::native::vectorized_elementwise_kernel<4, at::native::FillFunctor<float>, std::array<char*, 1ul> >(int, at::native::FillFunctor<float>, std::array<char*, 1ul>) [clone .kd]"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "hipPointerGetAttribute"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "hipPointerGetAttribute"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "hipPointerGetAttribute"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "hipPointerGetAttribute"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "hipPointerGetAttribute"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "hipPointerGetAttribute"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "hipPointerGetAttribute"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "hipModuleLaunchKernel"
+      },
+      {
+        "device_time_us": 410.8000000000002,
+        "name": "attn_fwd.kd"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "aten::alias"
+      },
+      {
+        "device_time_us": 0.0,
+        "name": "hipDeviceSynchronize"
+      },
+      {
+        "device_time_us": 410.8000000000002,
+        "name": "hipDeviceSynchronize"
+      }
+    ]
+  }
+}
