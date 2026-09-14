@@ -53,6 +53,7 @@ VARIANTS = {
     "old_a3": "historical 4-wave 64x128 K16 diagnostic mapping",
     "h1": "R1 H1 128x64 K64, four waves, FP32 direct scratch plus BF16 postcast",
     "h2": "R1 H2 256x64 K64, eight waves, FP32 direct scratch plus BF16 postcast",
+    "h2_direct_bf16": "R1 H2 with direct BF16 epilogue and no global FP32 scratch",
     "torch_bf16_mm": "same-session pre-expanded BF16 torch.mm",
     "torch_fp32_mm": "same-session pre-expanded FP32 torch.mm control",
 }
@@ -287,6 +288,11 @@ def run_reference_manifest(output: Path) -> None:
             "zero_reference": "exact zero is required",
             "old_attention_absolute_threshold_reused": False,
         },
+        "r0_coverage_status": {
+            "synthetic_gemm_manifest": "frozen_and_measured",
+            "real_model_shape_phase_role_calls": "not_collected",
+            "matched_fork_radiance_control": "not_run",
+        },
         "baseline_contract": {
             "primary": "same-session pre-expanded BF16 torch.mm",
             "secondary": "same-session FP32 torch.mm diagnostic",
@@ -469,6 +475,7 @@ def _correctness_case(
         variant: torch.empty((m, n), device="cuda", dtype=torch.bfloat16)
         for variant in ("h1", "h2")
     }
+    direct_bf16_output = torch.empty((m, n), device="cuda", dtype=torch.bfloat16)
     _invoke(old_extension, "fp8_wmma_gemm_4wave_64x128", a, b, outputs["old_a3"])
     _invoke(new_extension, "raw_fp8_h1", a, b, outputs["h1"])
     _invoke(new_extension, "raw_fp8_h2", a, b, outputs["h2"])
@@ -477,6 +484,13 @@ def _correctness_case(
     )
     _invoke_bf16(
         new_extension, "raw_fp8_h2_bf16", a, b, outputs["h2"], bf16_outputs["h2"]
+    )
+    _invoke(
+        new_extension,
+        "raw_fp8_h2_bf16_direct",
+        a,
+        b,
+        direct_bf16_output,
     )
     torch.accelerator.synchronize()
     if scope == "full":
@@ -493,7 +507,9 @@ def _correctness_case(
         "oracle": "identical raw FP8 bytes decoded to FP64 with FP64 accumulation",
         "slice": [len(row_indices), len(col_indices)],
         "variants": {},
-        "timed_output_dtype": "bfloat16 for H1/H2; float32 retained as a diagnostic",
+        "timed_output_dtype": (
+            "bfloat16 for H1/H2/direct H2; float32 retained as a diagnostic"
+        ),
     }
     variant_records = records["variants"]
     assert isinstance(variant_records, dict)
@@ -532,6 +548,27 @@ def _correctness_case(
             "final_bf16": bf16,
             "passed": passed,
         }
+
+    direct_rows = direct_bf16_output.index_select(0, row_tensor)
+    direct_actual = direct_rows.index_select(1, col_tensor)
+    direct_bf16 = _bf16_metrics(direct_actual.float(), oracle)
+    direct_equal = bool(torch.equal(direct_bf16_output, bf16_outputs["h2"]))
+    direct_finite = bool(torch.isfinite(direct_bf16_output).all())
+    direct_passed = bool(
+        direct_finite
+        and direct_equal
+        and float(direct_bf16["candidate_bf16_vs_fp64"]["max_abs"])
+        <= float(direct_bf16["allowed"]["max_abs"])
+        and float(direct_bf16["candidate_bf16_vs_fp64"]["relative_l2"])
+        <= float(direct_bf16["allowed"]["relative_l2"])
+    )
+    variant_records["h2_direct_bf16"] = {
+        "finite_full_output": direct_finite,
+        "precast": {"available": False, "reason": "direct BF16 output only"},
+        "final_bf16": direct_bf16,
+        "bitwise_equal_to_h2_postcast": direct_equal,
+        "passed": direct_passed,
+    }
     records["passed"] = all(
         bool(value["passed"])
         for value in variant_records.values()
@@ -665,6 +702,7 @@ def _timing_case(
         name: torch.empty((m, n), device="cuda", dtype=torch.bfloat16)
         for name in ("h1", "h2")
     }
+    direct_bf16_output = torch.empty((m, n), device="cuda", dtype=torch.bfloat16)
 
     operations: dict[str, Callable[[], object]] = {
         "old_a3": lambda: _invoke(
@@ -686,6 +724,13 @@ def _timing_case(
             outputs["h2"],
             bf16_outputs["h2"],
         ),
+        "h2_direct_bf16": lambda: _invoke(
+            new_extension,
+            "raw_fp8_h2_bf16_direct",
+            a,
+            b,
+            direct_bf16_output,
+        ),
         "torch_bf16_mm": lambda: torch.mm(a_bf16, b_bf16.t(), out=bf16_output),
         "torch_fp32_mm": lambda: torch.mm(
             a_fp32, b_fp32.t(), out=outputs["torch_fp32_mm"]
@@ -696,6 +741,7 @@ def _timing_case(
         candidate_scope = "fallback_not_timed_for_large-N_gate"
         operations.pop("h1")
         operations.pop("h2")
+        operations.pop("h2_direct_bf16")
     raw = _measure_round_robin(operations, flush, config)
     timing = {name: _summary(values) for name, values in raw.items()}
     flop = 2.0 * m * n * k
@@ -706,7 +752,7 @@ def _timing_case(
     speedup_vs_bf16 = {
         name: timing["torch_bf16_mm"]["median_us"] / values["median_us"]
         for name, values in timing.items()
-        if name in ("old_a3", "h1", "h2")
+        if name in ("old_a3", "h1", "h2", "h2_direct_bf16")
     }
     return {
         "m": m,
@@ -723,6 +769,7 @@ def _timing_case(
             "old_a3": "float32",
             "h1": "bfloat16 (FP32 scratch + postcast in timed wrapper)",
             "h2": "bfloat16 (FP32 scratch + postcast in timed wrapper)",
+            "h2_direct_bf16": "bfloat16 (direct epilogue, no FP32 scratch)",
             "torch_bf16_mm": "bfloat16",
             "torch_fp32_mm": "float32",
         },
@@ -749,23 +796,44 @@ def _weighted_gate(
     selected = [
         record for record in records if record["m"] == 256 and record["n"] >= 512
     ]
-    expected = len(N_GE_512_INDICES)
+    expected_shape_ids = set(N_GE_512_INDICES)
+    expected = len(expected_shape_ids)
+    observed_shape_ids = [record.get("shape_index") for record in selected]
+    unique_shape_ids = {
+        shape_id for shape_id in observed_shape_ids if isinstance(shape_id, int)
+    }
+    shape_id_set_complete = (
+        len(selected) == expected
+        and len(unique_shape_ids) == expected
+        and unique_shape_ids == expected_shape_ids
+    )
+    selected_by_shape = {
+        record["shape_index"]: record
+        for record in selected
+        if isinstance(record.get("shape_index"), int)
+    }
     gate: dict[str, object] = {
         "scope": "M=256, N>=512, calls-weighted median latency",
         "baseline": "same-session torch_bf16_mm",
         "threshold": 1.0,
         "expected_shape_count": expected,
         "completed_shape_count": len(selected),
+        "unique_shape_count": len(unique_shape_ids),
+        "expected_shape_ids": sorted(expected_shape_ids),
+        "observed_shape_ids": sorted(unique_shape_ids),
+        "shape_id_set_complete": shape_id_set_complete,
         "correctness_complete": _candidate_correctness_complete(correctness),
         "candidates": {},
     }
     candidates = gate["candidates"]
     assert isinstance(candidates, dict)
-    for candidate in ("old_a3", "h1", "h2"):
+    for candidate in ("old_a3", "h1", "h2", "h2_direct_bf16"):
         candidate_records = [
-            record for record in selected if candidate in record["timing"]
+            record
+            for record in selected_by_shape.values()
+            if candidate in record["timing"]
         ]
-        if len(candidate_records) != expected:
+        if not shape_id_set_complete or len(candidate_records) != expected:
             candidates[candidate] = {
                 "status": "incomplete",
                 "passed": False,
@@ -790,12 +858,16 @@ def _weighted_gate(
             "weighted_speedup_vs_bf16": speedup,
             "passed": passed,
         }
-    h_passed = [name for name in ("h1", "h2") if candidates[name].get("passed")]
+    h_passed = [
+        name
+        for name in ("h1", "h2", "h2_direct_bf16")
+        if candidates[name].get("passed")
+    ]
     gate["selected_candidates"] = h_passed
     gate["decision"] = (
         "R1 pass; repeat selected mapping validation before proposing R2"
         if h_passed
-        else "R1 stop; neither H1 nor H2 met the same-session BF16 feasibility gate"
+        else "R1 stop; no H1/H2 variant met the same-session BF16 feasibility gate"
     )
     gate["r2_started"] = False
     return gate
@@ -830,6 +902,9 @@ def _metadata(
             ),
             "h2": (
                 "BF16 output from preallocated FP32 direct-output scratch plus postcast"
+            ),
+            "h2_direct_bf16": (
+                "BF16 output from direct BF16 epilogue without FP32 scratch"
             ),
             "torch_bf16_mm": "BF16 output",
             "fp32_diagnostic": "separate, not the primary gate",

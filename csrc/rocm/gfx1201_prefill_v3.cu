@@ -50,10 +50,11 @@ __device__ __forceinline__ uint8_t byte_at(const uint4& value, int index) {
   return static_cast<uint8_t>(words[index / 4] >> (8 * (index % 4)));
 }
 
-template <int BlockM, int WaveCount, bool TailStore>
+template <int BlockM, int WaveCount, bool TailStore, bool DirectBf16>
 __global__ void raw_fp8_prefill_kernel(const uint8_t* a, const uint8_t* b,
-                                       float* output, int m, int n, int k,
-                                       int output_stride) {
+                                       float* output,
+                                       __hip_bfloat16* bf16_output, int m,
+                                       int n, int k, int output_stride) {
   static_assert(BlockM == WaveCount * 32);
   static_assert(WaveCount == 4 || WaveCount == 8);
 
@@ -185,7 +186,35 @@ __global__ void raw_fp8_prefill_kernel(const uint8_t* a, const uint8_t* b,
     __syncthreads();
   }
 
-  if constexpr (!TailStore) {
+  if constexpr (DirectBf16) {
+    // rocWMMA's supported accumulator store is FP32 on this SDK.  Reuse the
+    // existing wave-sized LDS epilogue, then convert each value directly into
+    // the caller-owned BF16 output without a global FP32 scratch buffer.
+    for (int store_wave = 0; store_wave < WaveCount; ++store_wave) {
+      if (wave == store_wave) {
+        for (int frag_m = 0; frag_m < kFragM; ++frag_m) {
+          for (int frag_n = 0; frag_n < kFragN; ++frag_n) {
+            const int index = frag_m * kFragN + frag_n;
+            rocwmma::store_matrix_sync(
+                tail_output + frag_m * kTile * kBlockN + frag_n * kTile,
+                accum[index], kBlockN);
+          }
+        }
+      }
+      __syncthreads();
+      for (int index = thread; index < kTailElements; index += kThreads) {
+        const int row = index / kBlockN;
+        const int col = index % kBlockN;
+        const int64_t global_m = block_m + store_wave * kWaveTileM + row;
+        const int64_t global_n = block_n + col;
+        if (global_m < m && global_n < n) {
+          bf16_output[global_m * output_stride + global_n] =
+              __float2bfloat16(tail_output[index]);
+        }
+      }
+      __syncthreads();
+    }
+  } else if constexpr (!TailStore) {
     // The host selects this path only for a complete M/N tile.  Every store
     // is therefore within the caller-owned output and uses its true stride.
     for (int frag_m = 0; frag_m < kFragM; ++frag_m) {
@@ -229,32 +258,54 @@ __global__ void raw_fp8_prefill_kernel(const uint8_t* a, const uint8_t* b,
 #else
 
 // Host-only/fatbin fallback.  The host checks gfx1201 before launch.
-template <int BlockM, int WaveCount, bool TailStore>
+template <int BlockM, int WaveCount, bool TailStore, bool DirectBf16>
 __global__ void raw_fp8_prefill_kernel(const uint8_t*, const uint8_t*, float*,
-                                       int, int, int, int) {}
+                                       __hip_bfloat16*, int, int, int, int) {}
 
 #endif  // __HIP_DEVICE_COMPILE__ && gfx1200/gfx1201
 
-void check_inputs(const torch::Tensor& a, const torch::Tensor& b,
-                  const torch::Tensor& output) {
-  TORCH_CHECK(a.is_cuda() && b.is_cuda() && output.is_cuda(),
+void check_raw_inputs(const torch::Tensor& a, const torch::Tensor& b) {
+  TORCH_CHECK(a.is_cuda() && b.is_cuda(),
               "R1 raw FP8 tensors must be CUDA/HIP tensors");
-  TORCH_CHECK(a.device() == b.device() && a.device() == output.device(),
-              "R1 raw FP8 tensors must share a device");
-  TORCH_CHECK(a.dim() == 2 && b.dim() == 2 && output.dim() == 2,
-              "R1 raw FP8 tensors must be 2D");
+  TORCH_CHECK(a.device() == b.device(),
+              "R1 raw FP8 inputs must share a device");
+  TORCH_CHECK(a.dim() == 2 && b.dim() == 2, "R1 raw FP8 inputs must be 2D");
   TORCH_CHECK(
       a.scalar_type() == torch::kByte && b.scalar_type() == torch::kByte,
       "R1 inputs must contain raw FP8 bytes in uint8 tensors");
-  TORCH_CHECK(output.scalar_type() == torch::kFloat,
-              "R1 raw mapping output must be float32");
-  TORCH_CHECK(a.is_contiguous() && b.is_contiguous() && output.is_contiguous(),
-              "R1 tensors must be contiguous");
+  TORCH_CHECK(a.is_contiguous() && b.is_contiguous(),
+              "R1 raw FP8 inputs must be contiguous");
   TORCH_CHECK(a.size(0) > 0 && a.size(1) > 0 && b.size(0) > 0,
               "R1 dimensions must be positive");
   TORCH_CHECK(a.size(1) == b.size(1), "R1 inputs must have matching K");
-  TORCH_CHECK(output.size(0) == a.size(0) && output.size(1) == b.size(0),
-              "R1 output shape must be [M,N]");
+}
+
+void check_float_output(const torch::Tensor& a, const torch::Tensor& b,
+                        const torch::Tensor& output) {
+  TORCH_CHECK(output.is_cuda() && output.device() == a.device(),
+              "R1 output must share the input device");
+  TORCH_CHECK(output.dim() == 2 && output.scalar_type() == torch::kFloat,
+              "R1 raw mapping output must be contiguous float32");
+  TORCH_CHECK(output.is_contiguous() && output.size(0) == a.size(0) &&
+                  output.size(1) == b.size(0),
+              "R1 output must be contiguous and shape-matched");
+}
+
+void check_bf16_output(const torch::Tensor& a, const torch::Tensor& b,
+                       const torch::Tensor& output) {
+  TORCH_CHECK(output.is_cuda() && output.device() == a.device(),
+              "R1 BF16 output must share the input device");
+  TORCH_CHECK(output.dim() == 2 && output.scalar_type() == torch::kBFloat16,
+              "R1 BF16 output must have bfloat16 dtype");
+  TORCH_CHECK(output.is_contiguous() && output.size(0) == a.size(0) &&
+                  output.size(1) == b.size(0),
+              "R1 BF16 output must be contiguous and shape-matched");
+}
+
+void check_inputs(const torch::Tensor& a, const torch::Tensor& b,
+                  const torch::Tensor& output) {
+  check_raw_inputs(a, b);
+  check_float_output(a, b, output);
 }
 
 void check_gfx1201_device(const torch::Tensor& tensor) {
@@ -277,15 +328,43 @@ void launch_variant(torch::Tensor a, torch::Tensor b, torch::Tensor& output) {
   dim3 block(WaveCount * kWaveSize);
   const bool full_tile = (m % BlockM == 0) && (n % 64 == 0);
   if (full_tile) {
-    hipLaunchKernelGGL((raw_fp8_prefill_kernel<BlockM, WaveCount, false>), grid,
-                       block, 0, stream, a.data_ptr<uint8_t>(),
-                       b.data_ptr<uint8_t>(), output.data_ptr<float>(), m, n, k,
-                       n);
+    hipLaunchKernelGGL(
+        (raw_fp8_prefill_kernel<BlockM, WaveCount, false, false>), grid, block,
+        0, stream, a.data_ptr<uint8_t>(), b.data_ptr<uint8_t>(),
+        output.data_ptr<float>(), nullptr, m, n, k, n);
   } else {
-    hipLaunchKernelGGL((raw_fp8_prefill_kernel<BlockM, WaveCount, true>), grid,
-                       block, 0, stream, a.data_ptr<uint8_t>(),
-                       b.data_ptr<uint8_t>(), output.data_ptr<float>(), m, n, k,
-                       n);
+    hipLaunchKernelGGL((raw_fp8_prefill_kernel<BlockM, WaveCount, true, false>),
+                       grid, block, 0, stream, a.data_ptr<uint8_t>(),
+                       b.data_ptr<uint8_t>(), output.data_ptr<float>(), nullptr,
+                       m, n, k, n);
+  }
+  C10_CUDA_KERNEL_LAUNCH_CHECK();
+}
+
+template <int BlockM, int WaveCount>
+void launch_variant_bf16(torch::Tensor a, torch::Tensor b,
+                         torch::Tensor& output) {
+  const at::cuda::OptionalCUDAGuard device_guard(device_of(a));
+  const auto stream = at::cuda::getCurrentCUDAStream();
+  const int m = static_cast<int>(a.size(0));
+  const int n = static_cast<int>(b.size(0));
+  const int k = static_cast<int>(a.size(1));
+  const int m_tiles = (m + BlockM - 1) / BlockM;
+  const int n_tiles = (n + 64 - 1) / 64;
+  dim3 grid(static_cast<unsigned int>(n_tiles),
+            static_cast<unsigned int>(m_tiles));
+  dim3 block(WaveCount * kWaveSize);
+  const bool full_tile = (m % BlockM == 0) && (n % 64 == 0);
+  auto* output_ptr =
+      reinterpret_cast<__hip_bfloat16*>(output.data_ptr<at::BFloat16>());
+  if (full_tile) {
+    hipLaunchKernelGGL((raw_fp8_prefill_kernel<BlockM, WaveCount, false, true>),
+                       grid, block, 0, stream, a.data_ptr<uint8_t>(),
+                       b.data_ptr<uint8_t>(), nullptr, output_ptr, m, n, k, n);
+  } else {
+    hipLaunchKernelGGL((raw_fp8_prefill_kernel<BlockM, WaveCount, true, true>),
+                       grid, block, 0, stream, a.data_ptr<uint8_t>(),
+                       b.data_ptr<uint8_t>(), nullptr, output_ptr, m, n, k, n);
   }
   C10_CUDA_KERNEL_LAUNCH_CHECK();
 }
@@ -362,6 +441,14 @@ void launch_h2_bf16(torch::Tensor a, torch::Tensor b, torch::Tensor& scratch,
   launch_cast_to_bf16(scratch, output);
 }
 
+void launch_h2_bf16_direct(torch::Tensor a, torch::Tensor b,
+                           torch::Tensor& output) {
+  check_raw_inputs(a, b);
+  check_bf16_output(a, b, output);
+  check_gfx1201_device(a);
+  launch_variant_bf16<256, 8>(a, b, output);
+}
+
 }  // namespace
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
@@ -372,4 +459,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
         "R1 H1 raw FP8 GEMM plus BF16 output cast");
   m.def("raw_fp8_h2_bf16", &launch_h2_bf16,
         "R1 H2 raw FP8 GEMM plus BF16 output cast");
+  m.def("raw_fp8_h2_bf16_direct", &launch_h2_bf16_direct,
+        "R1 H2 raw FP8 GEMM with direct BF16 epilogue");
 }

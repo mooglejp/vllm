@@ -1,0 +1,39 @@
+gfx1201 prefill rearchitecture H2 direct-BF16 object observation
+Date: 2026-09-14
+Parent commit: 4429f0e468791ea9a958205d81d4509c16d88128
+Source: csrc/rocm/gfx1201_prefill_v3.cu
+Scope: one benchmark-only H2 output-epilogue correction; no R2 or production registration.
+
+Build and hashes
+----------------
+GPU: AMD Radeon AI PRO R9700 (gfx1201)
+Torch: 2.12.0+rocm7.14.0
+HIP: 7.14.60850
+Compiler: AMD LLVM 23.0.0git
+Build directory: /tmp/tq-gfx1201-prefill-r1-h2-direct-build
+Host extension .so SHA256: c9df1cbed2c192296832ea23296b1b079f388eec5a298ed6505b78afc24cac7a
+Host object .cuda.o SHA256: 36e222b0676d671f8af9a3644850327639247edbb89bc2200c8884bc7fa45973
+Extracted gfx1201 code object SHA256: 97cf58a054fd107fac0bf97c8a5a77cd268dd47b5dd728a6a77125968cf3aa85
+
+Resource metadata (llvm-readobj --notes)
+----------------------------------------
+Kernel / mode                              SGPR  VGPR  LDS bytes  spills  wave
+H1 full, FP32 output                          42   106      14848       0     32
+H1 tail, FP32 output                          42   104      23040       0     32
+H2 full, FP32 output                          40   101      25088       0     32
+H2 tail, FP32 output                          44   101      33280       0     32
+H2 full, direct BF16                          44   101      33280       0     32
+H2 tail, direct BF16                          44   101      33280       0     32
+BF16 postcast                                  6     5          0       0     32
+
+Static disassembly counts (direct H2 full; not dynamic counters)
+------------------------------------------------------------------
+FP8 WMMA: 32
+Global FP8 loads: 22 global_load_d16_u8, 10 global_load_d16_hi_u8, 2 global_load_b128
+LDS/epilogue observations: 8 ds_load_b32, 256 ds_store_2addr_b32, 36 s_barrier
+BF16 stores: 8 global_store_d16_hi_b16
+
+The existing H2 full FP32-output kernel has the same 32 WMMA and global-load
+counts but does not contain the direct BF16 epilogue. Static instruction counts
+are recorded as observations only; no single instruction family is assigned as
+the cause of the timing result.

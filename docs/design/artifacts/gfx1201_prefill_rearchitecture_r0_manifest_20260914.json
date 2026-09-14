@@ -233,5 +233,10 @@
     "r1_pass": "candidate correctness complete and calls-weighted M=256/N>=512 median latency is no slower than same-session BF16",
     "r1_failure": "stop/report; do not begin R2 automatically",
     "a0_5x": "historical P3-v2 gate, not reused"
+  },
+  "r0_coverage_status": {
+    "synthetic_gemm_manifest": "frozen_and_measured",
+    "real_model_shape_phase_role_calls": "not_collected",
+    "matched_fork_radiance_control": "not_run"
   }
 }
