@@ -157,6 +157,40 @@ were checked. The no-stdin judge results are explicitly excluded.
 | Prefix reuse | Not evaluated; quality stop |
 | Sequential soak | Not evaluated; quality stop |
 
+## Supplement: interpretation of HumanEval/129
+
+This supplement reviews the saved responses from `9c4e86d5d64b`; it does not
+rerun generation or grading, repair an answer, or change any gate, score,
+artifact or stopping decision above. Evidence is the `HumanEval/129` record
+in each `quality-validated-salt/{baseline,candidate}.jsonl` and the corrected
+HumanEval judgments in the existing raw archive.
+
+Both responses have the same 445-token input, 384 output tokens and
+`finish_reason=length`. Neither contains a completed solution:
+
+| Observation | Baseline | Candidate |
+| --- | --- | --- |
+| Implemented body | Finds the minimum value and its position, then comments | Only `n = len(grid)`, then comments |
+| Path construction / return | Neither implemented; implicitly returns `None` | Neither implemented |
+| Saved-source result | Parses, but fails an assertion | Unclosed Python Markdown fence causes `SyntaxError` |
+
+The extractor in `benchmarks/r5_quality/score.py::_human_source` removes only
+complete fenced blocks. The candidate's opening fence has no closing fence,
+so it remains in the extracted source. Thus the syntax-valid count difference
+reflects formatting and extraction under truncation, not a formerly correct
+answer becoming incorrect. Removing the opening fence would still leave an
+unfinished function, not a correct solution; no such repair was scored.
+
+The fence does violate the prompt's executable-Python-only, no-Markdown
+instruction, so the format deviation is real. However, this single case is
+not strong evidence of broader practical quality degradation or an attention
+computation bug. HumanEval functional scores remain 138/164 in both arms.
+The reported quality stop is the conservative application of the
+no-new-invalid-output condition, not proof that the backend lost a correct
+answer or should be categorically rejected. The earlier headline requires
+this context. Qualification remains unresolved; this supplement authorizes
+neither further experiments nor production adoption.
+
 ## Resource outcome and shutdown
 
 The watcher recorded 220 samples. Maximum sampled cgroup RAM was
