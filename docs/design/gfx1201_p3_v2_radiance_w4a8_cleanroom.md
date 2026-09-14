@@ -218,9 +218,41 @@ about Radiance internals.
 The future prototype must remain an offline microbenchmark with preallocated
 inputs, output, and workspace.  It should rotate A/B order, warm up before
 sampling, save raw samples, and record compiler/ISA metadata whenever the
-local toolchain exposes it.  At minimum use the already recorded large-M
-production shapes and both `M=256` and the observed `M=64` continuation shape.
-Measure separately:
+local toolchain exposes it.  The work is deliberately split into three
+subphases so that a bad mapping is rejected before MXFP4 conversion obscures
+the result.
+
+#### P3-v2a: pure FP8 mapping
+
+Use pre-expanded FP8 A and B tiles, no MXFP4 decode, no E8M0 scale, and no
+activation quantization.  Compare the rejected one-wave 16x16 mapping with
+only these proposed configurations:
+
+| candidate | workgroup waves | output tile |
+| --- | ---: | ---: |
+| A0 baseline | 1 | 16x16 |
+| A1 | 2 | 64x64 |
+| A2 | 4 | 64x64 |
+| A3 | 4 | 64x128 |
+| A4 | 4 | 128x64 |
+
+Use the already recorded large-M `(M,N,K)` shapes, plus `M=256` and the
+observed `M=64` continuation shape.  The primary metric is FP8 GEMM
+throughput, computed as `2*M*N*K / elapsed_seconds`; latency and raw samples
+remain in the report.  The prior pure-FP8 diagnostic measured A0 at only
+`0.78--2.66 TFLOP/s` across shapes; those are local baseline observations,
+not Radiance measurements.  A P3-v2a candidate must reach at least `5x` A0
+at the same shape.  If none does, stop P3-v2 without adding MXFP4 decode
+logic.
+Throughput in the `10--30+ TFLOP/s` range would justify continuing to v2b;
+that range is an ambition signal, not a claim about Radiance hardware
+behavior.
+
+#### P3-v2b: W4A8 decode and scale fusion
+
+Only after v2a passes, add the local MXFP4 decode, E8M0 group scale, dynamic
+FP8 activation producer, and BF16 output cast.  Measure each of these pieces
+and their combined time separately:
 
 - activation quantization producer;
 - packed-weight decode/staging;
@@ -228,26 +260,48 @@ Measure separately:
 - scale application and output cast;
 - combined candidate time.
 
-This decomposition prevents a kernel-only win from being mistaken for a
+This decomposition prevents a pure mapping win from being mistaken for a
 production full-emulation win.
+
+#### P3-v2c: production-shape weighted benchmark
+
+Use the existing `old_full_emulation` call-weighted shape mix and the same
+preallocation, warmup, cache-flush, and A/B-order rules.  This phase is still
+benchmark-only; no model launcher or production dispatch is changed.
 
 ## 6. Adoption gates and stop conditions
 
 P3-v2 is not eligible for production from this document.  If a prototype is
 later implemented, it must pass all of these in order:
 
-1. **Numerical gate:** finite output and the existing P3 FP64-byte-oracle
-   thresholds (`max-abs <= 0.004296875` and the recorded RMSE limit of about
-   `1.0024e-5`) on actual native FP8 bytes, including K-group tails and M/N
-   tails.  Cast-before and final-BF16 comparisons must both be retained.
-2. **Kernel gate:** at least `1.25x` the local `old_full_emulation` production
-   call-weighted baseline at representative large-M shapes, with raw samples
-   and no allocation or compilation time in the kernel-only number.
-3. **Shape gate:** no correctness failure at `M=64`, `M=256`, and the selected
-   large-M shapes; q64 and q256 are reported independently.
-4. **Integration gate:** only after gates 1–3 may a separate same-process cold
-   32K model A/B be proposed.  That A/B requires quality and capacity review;
-   it is not part of P3-v2 characterization.
+1. **v2a mapping gate:** the pure-FP8 large-tile candidate must be at least
+   `5x` the old one-wave 16x16 mapping at the same shapes.  Failure stops the
+   phase before any MXFP4 work is added.
+2. **Numerical characterization gate:** for every W4A8 shape, use the same
+   native FP8 bytes and MXFP4 weights to build an independent FP64 oracle.  The
+   report must contain finite status, final-BF16 output versus FP64-to-BF16,
+   pre-cast FP32 accumulation versus FP64, max-abs, RMSE, relative-L2, and
+   BF16 mismatch rate.  Do not reuse the old attention-derived absolute
+   limits.  Establish a shape-specific error envelope first with the old P3
+   reference implementation or an independent FP32/FP64 reference, then
+   judge the candidate against that recorded envelope.  The envelope and
+   comparison rule must be saved before candidate results are reviewed.
+3. **v2b W4A8 kernel gate:** after v2a and the numerical characterization,
+   reach at least `1.25x` the local `old_full_emulation` production
+   call-weighted baseline at representative large-M shapes.  Allocation,
+   compilation, and input generation are outside the kernel-only number.
+4. **v2c shape gate:** report `M=64`, `M=256`, q64, q256, and the selected
+   large-M shapes independently, with no correctness failure and with raw
+   samples for every candidate.
+5. **Ambition review:** compare the weighted result with the Radiance control
+   context, where disabling W4A8 changed the classified prefill linear sum
+   from `37.214 s` to `11.521 s` (about `3.23x`).  This is not an
+   apples-to-apples kernel threshold, but the candidate must be reviewed for
+   whether its measured contribution is plausibly capable of a Radiance-class
+   improvement.  If not, stop or write a new hypothesis.
+6. **Integration gate:** only after gates 1–5 may a separate same-process cold
+   32K model A/B be proposed.  That A/B requires model-quality and capacity
+   review; it is not part of P3-v2 characterization.
 
 Failure at any gate closes that candidate.  It does not reopen P2.2, the
 one-wave P3 candidate, P4 attention, P5 GDN, or the production defaults.
@@ -255,7 +309,9 @@ one-wave P3 candidate, P4 attention, P5 GDN, or the production defaults.
 ## 7. Current decision
 
 The black-box characterization is complete and the large-tile/multi-wave
-clean-room hypothesis is recorded.  No P3-v2 kernel has been written, no
-production launcher or threshold has changed, and no Radiance source has been
-copied.  The next authorized action is a separately reviewed benchmark-only
-prototype; until then the validated baseline remains the rollback target.
+clean-room hypothesis is recorded.  The numerical gate now requires a
+shape-specific W4A8 FP64 error envelope; the former P2.2 attention thresholds
+are not reused.  The next authorized action is P3-v2a pure-FP8 mapping only.
+No P3-v2 kernel has been written, no production launcher or threshold has
+changed, and no Radiance source has been copied.  Until v2a passes, the
+validated baseline remains the rollback target.
