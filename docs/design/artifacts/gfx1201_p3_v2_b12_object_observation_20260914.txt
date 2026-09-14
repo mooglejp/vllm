@@ -1,0 +1,52 @@
+P3-v2 fixed-A3 B-load/LDS-layout object observation
+Date: 2026-09-14
+Base revision: fba76b224a3895dc920c0756076600688c51c4d2
+
+Build session
+-------------
+ROCm: 7.14.60850
+Torch: 2.12.0+rocm7.14.0
+Target: gfx1201
+Build output: /tmp/tq-gfx1201-p3-v2-b12-build-714-6
+Host extension SHA-256:
+  98582e0772b0efd757f208dd4ccfde5e7c6de3623c4e509b11e6d8bc07c64017
+Extracted gfx1201 code object SHA-256:
+  9e071bdd5de9c2c5975196be9b4048f57fefaaef96c4c0b63aa74e30f65c120f
+
+The code object was extracted with AMD LLVM 23.0.0git llvm-objdump
+--offloading. Resource metadata was read with llvm-readobj --notes. The
+following values are observations from this build, not inferred occupancy
+claims:
+
+kernel                         SGPR  VGPR  LDS bytes  private  wave
+old A3 64x128 2x2                22    88      35840        0     32
+B1    64x128 2x2 (Lb0)           22    86      35840        0     32
+B2    64x128 2x2 (Lb1)           21    85      35840        0     32
+
+All three code-object kernels report zero SGPR/VGPR spills and the same fixed
+LDS allocation. Disassembly reports eight
+v_wmma_f32_16x16x16_fp8_fp8 instructions per kernel.
+
+Selected opcode counts from llvm-objdump -d --mcpu=gfx1201:
+
+opcode                         old A3       B1       B2
+global_load_d16_u8                  7        2        3
+global_load_d16_hi_u8               2        0        2
+ds_load_u8                         32       32        0
+ds_load_b32                         4        4        4
+ds_store_2addr_b32                 32       32       32
+ds_store_b8                         7        2        3
+ds_store_b8_d16_hi                  0        0        2
+s_barrier_signal                    3        3        3
+s_barrier_wait                      3        3        3
+v_wmma_f32_16x16x16_fp8_fp8         8        8        8
+
+The opcode counts establish that the generated code differs in the B staging
+and fragment-load paths while the WMMA count and LDS allocation remain the
+same. They do not, by themselves, identify a single performance cause or
+prove memory transaction coalescing.
+
+Commands:
+  llvm-objdump --offloading gfx1201_fp8_wmma_microbenchmark.so
+  llvm-objdump -d --mcpu=gfx1201 --disassemble-symbols=<kernel> <code-object>
+  llvm-readobj --notes <code-object>

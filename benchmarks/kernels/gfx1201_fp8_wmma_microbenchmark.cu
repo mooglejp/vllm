@@ -22,6 +22,7 @@
 
 #include <cstdint>
 #include <string>
+#include <type_traits>
 
 namespace {
 
@@ -232,6 +233,144 @@ __global__ void fp8_wmma_large_kernel(const uint8_t* a, const uint8_t* b,
   }
 }
 
+// B1/B2 are isolated A3 load/layout experiments. They keep A loading, the
+// K=16 WMMA schedule, accumulation, output, and synchronization identical to
+// the A3 kernel above. B1 changes only the global B assignment order; B2
+// additionally stores B as [N, K] in LDS and reads it through a col-major
+// matrix-B fragment. These are benchmark-only variants, not production code.
+template <int BlockM, int BlockN, int WaveGridM, int WaveGridN,
+          bool LdsTranspose>
+__global__ void fp8_wmma_large_load_variant_kernel(const uint8_t* a,
+                                                   const uint8_t* b,
+                                                   float* output, int m, int n,
+                                                   int k) {
+  static_assert(WaveGridM * WaveGridN == 4);
+  static_assert(BlockM % (WaveGridM * kTile) == 0);
+  static_assert(BlockN % (WaveGridN * kTile) == 0);
+
+  constexpr int kWaves = WaveGridM * WaveGridN;
+  constexpr int kWaveTileM = BlockM / WaveGridM;
+  constexpr int kWaveTileN = BlockN / WaveGridN;
+  constexpr int kFragM = kWaveTileM / kTile;
+  constexpr int kFragN = kWaveTileN / kTile;
+  constexpr int kFragCount = kFragM * kFragN;
+
+  const int thread = threadIdx.x;
+  const int wave = thread / kThreads;
+  if (thread >= kWaves * kThreads) {
+    return;
+  }
+
+  const int64_t block_m = static_cast<int64_t>(blockIdx.y) * BlockM;
+  const int64_t block_n = static_cast<int64_t>(blockIdx.x) * BlockN;
+  const int wave_m = wave / WaveGridN;
+  const int wave_n = wave % WaveGridN;
+  const int wave_m_start = wave_m * kWaveTileM;
+  const int wave_n_start = wave_n * kWaveTileN;
+
+  __shared__ alignas(16) Fp8 tile_a[BlockM * kTile];
+  __shared__ alignas(16) Fp8 tile_b[kTile * BlockN];
+  __shared__ alignas(16) float tile_output[BlockM * BlockN];
+
+  using FragA = rocwmma::fragment<rocwmma::matrix_a, kTile, kTile, kTile, Fp8,
+                                  rocwmma::row_major>;
+  using FragB =
+      std::conditional_t<LdsTranspose,
+                         rocwmma::fragment<rocwmma::matrix_b, kTile, kTile,
+                                           kTile, Fp8, rocwmma::col_major>,
+                         rocwmma::fragment<rocwmma::matrix_b, kTile, kTile,
+                                           kTile, Fp8, rocwmma::row_major>>;
+  using FragC = rocwmma::fragment<rocwmma::accumulator, kTile, kTile, kTile,
+                                  float, rocwmma::row_major>;
+
+  FragC fragments[kFragCount];
+  for (int index = 0; index < kFragCount; ++index) {
+    rocwmma::fill_fragment(fragments[index], 0.0f);
+  }
+
+  for (int k_start = 0; k_start < k; k_start += kTile) {
+    for (int index = thread; index < BlockM * kTile;
+         index += kWaves * kThreads) {
+      const int row = index / kTile;
+      const int col = index % kTile;
+      const int64_t global_m = block_m + row;
+      const int global_k = k_start + col;
+      if (global_m < m && global_k < k) {
+        tile_a[index] = fp8_from_bits(a[global_m * k + global_k]);
+      } else {
+        tile_a[index] = fp8_from_bits(0);
+      }
+    }
+    for (int index = thread; index < kTile * BlockN;
+         index += kWaves * kThreads) {
+      // B1 and B2 both assign consecutive elements in K before advancing N.
+      // The B2 physical LDS order is [N, K]; B1 retains logical [K, N].
+      const int n_local = index / kTile;
+      const int k_local = index % kTile;
+      const int global_k = k_start + k_local;
+      const int64_t global_n = block_n + n_local;
+      Fp8 value = fp8_from_bits(0);
+      if (global_n < n && global_k < k) {
+        value = fp8_from_bits(b[global_n * k + global_k]);
+      }
+      if constexpr (LdsTranspose) {
+        tile_b[n_local * kTile + k_local] = value;
+      } else {
+        tile_b[k_local * BlockN + n_local] = value;
+      }
+    }
+    __syncthreads();
+
+    FragA frag_a[kFragM];
+    FragB frag_b[kFragN];
+    for (int frag_m = 0; frag_m < kFragM; ++frag_m) {
+      rocwmma::load_matrix_sync(
+          frag_a[frag_m], tile_a + (wave_m_start + frag_m * kTile) * kTile,
+          kTile);
+    }
+    for (int frag_n = 0; frag_n < kFragN; ++frag_n) {
+      if constexpr (LdsTranspose) {
+        rocwmma::load_matrix_sync(
+            frag_b[frag_n], tile_b + (wave_n_start + frag_n * kTile) * kTile,
+            kTile);
+      } else {
+        rocwmma::load_matrix_sync(
+            frag_b[frag_n], tile_b + wave_n_start + frag_n * kTile, BlockN);
+      }
+    }
+    for (int frag_m = 0; frag_m < kFragM; ++frag_m) {
+      for (int frag_n = 0; frag_n < kFragN; ++frag_n) {
+        const int index = frag_m * kFragN + frag_n;
+        rocwmma::mma_sync(fragments[index], frag_a[frag_m], frag_b[frag_n],
+                          fragments[index]);
+      }
+    }
+    __syncthreads();
+  }
+
+  for (int frag_m = 0; frag_m < kFragM; ++frag_m) {
+    for (int frag_n = 0; frag_n < kFragN; ++frag_n) {
+      const int index = frag_m * kFragN + frag_n;
+      rocwmma::store_matrix_sync(tile_output +
+                                     (wave_m_start + frag_m * kTile) * BlockN +
+                                     wave_n_start + frag_n * kTile,
+                                 fragments[index], BlockN);
+    }
+  }
+  __syncthreads();
+
+  for (int index = thread; index < BlockM * BlockN;
+       index += kWaves * kThreads) {
+    const int row = index / BlockN;
+    const int col = index % BlockN;
+    const int64_t global_m = block_m + row;
+    const int64_t global_n = block_n + col;
+    if (global_m < m && global_n < n) {
+      output[global_m * n + global_n] = tile_output[index];
+    }
+  }
+}
+
 #else
 
 // Keep host-only compilation and non-gfx1201 fatbin variants linkable.  The
@@ -242,6 +381,12 @@ __global__ void fp8_wmma_gemm_kernel(const uint8_t*, const uint8_t*, float*,
 template <int BlockM, int BlockN, int WaveGridM, int WaveGridN>
 __global__ void fp8_wmma_large_kernel(const uint8_t*, const uint8_t*, float*,
                                       int, int, int) {}
+
+template <int BlockM, int BlockN, int WaveGridM, int WaveGridN,
+          bool LdsTranspose>
+__global__ void fp8_wmma_large_load_variant_kernel(const uint8_t*,
+                                                   const uint8_t*, float*, int,
+                                                   int, int) {}
 
 #endif  // __HIP_DEVICE_COMPILE__ && gfx1200/gfx1201
 
@@ -307,6 +452,22 @@ void launch_large(torch::Tensor a, torch::Tensor b, torch::Tensor& output) {
   C10_CUDA_KERNEL_LAUNCH_CHECK();
 }
 
+template <bool LdsTranspose>
+void launch_a3_load_variant(torch::Tensor a, torch::Tensor b,
+                            torch::Tensor& output) {
+  const at::cuda::OptionalCUDAGuard device_guard(device_of(a));
+  const auto stream = at::cuda::getCurrentCUDAStream();
+  dim3 grid((static_cast<unsigned int>(b.size(0)) + 128 - 1) / 128,
+            (static_cast<unsigned int>(a.size(0)) + 64 - 1) / 64);
+  dim3 block(4 * kThreads);
+  hipLaunchKernelGGL(
+      (fp8_wmma_large_load_variant_kernel<64, 128, 2, 2, LdsTranspose>), grid,
+      block, 0, stream, a.data_ptr<uint8_t>(), b.data_ptr<uint8_t>(),
+      output.data_ptr<float>(), static_cast<int>(a.size(0)),
+      static_cast<int>(b.size(0)), static_cast<int>(a.size(1)));
+  C10_CUDA_KERNEL_LAUNCH_CHECK();
+}
+
 void fp8_wmma_gemm_2wave_64x64(torch::Tensor a, torch::Tensor b,
                                torch::Tensor& output) {
   check_inputs(a, b, output);
@@ -328,6 +489,20 @@ void fp8_wmma_gemm_4wave_64x128(torch::Tensor a, torch::Tensor b,
   launch_large<64, 128, 2, 2>(a, b, output);
 }
 
+void fp8_wmma_gemm_4wave_64x128_b1(torch::Tensor a, torch::Tensor b,
+                                   torch::Tensor& output) {
+  check_inputs(a, b, output);
+  check_gfx1201_device(a);
+  launch_a3_load_variant<false>(a, b, output);
+}
+
+void fp8_wmma_gemm_4wave_64x128_b2(torch::Tensor a, torch::Tensor b,
+                                   torch::Tensor& output) {
+  check_inputs(a, b, output);
+  check_gfx1201_device(a);
+  launch_a3_load_variant<true>(a, b, output);
+}
+
 void fp8_wmma_gemm_4wave_128x64(torch::Tensor a, torch::Tensor b,
                                 torch::Tensor& output) {
   check_inputs(a, b, output);
@@ -344,6 +519,10 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
         "Benchmark-only 4-wave 64x64 raw FP8 WMMA GEMM");
   m.def("fp8_wmma_gemm_4wave_64x128", &fp8_wmma_gemm_4wave_64x128,
         "Benchmark-only 4-wave 64x128 raw FP8 WMMA GEMM");
+  m.def("fp8_wmma_gemm_4wave_64x128_b1", &fp8_wmma_gemm_4wave_64x128_b1,
+        "Benchmark-only A3 B1 K-priority global-load GEMM");
+  m.def("fp8_wmma_gemm_4wave_64x128_b2", &fp8_wmma_gemm_4wave_64x128_b2,
+        "Benchmark-only A3 B2 transposed-LDS GEMM");
   m.def("fp8_wmma_gemm_4wave_128x64", &fp8_wmma_gemm_4wave_128x64,
         "Benchmark-only 4-wave 128x64 raw FP8 WMMA GEMM");
 }

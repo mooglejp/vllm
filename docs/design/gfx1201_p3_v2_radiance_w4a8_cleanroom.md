@@ -386,3 +386,113 @@ shapes do show substantial wins, but they do not satisfy the fixed target-shape
 gate and therefore do not authorize v2b.  This closes the current v2a
 implementation without changing production defaults, decode/MTP lanes, P2.2,
 or any other phase.
+
+## 9. Fixed-A3 B-load/LDS-layout A/B (2026-09-14)
+
+This is a bounded follow-up to the closed v2a mapping experiment.  It starts
+from `fba76b224a3895dc920c0756076600688c51c4d2`; the pre-existing `.gitignore`
+worktree edit was retained.  The old A3 `4-wave 64x128` kernel is unchanged as
+the timing baseline.  The new benchmark-only entry points are B1 and B2:
+
+- B1 assigns the global B load in K-priority order
+  (`n_local = index / 16`, `k_local = index % 16`) and retains the logical
+  `[Ktile, BlockN]` LDS/row-major fragment layout.
+- B2 uses the same global assignment, stores LDS physically as `[N, K]`, and
+  reads it as a logical `[K, N]` col-major matrix-B fragment with the wave-N
+  offset retained in the load address.
+
+A-side loading, K=16 processing order, WMMA schedule, accumulators, FP32
+output, synchronization, input byte shape/stride, and grid shape are otherwise
+unchanged.  Neither variant adds tile search, split-K, double buffering,
+activation quantization, MXFP4 decode, E8M0 scaling, production registration,
+model execution, or a Radiance source/layout copy.  This experiment therefore
+tests only whether the B global-load assignment and LDS placement are useful.
+
+### 9.1 Correctness and measurement contract
+
+The separate harness is
+`[benchmark_gfx1201_fp8_wmma_b12.py](../../benchmarks/kernels/benchmark_gfx1201_fp8_wmma_b12.py)`.
+The raw JSONL artifact is
+`[gfx1201_p3_v2_b12_a3_20260914.jsonl](artifacts/gfx1201_p3_v2_b12_a3_20260914.jsonl)`.
+It retains the previous v2a artifacts and records the command, environment,
+raw samples, medians, effective TFLOP/s, and weighted summaries.  The fixed
+measurement used all six shapes, `M=64,256`, five warmups, twenty rotating
+samples, preallocated buffers, and a 64 MiB flush.  BF16 control conversion
+was completed before timing and its output was preallocated; it is a speed
+control, not a shared output-precision contract.
+
+Correctness was run before timing.  Each small case compares the complete
+output with the exact-input FP64 byte oracle and with old A3 bitwise:
+
+| case | old A3 | B1 | B2 |
+| --- | --- | --- | --- |
+| random `129x17x64` | pass | pass | pass |
+| column-distinct `129x129x64` | pass | pass | pass |
+| random `129x129x64` | pass | pass | pass |
+| random `65x129x65` | pass | pass | pass |
+
+For each measured shape, representative rows/columns include wave boundaries,
+macro-tile boundaries, and the last valid row/column.  The five large shapes
+also compare every output element bitwise with A3 and check finiteness; all
+three variants pass.  The N=96 case is retained for measurement and
+correctness, but is outside the large-N gate.
+
+### 9.2 Median timing results
+
+The table gives median microseconds and speedup over A3 for every requested
+shape/row case.  Raw samples remain in the JSONL artifact.
+
+| shape `(N,K)` | M | A3 us | B1 us (x) | B2 us (x) | BF16 mm us |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `(5120,6144)` | 64 | 960.182 | 1253.742 (0.766) | 1167.782 (0.822) | 249.441 |
+| `(5120,6144)` | 256 | 1952.464 | 2342.325 (0.834) | 2145.225 (0.910) | 280.900 |
+| `(34816,5120)` | 64 | 2693.205 | 3188.387 (0.845) | 2952.186 (0.912) | 697.841 |
+| `(34816,5120)` | 256 | 9616.841 | 11837.646 (0.812) | 10873.724 (0.884) | 974.822 |
+| `(5120,17408)` | 64 | 2636.866 | 3446.887 (0.765) | 3197.067 (0.825) | 427.221 |
+| `(5120,17408)` | 256 | 6120.433 | 6742.594 (0.908) | 6206.533 (0.986) | 643.801 |
+| `(16384,5120)` | 64 | 1807.364 | 2104.704 (0.859) | 1948.864 (0.927) | 376.900 |
+| `(16384,5120)` | 256 | 4984.391 | 6032.473 (0.826) | 5549.112 (0.898) | 617.261 |
+| `(96,5120)` | 64 | 750.962 | 913.342 (0.822) | 842.661 (0.891) | 38.360 |
+| `(96,5120)` | 256 | 757.501 | 900.702 (0.841) | 826.902 (0.916) | 42.380 |
+| `(14336,5120)` | 64 | 1788.004 | 2068.104 (0.865) | 1905.104 (0.939) | 340.121 |
+| `(14336,5120)` | 256 | 4234.510 | 5129.711 (0.826) | 4744.471 (0.893) | 568.801 |
+
+Call-weighted totals over the five `N>=512` shapes are:
+
+| M | A3 us | B1 us | B2 us | BF16 mm us | B1/A3 | B2/A3 | A3/BF16 | B1/BF16 | B2/BF16 |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 64 | 517,937.787 | 639,012.543 | 592,317.430 | 111,501.351 | 0.811 | 0.874 | 4.645 | 5.731 | 5.312 |
+| 256 | 1,439,146.229 | 1,710,678.261 | 1,572,699.726 | 160,298.871 | 0.841 | 0.915 | 8.978 | 10.672 | 9.811 |
+
+The diagnostic criterion was correctness plus at least `1.25x` call-weighted
+improvement over A3 for `M=256`, `N>=512`, with all five cases complete.  Both
+B1 and B2 had complete correctness and complete measurements, but B1 reached
+`0.841x` and B2 `0.915x`; both are slower than A3 and fail the criterion.
+They are also much slower than the BF16 torch.mm control.  The M=64 results
+are reported independently and do not change the M=256 decision.
+
+### 9.3 Generated-code observations
+
+The matching gfx1201 code object was extracted from the same build session.
+The saved observation report is
+`[gfx1201_p3_v2_b12_object_observation_20260914.txt](artifacts/gfx1201_p3_v2_b12_object_observation_20260914.txt)`.
+For old A3/B1/B2 respectively, the code-object metadata reports fixed LDS
+`35840` bytes, no private-segment or register spills, wavefront size 32, and
+`(SGPR, VGPR) = (22,88), (22,86), (21,85)`.  Disassembly reports eight
+`v_wmma_f32_16x16x16_fp8_fp8` instructions for each.  The selected global/LDS
+opcode counts differ in the B staging and fragment-load paths, while the WMMA
+count, barriers, and LDS allocation remain the same.  These are observations
+of generated code only; they do not identify a unique performance cause or
+prove coalescing.
+
+### 9.4 Decision and stop point
+
+The fixed-A3 B-load/LDS-layout A/B is complete.  Correctness passed, but
+neither B1 nor B2 meets the new `1.25x` M=256 call-weighted diagnostic
+criterion.  The result does not prove that large-tile or multi-wave W4A8 is
+invalid; it only rejects these two data-movement variants at this fixed A3
+mapping.  The old v2a all-shape `5x` gate and its failure remain unchanged.
+
+This closes the experiment at B1/B2.  It does not authorize P3-v2b, add a new
+tile or load-search branch, fuse MXFP4, run the model, or change production
+defaults, decode/MTP lanes, K8/V4 cache, or any other validated path.
