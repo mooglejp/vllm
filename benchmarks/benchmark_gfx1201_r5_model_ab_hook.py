@@ -28,6 +28,7 @@ from vllm.v1.attention.backends.turboquant_attn import TurboQuantAttentionImpl
 from vllm.v1.worker.gpu import warmup
 
 _ORIGINAL = TurboQuantAttentionImpl._continuation_prefill
+_ORIGINAL_FORWARD = TurboQuantAttentionImpl.forward
 # Match the previously validated diagnostic Math baseline in both arms.
 warmup.warmup_kernels = lambda *args, **kwargs: None
 kernel_warmup.kernel_warmup = lambda *args, **kwargs: None
@@ -51,6 +52,29 @@ def _record(cached_len: int, q_len: int) -> None:
         shapes[key] = int(shapes.get(key, 0)) + 1
 
 
+def _refresh_control() -> None:
+    control_path = os.environ.get("R5_MODE_FILE")
+    if not control_path or not Path(control_path).exists():
+        return
+    control = json.loads(Path(control_path).read_text())
+    mode = control["mode"]
+    if mode not in {"baseline", "candidate"}:
+        raise ValueError(f"Invalid diagnostic mode: {mode}")
+    if _COUNTS.get("run_id") != control["run_id"]:
+        _COUNTS.update(calls=0, applied_calls=0, shapes={}, layers={})
+        _COUNTS["enabled"] = mode == "candidate"
+        _COUNTS["run_id"] = control["run_id"]
+        _write_stats()
+    elif _COUNTS["enabled"] != (mode == "candidate"):
+        raise RuntimeError("Diagnostic mode changed within a run ID")
+
+
+def _forward(self: TurboQuantAttentionImpl, *args: Any, **kwargs: Any):
+    # First chunks must reset counters even without eligible continuation.
+    _refresh_control()
+    return _ORIGINAL_FORWARD(self, *args, **kwargs)
+
+
 def _patched(self: TurboQuantAttentionImpl, *args: Any, **kwargs: Any):
     query = kwargs.get("query", args[1] if len(args) > 1 else None)
     cached_len = kwargs.get("cached_len", args[6] if len(args) > 6 else None)
@@ -62,16 +86,7 @@ def _patched(self: TurboQuantAttentionImpl, *args: Any, **kwargs: Any):
     if not target or cached_len <= 0 or q_len <= 128:
         return _ORIGINAL(self, *args, **kwargs)
 
-    control_path = os.environ.get("R5_MODE_FILE")
-    if control_path and Path(control_path).exists():
-        control = json.loads(Path(control_path).read_text())
-        mode = control["mode"]
-        if mode not in {"baseline", "candidate"}:
-            raise ValueError(f"Invalid diagnostic mode: {mode}")
-        if _COUNTS.get("run_id") != control["run_id"]:
-            _COUNTS.update(calls=0, applied_calls=0, shapes={}, layers={})
-        _COUNTS["enabled"] = mode == "candidate"
-        _COUNTS["run_id"] = control["run_id"]
+    _refresh_control()
     _record(cached_len, q_len)
     _COUNTS["layers"][layer_name] = _COUNTS["layers"].get(layer_name, 0) + 1
     if _COUNTS["enabled"]:
@@ -97,6 +112,7 @@ def _patched(self: TurboQuantAttentionImpl, *args: Any, **kwargs: Any):
 
 
 TurboQuantAttentionImpl._continuation_prefill = _patched
+TurboQuantAttentionImpl.forward = _forward
 
 
 def _upstream_varlen(*args: Any, **kwargs: Any):

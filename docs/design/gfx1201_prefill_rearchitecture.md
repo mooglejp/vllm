@@ -421,8 +421,8 @@ material cost fraction or a correctness requirement.
 
 The 2026-09-14 R5 diagnostic loaded the pinned AMD Triton FlashAttention wheel
 and observed `attn_fwd.kd`, but its fixed same-input numerical gate failed
-(18/19 required cases). Timing and model integration were therefore not run;
-R5 is stopped at the numerical gate. See
+(18/19 required cases). That evaluation stopped before timing and model
+integration. Its strict numerical result remains unchanged. See
 `gfx1201_prefill_rearchitecture_r5_20260914.md` and its machine-readable
 artifact for the provenance, contract, and per-case results. This does not
 reopen P2.2 or reject K8/V4 storage as a format.
@@ -430,13 +430,25 @@ reopen P2.2 or reject K8/V4 storage as a format.
 A separate, user-authorized evaluation policy v2 preserves that strict result
 but uses causal/input-contract checks, full-output finiteness and the documented
 upstream-derived tolerance to permit timing. Its 32K-prefix/q256 continuation
-speed gate passes. The 4K model smoke also completes, but cold32K model TTFT
-remains unmeasured after a host-RAM OOM and a subsequent bounded-container
-startup OOM. R5 backend adoption is undecided, not rejected by the old strict
-diagnostic. See `gfx1201_prefill_rearchitecture_r5_speed_20260914.md` for the
-separate policy, environments, artifacts and stop condition. No production
-integration or quality/operational qualification has been authorized by these
-measurements.
+speed gate passes. After the recorded host-RAM and bounded-container startup
+OOMs, the separately authorized 16 GiB/swap-off retry completed cold32K.
+Five alternating pairs measured median TTFT 131.796047 s baseline versus
+60.643420 s candidate (2.1733x, 53.9869% reduction), passing the 10% speed gate.
+See `gfx1201_r5_model_retry_16g_20260914.md` and commit `d5fec6675f` for the
+unchanged result. The previous OOM and strict numerical diagnostics remain
+in `gfx1201_prefill_rearchitecture_r5_speed_20260914.md` and the original
+numerical report. Quality and operational qualification are now separately
+authorized; production integration and default enablement are not.
+
+The subsequent fixed 308-case paired MTP2 evaluation completed. Correct counts
+were noninferior (GSM8K 36/36, MMLU 64/67, HumanEval 138/138, baseline/candidate),
+but the existing syntax check found one new invalid HumanEval output
+(158/157 syntax-valid). Qualification therefore stopped at quality; 32K
+retention, decode, prefix reuse and soak were not run. The original HumanEval
+judge also lacked Docker stdin attachment and returned false passes; those
+invalid results are retained separately from corrected isolated execution.
+See `gfx1201_r5_quality_operations_20260914.md`. Neither the TTFT pass nor the
+strict Math diagnostic was overwritten, and no production path was adopted.
 
 ### R6: composition, capacity and final experience
 

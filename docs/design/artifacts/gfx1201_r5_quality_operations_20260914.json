@@ -1,0 +1,2637 @@
+{
+  "base": "d5fec6675f832ba6bf753247acd092ef86e5cd56",
+  "decision": "quality gate not met; stop without production adoption",
+  "status": {
+    "cold32k_ttft": "historical pass preserved: 2.1733x",
+    "strict_math_diagnostic": "historical failure preserved",
+    "quality_308": "fail: new syntax-invalid output; task scores noninferior",
+    "retention_32k": "not evaluated: stopped at quality gate",
+    "natural_decode_mtp": "not evaluated: stopped at quality gate",
+    "fixed_state_decode": "not evaluated: no suitable full-state replay found",
+    "prefix_reuse": "not evaluated: stopped at quality gate",
+    "sequential_soak": "not evaluated: stopped at quality gate"
+  },
+  "quality": {
+    "tasks": {
+      "gsm8k": {
+        "baseline": {
+          "correct": 36,
+          "cases": 64,
+          "empty": 0,
+          "truncated": 0,
+          "answer_parse_invalid": 0,
+          "finite_logprobs": true,
+          "coverage": {
+            "unapplied_regression": 64
+          },
+          "eligible_requests": 0,
+          "applied_calls": 0,
+          "syntax_valid": null
+        },
+        "candidate": {
+          "correct": 36,
+          "cases": 64,
+          "empty": 0,
+          "truncated": 0,
+          "answer_parse_invalid": 0,
+          "finite_logprobs": true,
+          "coverage": {
+            "unapplied_regression": 64
+          },
+          "eligible_requests": 0,
+          "applied_calls": 0,
+          "syntax_valid": null
+        },
+        "score_finite_gate_pass": true
+      },
+      "mmlu": {
+        "baseline": {
+          "correct": 64,
+          "cases": 80,
+          "empty": 0,
+          "truncated": 0,
+          "answer_parse_invalid": 0,
+          "finite_logprobs": true,
+          "coverage": {
+            "unapplied_regression": 80
+          },
+          "eligible_requests": 64,
+          "applied_calls": 0,
+          "syntax_valid": null
+        },
+        "candidate": {
+          "correct": 67,
+          "cases": 80,
+          "empty": 0,
+          "truncated": 0,
+          "answer_parse_invalid": 0,
+          "finite_logprobs": true,
+          "coverage": {
+            "unapplied_regression": 16,
+            "applied": 64
+          },
+          "eligible_requests": 64,
+          "applied_calls": 2224,
+          "syntax_valid": null
+        },
+        "score_finite_gate_pass": true
+      },
+      "humaneval": {
+        "baseline": {
+          "correct": 138,
+          "cases": 164,
+          "empty": 0,
+          "truncated": 6,
+          "answer_parse_invalid": null,
+          "finite_logprobs": true,
+          "coverage": {
+            "unapplied_regression": 164
+          },
+          "eligible_requests": 1,
+          "applied_calls": 0,
+          "syntax_valid": 158
+        },
+        "candidate": {
+          "correct": 138,
+          "cases": 164,
+          "empty": 0,
+          "truncated": 6,
+          "answer_parse_invalid": null,
+          "finite_logprobs": true,
+          "coverage": {
+            "unapplied_regression": 163,
+            "applied": 1
+          },
+          "eligible_requests": 1,
+          "applied_calls": 16,
+          "syntax_valid": 157
+        },
+        "score_finite_gate_pass": true
+      }
+    },
+    "cases": [
+      {
+        "id": "gsm8k/61",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/64",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/71",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/72",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/86",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/109",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/204",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/234",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/273",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/295",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/340",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/364",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/377",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/395",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/396",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/399",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/427",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/433",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/437",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/469",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/494",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/523",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/526",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/533",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/568",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/577",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/613",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/628",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/633",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/638",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/675",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/678",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/701",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/714",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/741",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/752",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/767",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/784",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/791",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/795",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/847",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/864",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/872",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/890",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/908",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/919",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/925",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/939",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/942",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/946",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/968",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/1164",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/1175",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/1185",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/1189",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/1191",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/1196",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/1202",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/1213",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/1229",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/1259",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/1274",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/1291",
+        "task": "gsm8k",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "gsm8k/1303",
+        "task": "gsm8k",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/0",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/1",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/2",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/3",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/4",
+        "task": "humaneval",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/5",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/6",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/7",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/8",
+        "task": "humaneval",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/9",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/10",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/11",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/12",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/13",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/14",
+        "task": "humaneval",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/15",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/16",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/17",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/18",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/19",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/20",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/21",
+        "task": "humaneval",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/22",
+        "task": "humaneval",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/23",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/24",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/25",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/26",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/27",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/28",
+        "task": "humaneval",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/29",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/30",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/31",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/32",
+        "task": "humaneval",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/33",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/34",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/35",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/36",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/37",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/38",
+        "task": "humaneval",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/39",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/40",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/41",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/42",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/43",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/44",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/45",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/46",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/47",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/48",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/49",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/50",
+        "task": "humaneval",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/51",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/52",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/53",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/54",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/55",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/56",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/57",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/58",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/59",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/60",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/61",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/62",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/63",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/64",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/65",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/66",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/67",
+        "task": "humaneval",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/68",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/69",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/70",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/71",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/72",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/73",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/74",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/75",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/76",
+        "task": "humaneval",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/77",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/78",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/79",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/80",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/81",
+        "task": "humaneval",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/82",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/83",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/84",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/85",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/86",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/87",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/88",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/89",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/90",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/91",
+        "task": "humaneval",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/92",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/93",
+        "task": "humaneval",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/94",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/95",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/96",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/97",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/98",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/99",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/100",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/101",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/102",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/103",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/104",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/105",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/106",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/107",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/108",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/109",
+        "task": "humaneval",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/110",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/111",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/112",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/113",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/114",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/115",
+        "task": "humaneval",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/116",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/117",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/118",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/119",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/120",
+        "task": "humaneval",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/121",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/122",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/123",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/124",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/125",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/126",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/127",
+        "task": "humaneval",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/128",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/129",
+        "task": "humaneval",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": false,
+        "candidate_applied": 16
+      },
+      {
+        "id": "HumanEval/130",
+        "task": "humaneval",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/131",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/132",
+        "task": "humaneval",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/133",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/134",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/135",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/136",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/137",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/138",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/139",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/140",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/141",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/142",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/143",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/144",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/145",
+        "task": "humaneval",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/146",
+        "task": "humaneval",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/147",
+        "task": "humaneval",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/148",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/149",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/150",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/151",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/152",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/153",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/154",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/155",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/156",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/157",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/158",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/159",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/160",
+        "task": "humaneval",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/161",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/162",
+        "task": "humaneval",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "HumanEval/163",
+        "task": "humaneval",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "mmlu/conceptual_physics/28",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "mmlu/conceptual_physics/66",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "mmlu/conceptual_physics/67",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "mmlu/conceptual_physics/92",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "mmlu/conceptual_physics/108",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "mmlu/conceptual_physics/122",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "mmlu/conceptual_physics/130",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "mmlu/conceptual_physics/145",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "mmlu/conceptual_physics/149",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "mmlu/conceptual_physics/151",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "mmlu/conceptual_physics/171",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "mmlu/conceptual_physics/175",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "mmlu/conceptual_physics/177",
+        "task": "mmlu",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "mmlu/conceptual_physics/216",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "mmlu/conceptual_physics/222",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "mmlu/conceptual_physics/225",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 0
+      },
+      {
+        "id": "mmlu/high_school_world_history/13",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 64
+      },
+      {
+        "id": "mmlu/high_school_world_history/15",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 64
+      },
+      {
+        "id": "mmlu/high_school_world_history/37",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 80
+      },
+      {
+        "id": "mmlu/high_school_world_history/57",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 64
+      },
+      {
+        "id": "mmlu/high_school_world_history/59",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 64
+      },
+      {
+        "id": "mmlu/high_school_world_history/72",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 80
+      },
+      {
+        "id": "mmlu/high_school_world_history/100",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 64
+      },
+      {
+        "id": "mmlu/high_school_world_history/127",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 64
+      },
+      {
+        "id": "mmlu/high_school_world_history/134",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 80
+      },
+      {
+        "id": "mmlu/high_school_world_history/169",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 96
+      },
+      {
+        "id": "mmlu/high_school_world_history/177",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 80
+      },
+      {
+        "id": "mmlu/high_school_world_history/183",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 80
+      },
+      {
+        "id": "mmlu/high_school_world_history/196",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 80
+      },
+      {
+        "id": "mmlu/high_school_world_history/198",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 64
+      },
+      {
+        "id": "mmlu/high_school_world_history/199",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 64
+      },
+      {
+        "id": "mmlu/high_school_world_history/233",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 64
+      },
+      {
+        "id": "mmlu/professional_psychology/23",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/professional_psychology/165",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/professional_psychology/253",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/professional_psychology/273",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/professional_psychology/282",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/professional_psychology/324",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/professional_psychology/338",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/professional_psychology/398",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/professional_psychology/456",
+        "task": "mmlu",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/professional_psychology/471",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/professional_psychology/493",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/professional_psychology/495",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/professional_psychology/499",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/professional_psychology/508",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": false,
+        "token_equal": false,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/professional_psychology/546",
+        "task": "mmlu",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/professional_psychology/598",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/business_ethics/12",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/business_ethics/19",
+        "task": "mmlu",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/business_ethics/21",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/business_ethics/23",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/business_ethics/25",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/business_ethics/36",
+        "task": "mmlu",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/business_ethics/38",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/business_ethics/39",
+        "task": "mmlu",
+        "baseline_correct": false,
+        "candidate_correct": true,
+        "token_equal": false,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/business_ethics/54",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/business_ethics/70",
+        "task": "mmlu",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": false,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/business_ethics/71",
+        "task": "mmlu",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/business_ethics/73",
+        "task": "mmlu",
+        "baseline_correct": false,
+        "candidate_correct": true,
+        "token_equal": false,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/business_ethics/79",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/business_ethics/82",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/business_ethics/86",
+        "task": "mmlu",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/business_ethics/87",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 16
+      },
+      {
+        "id": "mmlu/college_computer_science/1",
+        "task": "mmlu",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 32
+      },
+      {
+        "id": "mmlu/college_computer_science/3",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 48
+      },
+      {
+        "id": "mmlu/college_computer_science/10",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 32
+      },
+      {
+        "id": "mmlu/college_computer_science/17",
+        "task": "mmlu",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 32
+      },
+      {
+        "id": "mmlu/college_computer_science/18",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 32
+      },
+      {
+        "id": "mmlu/college_computer_science/19",
+        "task": "mmlu",
+        "baseline_correct": false,
+        "candidate_correct": true,
+        "token_equal": false,
+        "candidate_applied": 32
+      },
+      {
+        "id": "mmlu/college_computer_science/23",
+        "task": "mmlu",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 32
+      },
+      {
+        "id": "mmlu/college_computer_science/46",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 32
+      },
+      {
+        "id": "mmlu/college_computer_science/54",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 32
+      },
+      {
+        "id": "mmlu/college_computer_science/60",
+        "task": "mmlu",
+        "baseline_correct": false,
+        "candidate_correct": true,
+        "token_equal": false,
+        "candidate_applied": 48
+      },
+      {
+        "id": "mmlu/college_computer_science/67",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 32
+      },
+      {
+        "id": "mmlu/college_computer_science/77",
+        "task": "mmlu",
+        "baseline_correct": false,
+        "candidate_correct": false,
+        "token_equal": true,
+        "candidate_applied": 48
+      },
+      {
+        "id": "mmlu/college_computer_science/83",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 32
+      },
+      {
+        "id": "mmlu/college_computer_science/86",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 32
+      },
+      {
+        "id": "mmlu/college_computer_science/97",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 32
+      },
+      {
+        "id": "mmlu/college_computer_science/99",
+        "task": "mmlu",
+        "baseline_correct": true,
+        "candidate_correct": true,
+        "token_equal": true,
+        "candidate_applied": 32
+      }
+    ],
+    "unapplied_is_not_candidate_coverage": true,
+    "new_syntax_invalid_cases": [
+      "HumanEval/129"
+    ],
+    "syntax_check_origin": "existing tq_accuracy_eval/score.py _syntax_valid",
+    "syntax_gate_origin": "user/plan: no new invalid output in fixed fixtures",
+    "task_score_gate_pass": true,
+    "pass": false,
+    "decision": "quality gate failed; stop"
+  },
+  "run": {
+    "baseline": {
+      "requests": 308,
+      "request_and_scope_invariants": "passed",
+      "output_tokens": 23087,
+      "applied_requests": 0,
+      "applied_calls": 0,
+      "finite_logprobs": true,
+      "completion_reasons": [
+        "length",
+        "stop"
+      ],
+      "response_sample_ram_min_bytes": 15721467904,
+      "response_sample_ram_max_bytes": 15914541056,
+      "gpu_allocator_lifetime_peak_allocated": 28869044224,
+      "gpu_allocator_lifetime_peak_reserved": 29213327360
+    },
+    "candidate": {
+      "requests": 308,
+      "request_and_scope_invariants": "passed",
+      "output_tokens": 23087,
+      "applied_requests": 65,
+      "applied_calls": 2240,
+      "finite_logprobs": true,
+      "completion_reasons": [
+        "length",
+        "stop"
+      ],
+      "response_sample_ram_min_bytes": 15722377216,
+      "response_sample_ram_max_bytes": 15914700800,
+      "gpu_allocator_lifetime_peak_allocated": 28869044224,
+      "gpu_allocator_lifetime_peak_reserved": 29213327360
+    }
+  },
+  "resource_summary": {
+    "samples": 220,
+    "sampled_ram_peak_bytes": 17179840512,
+    "sampled_shm_peak_bytes": 2211737600,
+    "oom_event_deltas": {
+      "oom": 0,
+      "oom_kill": 0,
+      "oom_group_kill": 0
+    },
+    "sampled_ram_final_bytes": 9775550464,
+    "note": "sampled values, not exact peaks; startup and shutdown included"
+  },
+  "production_adopted": false,
+  "source_changes": "benchmarks/tests/docs only; attention math unchanged",
+  "judge": "stdin-open isolated execution; original no-stdin results invalid"
+}
