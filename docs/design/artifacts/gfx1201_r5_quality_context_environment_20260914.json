@@ -1,0 +1,35 @@
+{
+  "base": "d5fec6675f832ba6bf753247acd092ef86e5cd56",
+  "torch": "2.12.0+git6bbd260",
+  "hip": "7.2.53211",
+  "flash_attn": "2.8.3",
+  "flash_file": "/usr/local/lib/python3.12/dist-packages/flash_attn/__init__.py",
+  "forward_file": "/usr/local/lib/python3.12/dist-packages/flash_attn/flash_attn_interface.py",
+  "image": "sha256:3cead535c32c11c59b222bbaa502076b9c737fb969b70b7bc9bb8ce77da5698e",
+  "sha256": {
+    "/cache/r5-quality-20260914/launch-verified.sh": "22cc9652bb4c8cb5943d93128fa89de9d7f7982d9982be85e49b89cd4ef3aa63",
+    "/dev/shm/benchmark_gfx1201_r5_model_ab_hook.py": "2a7b23bcee9412d4de1031572326effb7b8cffd5ff482a8205f925238219d5f4",
+    "/dev/shm/r5_model_ab/sitecustomize.py": "fb5a783015a11fae639b924ebb2a871a2537a1370c762a5b4570f10d50facc3e",
+    "/dev/shm/r5-flash-site/flash_attn-2.8.3.dist-info/RECORD": "03e5b8fbbea01a3cfcfe1874bd9712fb0f7de71c7d7350413181ffab4c01abbc",
+    "/model/config.json": "4a139d3e01df039e17b4c8b8362f7944674d76051a8cd96f213c6bc332d69f55",
+    "/model/generation_config.json": "07f857aba5260b2ea2513f80de8062d086661f00eada0a3794964e665ba680f5",
+    "/model/tokenizer_config.json": "b11349aafa7cdc6a320767cf7ceb29ed82f7eda5d65e8e0819e76f0ce947bf27"
+  },
+  "limits": {
+    "memory.max": "17179869184",
+    "memory.swap.max": "0"
+  },
+  "settings": {
+    "tp": 1,
+    "kv": "turboquant_k8v4",
+    "mtp_tokens": 2,
+    "adaptive_verification": false,
+    "fused_mxfp4_decode": true,
+    "compilation_mode": 0,
+    "graph": "FULL_DECODE_ONLY",
+    "chunk_budget": 256,
+    "max_num_seqs": 1,
+    "profiler_started": false,
+    "production_changes": false
+  }
+}

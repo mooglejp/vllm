@@ -455,6 +455,15 @@ functional evaluation. A repaired interactive judge is required for all later
 R5 quality runs; the old artifact remains preserved and is never promoted by a
 new score.
 
+The subsequent context-qualified supplement used the same 308 IDs with a fixed
+2,048-token reference-only prefix and larger task output caps. All 308 candidate
+requests reached the problem body, but the supplement failed its predeclared
+quality gate: GSM8K decreased 36 to 35, HumanEval length stops increased 1 to 2,
+and one new completed-pair format-invalid case appeared. MMLU remained 65/65
+and HumanEval functional counts were 138/139. The supplement therefore stopped
+before 32K retention; decode, reuse, soak, and production adoption remain
+unevaluated. See `gfx1201_r5_quality_context_20260914_results.md`.
+
 ### R6: composition, capacity and final experience
 
 Compose only accepted stages and preserve component toggles for rollback.

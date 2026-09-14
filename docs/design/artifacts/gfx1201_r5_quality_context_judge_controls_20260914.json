@@ -1,0 +1,32 @@
+{
+  "records": [
+    {
+      "id": "returns-zero-expect-0",
+      "passed": true,
+      "detail": "",
+      "judge": "original_no_stdin",
+      "expected_pass": true
+    },
+    {
+      "id": "returns-zero-expect-0",
+      "passed": true,
+      "detail": "",
+      "judge": "fixed",
+      "expected_pass": true
+    },
+    {
+      "id": "returns-zero-expect-1",
+      "passed": true,
+      "detail": "",
+      "judge": "original_no_stdin",
+      "expected_pass": false
+    },
+    {
+      "id": "returns-zero-expect-1",
+      "passed": false,
+      "detail": "Traceback (most recent call last):\n  File \"<stdin>\", line 6, in <module>\n  File \"<stdin>\", line 4, in check\nAssertionError\n",
+      "judge": "fixed",
+      "expected_pass": false
+    }
+  ]
+}
