@@ -204,10 +204,13 @@ def _benchmark_case(
 ) -> dict[str, object]:
     a = _fp8_bytes((m, k), seed)
     b = _fp8_bytes((n, k), seed + 1)
+    a_fp32 = a.view(FP8_DTYPE).float()
+    b_fp32 = b.view(FP8_DTYPE).float()
     outputs = {
         name: torch.empty((m, n), device="cuda", dtype=torch.float32)
         for name, *_ in specs
     }
+    fp32_output = torch.empty((m, n), device="cuda", dtype=torch.float32)
     correctness = (
         {"skipped": True}
         if skip_correctness
@@ -222,6 +225,7 @@ def _benchmark_case(
         )
         for name, method, *_ in specs
     }
+    operations["torch_fp32_mm"] = lambda: torch.mm(a_fp32, b_fp32.t(), out=fp32_output)
     raw = _measure_round_robin(operations, flush, config)
     timing = {name: _summary(values) for name, values in raw.items()}
     flop = 2.0 * m * n * k
@@ -248,6 +252,7 @@ def _benchmark_case(
             "scales": "none",
             "mxfp4_decode": False,
         },
+        "fp32_baseline": "pre-expanded FP8 bytes converted before timing",
         "timed_region": (
             "one fixed-buffer GEMM call; allocation, conversion, compilation, "
             "oracle, and input generation are excluded"

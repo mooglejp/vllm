@@ -225,8 +225,9 @@ the result.
 #### P3-v2a: pure FP8 mapping
 
 Use pre-expanded FP8 A and B tiles, no MXFP4 decode, no E8M0 scale, and no
-activation quantization.  Compare the rejected one-wave 16x16 mapping with
-only these proposed configurations:
+activation quantization.  Include a pre-expanded FP32 `torch.mm` reference
+with conversion outside the timed region.  Compare the rejected one-wave
+16x16 mapping with only these proposed configurations:
 
 | candidate | workgroup waves | output tile |
 | --- | ---: | ---: |
