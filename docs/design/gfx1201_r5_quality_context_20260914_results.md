@@ -14,8 +14,10 @@ and cold-32K TTFT 2.1733x result remain unchanged historical results.
 ## Frozen input and environment
 
 The generated suite has SHA-256
-`0df298d4bf625a93246ada772c07fe4e5b721eb2f26ccedddc043bf340bda1de` and every
-prompt has exactly 2,048 token IDs. Output caps were GSM8K 1,024, MMLU 64, and
+`0df298d4bf625a93246ada772c07fe4e5b721eb2f26ccedddc043bf340bda1de` and the
+entire prompt for every case (the original problem plus the inserted
+reference-only document) has exactly 2,048 token IDs. Output caps were GSM8K
+1,024, MMLU 64, and
 HumanEval 2,048. The source suite, construction checks, insertion positions,
 sampling, judge hashes, and gate rules are in
 `gfx1201_r5_quality_context_manifest_20260914.json`.
@@ -38,7 +40,7 @@ disk-backed artifacts.
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
 | GSM8K (64) | 36 | 35 | 0 | 0 | 0 / 0 | fail: score decreased |
 | MMLU (80) | 65 | 65 | 0 | 0 | 0 / 0 | pass |
-| HumanEval (164) | 138 | 139 | 1 | 2 | 2 / 1 | fail: one extra stop and a new invalid |
+| HumanEval (164) | 138 | 139 | 1 | 2 | 2 / 1 | fail: length stops increased |
 
 The baseline length stop was `HumanEval/147`. Candidate length stops were
 `HumanEval/32` and `HumanEval/147`. The completed-pair syntax/extraction gate
@@ -48,8 +50,18 @@ separately (46 baseline, 50 candidate for completed HumanEval pairs); they are
 not substituted for the extracted-source syntax result.
 
 The candidate's HumanEval functional count being one higher does not offset the
-GSM8K decrease, the extra HumanEval truncation, or the new completed-pair
-format-invalid case. No answer was repaired, excluded, or regenerated.
+GSM8K decrease or the extra HumanEval truncation. The completed-pair
+syntax/extraction count improved from 2 to 1, so that format item passes the
+fixed gate; the `HumanEval/93` observation is retained as a per-case diagnostic,
+not as an independent failure condition. No answer was repaired, excluded, or
+regenerated.
+
+Correction note: The initial narrative listed `HumanEval/93`'s new
+syntax-invalid observation as an independent failure reason. The frozen rule and
+implementation compare invalid counts only on the 162 both-completed cases;
+that count improved from 2 to 1, so the format item passes. The overall stop
+remains due only to the GSM8K score decrease and HumanEval truncation increase.
+Measurements, scores, and gate implementation are unchanged.
 
 ## Coverage and resources
 
