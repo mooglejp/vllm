@@ -312,6 +312,35 @@ The black-box characterization is complete and the large-tile/multi-wave
 clean-room hypothesis is recorded.  The numerical gate now requires a
 shape-specific W4A8 FP64 error envelope; the former P2.2 attention thresholds
 are not reused.  The next authorized action is P3-v2a pure-FP8 mapping only.
-No P3-v2 kernel has been written, no production launcher or threshold has
-changed, and no Radiance source has been copied.  Until v2a passes, the
-validated baseline remains the rollback target.
+No production launcher or threshold has changed, and no Radiance source has
+been copied.  Until v2a passes, the validated baseline remains the rollback
+target.
+
+## 8. P3-v2a benchmark implementation (2026-09-14)
+
+The benchmark-only v2a implementation is now present in:
+
+- [benchmark_gfx1201_fp8_wmma_v2a.py](../../benchmarks/kernels/benchmark_gfx1201_fp8_wmma_v2a.py),
+  which preserves A0, runs the four large-tile candidates in rotating order,
+  records raw samples and effective TFLOP/s, and performs FP64-byte-oracle
+  tail checks before timing;
+- [gfx1201_fp8_wmma_microbenchmark.cu](../../benchmarks/kernels/gfx1201_fp8_wmma_microbenchmark.cu),
+  which adds only out-of-tree benchmark entry points for the 2/4-wave
+  configurations.  It is not included in `_rocm_C`, registered with vLLM, or
+  reachable from production dispatch.
+
+The intended invocation is:
+
+```text
+.venv/bin/python benchmarks/kernels/benchmark_gfx1201_fp8_wmma_v2a.py \
+  --output /tmp/tq-gfx1201-p3-v2a.json \
+  --rows 64 256
+```
+
+This worktree has the Python/static checks needed for the benchmark, but the
+local ROCm SDK image is missing the HIP development headers and rocWMMA header
+needed by the out-of-tree extension (`hip/hip_runtime.h` is absent from the
+configured `/opt/rocm/core-7.14/include` tree).  Therefore no GPU timing or
+v2a mapping-gate result is claimed here.  The next run must use a complete
+ROCm/rocWMMA development environment; v2b MXFP4 work remains blocked until
+the v2a 5x gate is measured.
