@@ -41,7 +41,7 @@ def load_suite(path: Path, manifest_path: Path) -> tuple[dict[str, dict], dict]:
             < case["target_token_start"]
             < case["target_token_end"]
             <= case["document_token_end"]
-            < case["question_token_start"]
+            <= case["question_token_start"]
             < case["question_token_end"]
             <= manifest["target_prompt_tokens"]
         ):
