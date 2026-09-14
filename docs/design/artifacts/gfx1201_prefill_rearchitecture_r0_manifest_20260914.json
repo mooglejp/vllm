@@ -1,0 +1,237 @@
+{
+  "stage": "R0",
+  "status": "complete_manifest_frozen",
+  "revision": "ba57aece9e60d637459556ace36708a9a025cb26",
+  "requested_base_revision": "ba57aece9e60d637459556ace36708a9a025cb26",
+  "handoff_declared_base_revision": "9938409e924ba0418b65dfae8e56304a070726a6",
+  "plan": "docs/design/gfx1201_prefill_rearchitecture.md",
+  "environment": {
+    "python": "3.12.14",
+    "platform": "Linux-7.0.0-31-generic-x86_64-with-glibc2.43",
+    "torch": "2.12.0+rocm7.14.0",
+    "hip": "7.14.60850",
+    "gpu": {
+      "available": true,
+      "name": "AMD Radeon AI PRO R9700",
+      "gcn_arch": "gfx1201",
+      "device": "cuda",
+      "total_memory": 34208743424
+    },
+    "hipcc": "/usr/bin/hipcc",
+    "hipcc_version": "HIP version: 7.14.60850-0000000\nAMD clang version 23.0.0git (https://github.com/ROCm/llvm-project.git 46fcb339fb61119b337f973c7ca9e710a319fdd0+PATCHED:440716f8b87be9d8e20ed910e10e5b6d14d57cf6)\nTarget: x86_64-unknown-linux-gnu\nThread model: posix\nInstalledDir: /opt/rocm/core-7.14/lib/llvm/bin",
+    "llvm_objdump": null,
+    "rocm_include": {
+      "hip_runtime": {
+        "path": "/tmp/tq-rocmcore/_rocm_sdk_core/include/hip/hip_runtime.h",
+        "sha256": "d8f2980c757faef2045c58d36774a1af26a93c9de8be5558c616fa9231f01cd2"
+      },
+      "rocwmma": {
+        "path": "/tmp/tq-p3-v2a-sdk-root/include/rocwmma/rocwmma.hpp",
+        "sha256": "9e677443ebd05b941a18f27f9b7ebe919d20fa8b9266de17fcd3923ee5bddb32"
+      }
+    },
+    "environment": {
+      "ROCM_PATH": null,
+      "ROCM_HOME": null,
+      "CPATH": "/tmp/tq-rocmcore/_rocm_sdk_core/include:/tmp/tq-p3-v2a-sdk-root/include",
+      "CPLUS_INCLUDE_PATH": "/tmp/tq-rocmcore/_rocm_sdk_core/include:/tmp/tq-p3-v2a-sdk-root/include",
+      "PYTORCH_ROCM_ARCH": "gfx1201"
+    }
+  },
+  "provenance": {
+    "classification": "source-informed, not source-blind clean-room",
+    "radiance_image_digest": "sha256:83a9dc02a8f8e75aabe81366d36ebaa2e35fcbe181cacf8e8e0a4cef4ebccbcc",
+    "radiance_source_label": "f295b9ef51ad413a68e4192371e0377741a354ce",
+    "observed_sources": [
+      "magiccodingman/vllm-radiance/radiance_mxfp4_fp8.hip",
+      "magiccodingman/vllm-radiance/radiance_mxfp4.py",
+      "magiccodingman/vllm-radiance/radiance_r4d_attn.py"
+    ],
+    "reuse_status": "no implementation text or lookup table copied",
+    "independent_basis": [
+      "declared raw-FP8 tensor contract",
+      "official rocWMMA interfaces",
+      "local gfx1201 compiler/header installation"
+    ]
+  },
+  "preserved_lanes": {
+    "decode_mtp2_k8v4": "unchanged",
+    "graph_prefix_reuse_workspace": "unchanged",
+    "full_decode_only_compilation_disabled": "unchanged",
+    "old_p2_p3_p4_candidates": "diagnostic references only",
+    "r2_mxfp4_fusion": "not started",
+    "production_registration": "off"
+  },
+  "effective_shape_contract": {
+    "dtype_input": "raw FP8 E4M3FN bytes",
+    "dtype_output": "float32 diagnostic, BF16 cast comparison",
+    "layout_a": "[M,K] contiguous",
+    "layout_b": "[N,K] contiguous, result A @ B.T",
+    "k_slab": 64,
+    "eligible_m": [
+      64,
+      256
+    ],
+    "eligible_n_min": 512,
+    "fallback_n": [
+      96
+    ],
+    "k_divisible_by": 64,
+    "shape_calls": [
+      [
+        5120,
+        6144,
+        64
+      ],
+      [
+        34816,
+        5120,
+        64
+      ],
+      [
+        5120,
+        17408,
+        64
+      ],
+      [
+        16384,
+        5120,
+        48
+      ],
+      [
+        96,
+        5120,
+        48
+      ],
+      [
+        14336,
+        5120,
+        16
+      ]
+    ],
+    "call_weight_formula": "sum(calls * median_us)"
+  },
+  "input_inventory": [
+    {
+      "name": "r1_random_129x129x64",
+      "shape": [
+        129,
+        64
+      ],
+      "seed": 9101,
+      "dtype": "uint8 raw FP8 E4M3FN bytes",
+      "sha256": "aba4cc5844a641e2ab46164812823e676448560eb6fa11215cc1ed2ceb2affbc"
+    },
+    {
+      "name": "r1_random_65x129x65_a",
+      "shape": [
+        65,
+        65
+      ],
+      "seed": 9102,
+      "dtype": "uint8 raw FP8 E4M3FN bytes",
+      "sha256": "57376d168785635eed22e66e710afad254707746bd0c05110081c1ef70d8fcec"
+    },
+    {
+      "name": "r1_random_65x129x65_b",
+      "shape": [
+        129,
+        65
+      ],
+      "seed": 9103,
+      "dtype": "uint8 raw FP8 E4M3FN bytes",
+      "sha256": "fb1f100fe1e85f925df785f1674a5e640bfe27882197af7b1572f6a6b07547ef"
+    },
+    {
+      "name": "r1_shape0_a",
+      "shape": [
+        256,
+        6144
+      ],
+      "seed": 9104,
+      "dtype": "uint8 raw FP8 E4M3FN bytes",
+      "sha256": "2ffda412c0fc7747b73714ffa4fb07cbb78aeecf7d5ed22c31e396a1538341b6"
+    },
+    {
+      "name": "r1_shape0_b",
+      "shape": [
+        5120,
+        6144
+      ],
+      "seed": 9105,
+      "dtype": "uint8 raw FP8 E4M3FN bytes",
+      "sha256": "00e74b9e2150b068d4f97df36bd832656f64004f024589ab7efa63f6a30bf3c5"
+    }
+  ],
+  "numerical_contract": {
+    "oracle": "decode identical raw FP8 bytes to FP64 and accumulate in FP64",
+    "precast_limits": {
+      "finite": true,
+      "normalized_max_abs": "<= 1e-3",
+      "relative_l2": "<= 1e-4"
+    },
+    "final_bf16": "compare candidate FP32 cast to BF16 against FP64 reference cast to BF16; allow 1.10x cast-only error plus the precast allowance",
+    "record": [
+      "max_abs",
+      "normalized_max_abs",
+      "rmse",
+      "relative_l2",
+      "BF16 mismatch fraction",
+      "finite"
+    ],
+    "zero_reference": "exact zero is required",
+    "old_attention_absolute_threshold_reused": false
+  },
+  "baseline_contract": {
+    "primary": "same-session pre-expanded BF16 torch.mm",
+    "secondary": "same-session FP32 torch.mm diagnostic",
+    "history": "old A3 raw-FP8 WMMA only",
+    "production_full_emulation": "recorded as the future R2 baseline; not silently substituted in R1"
+  },
+  "timing_contract": {
+    "warmups": 5,
+    "samples": 20,
+    "order": "rotating operation order per sample",
+    "cache_flush_mib": 64,
+    "excluded": [
+      "allocation",
+      "input generation",
+      "FP8-to-BF16/FP32 conversion",
+      "compilation",
+      "oracle and correctness"
+    ]
+  },
+  "r1_hypotheses": {
+    "H1": {
+      "tile": [
+        128,
+        64
+      ],
+      "k_slab": 64,
+      "waves": 4,
+      "mapping": "four wave32 rows, each wave owns 32x64 output"
+    },
+    "H2": {
+      "tile": [
+        256,
+        64
+      ],
+      "k_slab": 64,
+      "waves": 8,
+      "mapping": "eight wave32 rows, each wave owns 32x64 output"
+    },
+    "shared_requirements": [
+      "aligned 16-byte global loads where valid",
+      "safe zero-filled M/N/K edges",
+      "padded LDS A/B strides",
+      "register accumulators",
+      "direct global stores on complete tiles",
+      "no full output-tile LDS accumulator"
+    ]
+  },
+  "gate_policy": {
+    "r1_pass": "candidate correctness complete and calls-weighted M=256/N>=512 median latency is no slower than same-session BF16",
+    "r1_failure": "stop/report; do not begin R2 automatically",
+    "a0_5x": "historical P3-v2 gate, not reused"
+  }
+}

@@ -1,0 +1,55 @@
+gfx1201 prefill rearchitecture R1 generated-object observation
+Date: 2026-09-14
+Source: csrc/rocm/gfx1201_prefill_v3.cu
+Scope: benchmark-only H1/H2 raw FP8 GEMM; no MXFP4 decode, E8M0 scale, or production registration.
+
+Environment
+-----------
+GPU: AMD Radeon AI PRO R9700 (gfx1201)
+Torch: 2.12.0+rocm7.14.0
+HIP: 7.14.60850
+Compiler: AMD LLVM 23.0.0git
+Measurement build directory: /tmp/tq-gfx1201-prefill-v3-r1-matched
+Measurement host extension .so SHA256: aa5a21aed754ec40f6031e1f0a82a3f9824888efb3bde4d24713195f3f7318b4
+Measurement host object .cuda.o SHA256: 4ba5fffbfde9056811d68f30a28d5ab2a92e7228d9e424940cf23ed6fa9a8d35
+Measurement gfx1201 code object SHA256: 205096963ac6a1019d4c837f755aaab481e056296953168f3e256ff3f9590152
+Post-format smoke build directory: /tmp/tq-gfx1201-prefill-v3-r1-postformat
+Post-format host extension .so SHA256: 558826d2bdddad847ef1007ca4591591b93325a2a646d496f107a08924d9284e
+Post-format host object .cuda.o SHA256: b7ea1948df438cb8612cae4b13b97a77af28077d3796dfdc98f0e942fb388d3c
+Post-format gfx1201 code object SHA256: 205096963ac6a1019d4c837f755aaab481e056296953168f3e256ff3f9590152
+
+Resource metadata (llvm-readobj --notes)
+----------------------------------------
+Kernel                                      SGPR  VGPR  LDS bytes  spills  wave
+H1 full (128x64, TailStore=false)             42   106      14848       0     32
+H1 tail (128x64, TailStore=true)              42   104      23040       0     32
+H2 full (256x64, TailStore=false)             40   101      25088       0     32
+H2 tail (256x64, TailStore=true)              44   101      33280       0     32
+BF16 postcast                                  6     5          0       0     32
+
+Static disassembly counts (not dynamic counters)
+-------------------------------------------------
+Kernel      FP8 WMMA  global_load_d16_u8  global_load_d16_hi_u8  global_load_b128  LDS u8  barriers signal/wait
+H1 full          32                 23                       9                  2      128          2/2
+H1 tail          32                 23                       9                  2      128        10/10
+H2 full          32                 22                      10                  2      128          2/2
+H2 tail          32                 22                      10                  2      128        18/18
+
+Tail-only static extras
+-----------------------
+H1 tail: 16 ds_load_b32 and 128 ds_store_2addr_b32.
+H2 tail: 8 ds_load_b32 and 256 ds_store_2addr_b32.
+BF16 postcast: one global dword load and no spills.
+
+Interpretation boundary
+-----------------------
+These counts document the generated mapping/staging and tail-store paths. They
+are not used to claim that any one instruction family caused the measured
+latency. Dynamic attribution was not performed in R1.
+
+Post-format smoke
+------------------
+The formatted source was rebuilt in the post-format smoke directory and passed
+full correctness inventory execution plus a one-shape launcher/timing smoke. The
+gfx1201 code-object hash and resource/opcode observations are unchanged; host
+object hashes differ only because the source formatting changes debug metadata.
