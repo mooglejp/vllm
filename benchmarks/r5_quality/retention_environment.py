@@ -25,7 +25,13 @@ def git_value(root: Path, *args: str) -> str | None:
         return None
 
 
-def capture(output: Path, model: Path, source_root: Path) -> dict:
+def capture(
+    output: Path,
+    model: Path,
+    source_root: Path,
+    source_git_head: str | None,
+    source_git_status: str | None,
+) -> dict:
     import flash_attn
     import torch
 
@@ -46,8 +52,10 @@ def capture(output: Path, model: Path, source_root: Path) -> dict:
     root = Path("/sys/fs/cgroup")
     data = {
         "source_root": str(source_root),
-        "git_head": git_value(source_root, "rev-parse", "HEAD"),
-        "git_status_porcelain": git_value(source_root, "status", "--short"),
+        "git_head": source_git_head or git_value(source_root, "rev-parse", "HEAD"),
+        "git_status_porcelain": source_git_status
+        if source_git_status is not None
+        else git_value(source_root, "status", "--short"),
         "model_path": str(model),
         "torch": torch.__version__,
         "hip": torch.version.hip,
@@ -89,9 +97,22 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--model", type=Path, required=True)
     parser.add_argument("--source-root", type=Path, required=True)
+    parser.add_argument("--git-head")
+    parser.add_argument("--git-status")
     args = parser.parse_args()
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    print(json.dumps(capture(args.output, args.model, args.source_root), indent=2))
+    print(
+        json.dumps(
+            capture(
+                args.output,
+                args.model,
+                args.source_root,
+                args.git_head,
+                args.git_status,
+            ),
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":
