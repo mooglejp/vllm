@@ -310,13 +310,14 @@ one-wave P3 candidate, P4 attention, P5 GDN, or the production defaults.
 
 ## 7. Current decision
 
-The black-box characterization is complete and the large-tile/multi-wave
-clean-room hypothesis is recorded.  The numerical gate now requires a
-shape-specific W4A8 FP64 error envelope; the former P2.2 attention thresholds
-are not reused.  The next authorized action is P3-v2a pure-FP8 mapping only.
-No production launcher or threshold has changed, and no Radiance source has
-been copied.  Until v2a passes, the validated baseline remains the rollback
-target.
+The black-box characterization and the benchmark-only v2a mapping test
+are complete.  The former P2.2 attention thresholds were not reused; the v2a
+checks used the exact FP8-byte FP64 oracle and passed correctness, but no
+large-tile candidate met the fixed-shape 5x mapping gate.  P3-v2b MXFP4
+decode/scale work is therefore not authorized.  Any future P3-v2 restart
+requires a new clean-room mapping hypothesis and a new gate.  No production
+launcher or threshold has changed, and no Radiance source has been copied.
+The validated baseline remains the rollback target.
 
 ## 8. P3-v2a benchmark implementation and result (2026-09-14)
 
