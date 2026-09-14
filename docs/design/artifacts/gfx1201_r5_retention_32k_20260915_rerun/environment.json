@@ -1,0 +1,44 @@
+{
+  "source_root": "/workspace/vllm",
+  "git_head": "4749e4f941",
+  "git_status_porcelain": "",
+  "model_path": "/model",
+  "torch": "2.12.0+git6bbd260",
+  "hip": "7.2.53211",
+  "flash_attn": "2.8.3",
+  "flash_file": "/usr/local/lib/python3.12/dist-packages/flash_attn/__init__.py",
+  "flash_forward_file": "/usr/local/lib/python3.12/dist-packages/flash_attn/flash_attn_interface.py",
+  "files_sha256": {
+    "/workspace/vllm/benchmarks/r5_quality/build_retention_suite.py": "8d415dff4440ba393dfb7fdfe6648c5152f79ec48fac9cb5bfdf9480dddcde0d",
+    "/workspace/vllm/benchmarks/r5_quality/run_retention.py": "4530782414c450129beea3c363729a5800425a789c7ea97dce6019d3cccc5e13",
+    "/workspace/vllm/benchmarks/r5_quality/score_retention.py": "82cbaf09594ae35bb9738b6e3feb5251a869fa69e80d4f475eb007e42e80d095",
+    "/workspace/vllm/benchmarks/r5_model_ab/sitecustomize.py": "fb5a783015a11fae639b924ebb2a871a2537a1370c762a5b4570f10d50facc3e",
+    "/workspace/vllm/benchmarks/benchmark_gfx1201_r5_model_ab_hook.py": "2a7b23bcee9412d4de1031572326effb7b8cffd5ff482a8205f925238219d5f4",
+    "/model/tokenizer.json": "0997f410c57a1f4e53b09e4be8f4a172d90edd9564368fb0847030937229b9f3",
+    "/model/tokenizer_config.json": "b11349aafa7cdc6a320767cf7ceb29ed82f7eda5d65e8e0819e76f0ce947bf27",
+    "/model/chat_template.jinja": "c3cf9e34abf4f9e36c2d72165aa9c132d3e2a725b6c2586aaa3a8af9d7a81041",
+    "/model/config.json": "4a139d3e01df039e17b4c8b8362f7944674d76051a8cd96f213c6bc332d69f55"
+  },
+  "limits": {
+    "memory.max": "17179869184",
+    "memory.swap.max": "0"
+  },
+  "settings": {
+    "tp": 1,
+    "kv": "turboquant_k8v4",
+    "mtp_tokens": 2,
+    "adaptive_verification": false,
+    "fused_mxfp4_decode": true,
+    "compilation_mode": 0,
+    "graph": "FULL_DECODE_ONLY",
+    "chunk_budget": 256,
+    "max_num_seqs": 1,
+    "prompt_tokens": 32768,
+    "max_tokens": 128,
+    "temperature": 0,
+    "seed": 1201,
+    "enable_thinking": false,
+    "profiler_started": false,
+    "production_changes": false
+  }
+}

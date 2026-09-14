@@ -1,0 +1,61 @@
+{
+  "suite_id": "r5-retention-32k-20260915",
+  "suite_sha256": "49a70721080202893a316267f5708685edc3f2edb3c31033aafed762839b7ae3",
+  "run_id": "r5-retention-20260915-rerun",
+  "case_count": 9,
+  "order": "B/C then C/B alternating by case",
+  "model": "qwen38-27b-tq-mtp",
+  "cache_salt": "unique SHA-256 salt for each mode/case",
+  "profiling": false,
+  "automatic_retry": false,
+  "mode_scope": "existing target continuation attention only",
+  "warmup": {
+    "required": true,
+    "scores_excluded": true,
+    "prompt_tokens": 32768,
+    "max_tokens": 1,
+    "input": "first suite prompt with two distinct document-filler token IDs swapped; target sentence and question are unchanged",
+    "modes": [
+      {
+        "mode": "baseline",
+        "run_id": "r5-retention-20260915-rerun-warmup-baseline",
+        "prompt_sha256": "24ac249b5903a2ca81b6dc03c6283b678e3b393aaedbbc738435d40cb4783773",
+        "finish_reason": "length",
+        "output_tokens": 1,
+        "elapsed_seconds": 138.2431021509692,
+        "applied_calls": 0,
+        "applied_overlap_calls": 0
+      },
+      {
+        "mode": "candidate",
+        "run_id": "r5-retention-20260915-rerun-warmup-candidate",
+        "prompt_sha256": "24ac249b5903a2ca81b6dc03c6283b678e3b393aaedbbc738435d40cb4783773",
+        "finish_reason": "length",
+        "output_tokens": 1,
+        "elapsed_seconds": 364.2188278440153,
+        "applied_calls": 1984,
+        "applied_overlap_calls": 16
+      }
+    ]
+  },
+  "completed": true,
+  "coverage": {
+    "baseline_all_unapplied": true,
+    "candidate_all_applied": true,
+    "candidate_all_target_overlap": true
+  },
+  "resources_final": {
+    "time": 1789403600.0290098,
+    "memory_current": 13270126592,
+    "memory_events": {
+      "low": 0,
+      "high": 0,
+      "max": 1459,
+      "oom": 0,
+      "oom_kill": 0,
+      "oom_group_kill": 0,
+      "sock_throttled": 0
+    },
+    "memory_stat": "anon 6718947328\nfile 6472671232\nkernel 77459456\nkernel_stack 3178496\npagetables 24076288\nsec_pagetables 0\npercpu 0\nsock 0\nvmalloc 49152\nshmem 4096\nzswap 0\nzswapped 0\nfile_mapped 145633280\nfile_dirty 8192\nfile_writeback 0\nswapcached 0\nanon_thp 281018368\nfile_thp 113246208\nshmem_thp 0\ninactive_anon 0\nactive_anon 6718943232\ninactive_file 6291329024\nactive_file 181338112\nunevictable 0\nslab_reclaimable 45079648\nslab_unreclaimable 5041424\nslab 50121072\nhugetlb 0\nworkingset_refault_anon 0\nworkingset_refault_file 7626442\nworkingset_activate_anon 0\nworkingset_activate_file 5941\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 7647975\npgsteal 7647972\npswpin 0\npswpout 0\npgscan_kswapd 5623419\npgscan_direct 2024556\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 5623416\npgsteal_direct 2024556\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 13956396\npgmajfault 2343\npgrefill 39767\npgactivate 1\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 1892\nthp_collapse_alloc 24\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0\n"
+  }
+}

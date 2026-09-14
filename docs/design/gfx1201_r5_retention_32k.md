@@ -62,8 +62,8 @@ succeeded. It does not establish general long-context quality, reverse the
 previous supplemental quality failure, or approve production use.
 
 Decode regression, prefix reuse, soak, 64K/120K, further kernel work, and
-production integration are outside this run. A later result section will be
-added in a separate commit after the one-pass measurement.
+production integration are outside this run. The completed measurement is
+recorded below; it does not authorize any of those follow-up activities.
 
 ## Result — stopped at progress stall
 
@@ -119,3 +119,53 @@ two different filler-token IDs; the target sentence and question remain
 unchanged. Warmup responses and hook counters are written to `warmup.jsonl` and
 are excluded from the retention result. The scored suite, model, backend,
 kernel, dispatch, and production settings remain unchanged.
+
+## Result — warmup-corrected rerun completed
+
+The rerun was performed from `4749e4f941` in the same 16 GiB/no-swap
+validation environment, with the same suite (`49a70721080202893a316267f5708685edc3f2edb3c31033aafed762839b7ae3`),
+model, tokenizer, Torch/HIP, FlashAttention wheel, request settings, and
+diagnostic hook. The previous stopped-run artifact was preserved; it was not
+overwritten. The baseline and candidate warmups were completed before any
+scored request and are excluded from all result counts. They took 138.24 s and
+364.22 s respectively; the candidate warmup applied 1,984 calls and covered
+16 calls overlapping the answer-bearing sentence. This confirms that the
+candidate's first-use `attn_fwd` compilation was moved out of the scored
+request rather than treated as a content failure.
+
+All 18 scored requests completed exactly once, in the required alternating
+order. Every response returned the expected 13-token identifier with
+`finish_reason=stop`; no response was empty or truncated. The machine-readable
+score is `artifacts/gfx1201_r5_retention_32k_20260915_rerun/score.json`.
+
+| placement | cases | baseline exact | candidate exact | paired result |
+| --- | ---: | ---: | ---: | --- |
+| early | 3 | 3 | 3 | 3 both-correct |
+| middle | 3 | 3 | 3 | 3 both-correct |
+| late | 3 | 3 | 3 | 3 both-correct |
+| **total** | **9** | **9** | **9** | **9 both-correct** |
+
+Coverage validity checks also passed: baseline had zero candidate applications
+for all 9 cases; candidate had 1,984 applications for every case, with 16
+applications overlapping the answer-bearing sentence in every case. The exact
+match rule was unchanged (only leading/trailing whitespace is removed), and no
+answer repair, normalization, retry, or fixture adjustment was used.
+
+The scored requests had median elapsed times of approximately 132.8 s for the
+baseline and 61.3 s for the candidate. These timings are retained as diagnostic
+observations only; this retention run does not replace the previously recorded
+cold-32K TTFT result or create a new speed gate.
+
+No stream error, empty response, server stop, or progress stall occurred. The
+cgroup limit remained `memory.max=17179869184` with `memory.swap.max=0`; the
+recorded peak `memory.current` was 13,270,482,944 bytes. The cgroup counters
+`oom`, `oom_kill`, and `oom_group_kill` remained zero (the non-OOM `max` event
+counter was 1,459). The diagnostic hook recorded peak GPU allocator values of
+32,097,158,144 bytes allocated and 33,294,385,152 bytes reserved. No profiler
+was started and artifacts were written to disk.
+
+This establishes only that the fixed nine-case 32K retrieval diagnostic
+completed with both arms correct after separating candidate warmup. It does
+not reverse the previous supplemental quality failure, certify general
+long-context quality, or authorize production adoption. Decode regression,
+prefix reuse, soak, 64K/120K, and production integration remain unevaluated.

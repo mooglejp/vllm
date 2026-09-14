@@ -468,6 +468,16 @@ conditions. The supplement therefore stopped before 32K retention; decode,
 reuse, soak, and production adoption remain unevaluated. See
 `gfx1201_r5_quality_context_20260914_results.md`.
 
+An independent, fixed 3-content-by-3-position 32K retention diagnostic was
+subsequently run without changing the supplement's result or any production
+path. Its first attempt stopped when candidate-side `attn_fwd` JIT work was
+inside the scored request. After adding an unscored per-mode warmup, all 18
+requests completed: baseline and candidate were both exact on 9/9 cases, with
+candidate coverage overlapping the answer-bearing sentence in every case.
+This is a bounded retrieval observation, not a general quality qualification;
+decode regression, prefix reuse, soak and production adoption remain
+unevaluated. See `gfx1201_r5_retention_32k.md` and its rerun artifacts.
+
 ### R6: composition, capacity and final experience
 
 Compose only accepted stages and preserve component toggles for rollback.

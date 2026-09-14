@@ -1,0 +1,20 @@
+warmup baseline tokens=1 applied=0 elapsed=138.24
+warmup candidate tokens=1 applied=1984 elapsed=364.22
+1/9 baseline archive_lantern-early tokens=13 finish=stop applied=0 overlap=0 elapsed=133.48
+1/9 candidate archive_lantern-early tokens=13 finish=stop applied=1984 overlap=16 elapsed=61.31
+2/9 candidate archive_lantern-middle tokens=13 finish=stop applied=1984 overlap=16 elapsed=61.27
+2/9 baseline archive_lantern-middle tokens=13 finish=stop applied=0 overlap=0 elapsed=132.83
+3/9 baseline archive_lantern-late tokens=13 finish=stop applied=0 overlap=0 elapsed=132.66
+3/9 candidate archive_lantern-late tokens=13 finish=stop applied=1984 overlap=16 elapsed=61.29
+4/9 candidate moss_circuit-early tokens=13 finish=stop applied=1984 overlap=16 elapsed=61.29
+4/9 baseline moss_circuit-early tokens=13 finish=stop applied=0 overlap=0 elapsed=132.80
+5/9 baseline moss_circuit-middle tokens=13 finish=stop applied=0 overlap=0 elapsed=132.67
+5/9 candidate moss_circuit-middle tokens=13 finish=stop applied=1984 overlap=16 elapsed=61.26
+6/9 candidate moss_circuit-late tokens=13 finish=stop applied=1984 overlap=16 elapsed=61.28
+6/9 baseline moss_circuit-late tokens=13 finish=stop applied=0 overlap=0 elapsed=132.68
+7/9 baseline orbit_kestrel-early tokens=13 finish=stop applied=0 overlap=0 elapsed=132.65
+7/9 candidate orbit_kestrel-early tokens=13 finish=stop applied=1984 overlap=16 elapsed=61.26
+8/9 candidate orbit_kestrel-middle tokens=13 finish=stop applied=1984 overlap=16 elapsed=61.26
+8/9 baseline orbit_kestrel-middle tokens=13 finish=stop applied=0 overlap=0 elapsed=132.77
+9/9 baseline orbit_kestrel-late tokens=13 finish=stop applied=0 overlap=0 elapsed=132.63
+9/9 candidate orbit_kestrel-late tokens=13 finish=stop applied=1984 overlap=16 elapsed=61.29
