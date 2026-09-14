@@ -427,6 +427,17 @@ R5 is stopped at the numerical gate. See
 artifact for the provenance, contract, and per-case results. This does not
 reopen P2.2 or reject K8/V4 storage as a format.
 
+A separate, user-authorized evaluation policy v2 preserves that strict result
+but uses causal/input-contract checks, full-output finiteness and the documented
+upstream-derived tolerance to permit timing. Its 32K-prefix/q256 continuation
+speed gate passes. The 4K model smoke also completes, but cold32K model TTFT
+remains unmeasured after a host-RAM OOM and a subsequent bounded-container
+startup OOM. R5 backend adoption is undecided, not rejected by the old strict
+diagnostic. See `gfx1201_prefill_rearchitecture_r5_speed_20260914.md` for the
+separate policy, environments, artifacts and stop condition. No production
+integration or quality/operational qualification has been authorized by these
+measurements.
+
 ### R6: composition, capacity and final experience
 
 Compose only accepted stages and preserve component toggles for rollback.
