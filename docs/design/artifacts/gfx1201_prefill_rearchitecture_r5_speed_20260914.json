@@ -1,0 +1,640 @@
+{
+  "backend": {
+    "amd_interface_file": "/tmp/r5-flash-site/flash_attn/flash_attn_triton_amd/interface_fa.py",
+    "amd_interface_sha256": "d0ff887fd3481101e2cda88244aa2fc272bf53c18db981235d1d09b69b0e4e03",
+    "amd_prefill_file": "/tmp/r5-flash-site/flash_attn/flash_attn_triton_amd/fwd_prefill.py",
+    "amd_prefill_sha256": "0205ca50fd19c7cadf7731dc5effc5748322d01938939e4efe0939463bc3e2f1",
+    "amd_selector": "TRUE",
+    "amd_use_triton_rocm": true,
+    "distribution_direct_url": {
+      "archive_info": {
+        "hash": "sha256=af2d6326747cd49a43843d04d01ebcdf3b452ca3f873b7435a21d140ff598b1a",
+        "hashes": {
+          "sha256": "af2d6326747cd49a43843d04d01ebcdf3b452ca3f873b7435a21d140ff598b1a"
+        }
+      },
+      "url": "file:///install/flash_attn-2.8.3-cp312-cp312-linux_x86_64.whl"
+    },
+    "entry_point": "flash_attn.flash_attn_varlen_func",
+    "entry_source": "/tmp/r5-flash-site/flash_attn/flash_attn_interface.py",
+    "interface_file": "/tmp/r5-flash-site/flash_attn/flash_attn_interface.py",
+    "package": "flash_attn",
+    "package_file": "/tmp/r5-flash-site/flash_attn/__init__.py",
+    "source_commit": null,
+    "source_commit_note": "wheel metadata did not expose an upstream commit",
+    "upstream_test_file": "/tmp/r5-flash-site/flash_attn/flash_attn_triton_amd/test.py",
+    "upstream_test_sha256": "8bef6fb5f48c615194e517cfd49949de2312d7591a7996c91f6f09eec7cd9d19",
+    "version": "2.8.3"
+  },
+  "boundary_fixture": {
+    "case": {
+      "cached_len": 3,
+      "q_len": 2,
+      "seq_len": 5
+    },
+    "expected_head0_dim0": [
+      1.5,
+      2.0
+    ],
+    "flash_head0_dim0": [
+      1.5,
+      2.0
+    ],
+    "flash_pass": true,
+    "mask": [
+      [
+        1,
+        1,
+        1,
+        1,
+        0
+      ],
+      [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    ],
+    "math_head0_dim0": [
+      1.5,
+      2.0
+    ],
+    "math_pass": true,
+    "pass": true
+  },
+  "cases": [
+    {
+      "baseline_math": {
+        "final_bf16_reference_difference": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 1.9073486328125e-06,
+          "mismatch_elements": 1,
+          "relative_l2": 1.6234476025288104e-06,
+          "rmse": 3.9736429850260414e-08
+        },
+        "fp64_reference_difference": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.00023265038645535474,
+          "mismatch_elements": 2304,
+          "relative_l2": 0.001642026005792991,
+          "rmse": 4.0190655809798624e-05
+        },
+        "note": "fp64_reference_difference is an independent reference delta; it is not a kernel-internal pre-cast output.",
+        "oracle_row_count": 9
+      },
+      "candidate_flash_triton_amd": {
+        "final_bf16_reference_difference": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.00048828125,
+          "mismatch_elements": 996,
+          "relative_l2": 0.002577345304549699,
+          "rmse": 6.308457429399523e-05
+        },
+        "fp64_reference_difference": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.00030752151372792635,
+          "mismatch_elements": 2304,
+          "relative_l2": 0.002332079634164799,
+          "rmse": 5.708058798526406e-05
+        },
+        "note": "fp64_reference_difference is an independent reference delta; it is not a kernel-internal pre-cast output.",
+        "oracle_row_count": 9
+      },
+      "case": {
+        "cached_len": 4096,
+        "q_len": 256,
+        "seq_len": 4352
+      },
+      "contract": {
+        "cache": {
+          "block_table_dtype": "torch.int32",
+          "block_table_shape": [
+            1,
+            272
+          ],
+          "dtype": "torch.uint8",
+          "shape": [
+            272,
+            16,
+            4,
+            388
+          ]
+        },
+        "causal_rule": "j <= cached_len + query_row",
+        "current": "raw BF16 K/V",
+        "key": {
+          "dtype": "torch.bfloat16",
+          "shape": [
+            4352,
+            4,
+            256
+          ],
+          "stride": [
+            1024,
+            256,
+            1
+          ]
+        },
+        "prefix": "retained K8/V4 SoA cache -> FP16 -> BF16",
+        "prefix_requantization": false,
+        "query": {
+          "dtype": "torch.bfloat16",
+          "shape": [
+            256,
+            24,
+            256
+          ],
+          "stride": [
+            6144,
+            256,
+            1
+          ]
+        },
+        "scale": 0.0625,
+        "value": {
+          "dtype": "torch.bfloat16",
+          "shape": [
+            4352,
+            4,
+            256
+          ],
+          "stride": [
+            1024,
+            256,
+            1
+          ]
+        }
+      },
+      "finite": {
+        "baseline_math_full_output": true,
+        "candidate_flash_triton_amd_full_output": true,
+        "selected_fp64_oracle": true
+      },
+      "input_contract_pass": true,
+      "status": "numeric_pass",
+      "strict_math_ratio_diagnostic": {
+        "margin": 1.1,
+        "max_abs_ratio": 256.0,
+        "note": "Diagnostic only; this failure does not block speed measurement.",
+        "pass": false,
+        "rmse_ratio": 1587.5752937976083
+      },
+      "timing": {
+        "attention_flash_triton_amd": {
+          "median_us": 629.551500082016,
+          "min_us": 600.8710265159607,
+          "p95_us": 817.4920082092285,
+          "samples_us": [
+            629.6910047531128,
+            611.2120151519775,
+            629.4119954109192,
+            783.9120030403137,
+            939.3619894981384,
+            608.6009740829468,
+            606.9509983062744,
+            788.0619764328003,
+            601.9909977912903,
+            817.4920082092285,
+            758.2619786262512,
+            601.0820269584656,
+            784.741997718811,
+            642.9420113563538,
+            603.6909818649292,
+            600.8710265159607,
+            678.3919930458069,
+            659.8420143127441,
+            610.3709936141968,
+            609.7919940948486
+          ]
+        },
+        "attention_math": {
+          "median_us": 4300.665378570557,
+          "min_us": 4237.969875335693,
+          "p95_us": 4373.950958251953,
+          "samples_us": [
+            4463.89102935791,
+            4310.649871826172,
+            4305.089950561523,
+            4357.359886169434,
+            4310.8811378479,
+            4371.251106262207,
+            4366.291046142578,
+            4268.449783325195,
+            4237.969875335693,
+            4296.24080657959,
+            4373.950958251953,
+            4270.92981338501,
+            4245.05090713501,
+            4268.889904022217,
+            4343.571186065674,
+            4273.369789123535,
+            4260.369777679443,
+            4276.010036468506,
+            4351.931095123291,
+            4268.69010925293
+          ]
+        },
+        "continuation_flash_triton_amd": {
+          "median_us": 918.5469746589661,
+          "min_us": 889.0420198440552,
+          "p95_us": 1095.4320430755615,
+          "samples_us": [
+            930.9920072555542,
+            918.6319708824158,
+            918.4619784355164,
+            906.3019752502441,
+            1409.3029499053955,
+            901.0530114173889,
+            917.382001876831,
+            889.88196849823,
+            1083.5429430007935,
+            1020.563006401062,
+            920.3919768333435,
+            889.0820145606995,
+            921.2520122528076,
+            889.0420198440552,
+            929.1030168533325,
+            916.3519740104675,
+            1095.4320430755615,
+            975.3530025482178,
+            911.732017993927,
+            889.1019821166992
+          ]
+        },
+        "continuation_math": {
+          "median_us": 4449.870347976685,
+          "min_us": 4393.849849700928,
+          "p95_us": 4597.870826721191,
+          "samples_us": [
+            4464.489936828613,
+            4485.37015914917,
+            4478.930950164795,
+            4417.530059814453,
+            4597.6409912109375,
+            4496.349811553955,
+            4399.889945983887,
+            4402.1711349487305,
+            4429.890155792236,
+            4614.4609451293945,
+            4523.93102645874,
+            4424.890041351318,
+            4502.860069274902,
+            4405.770778656006,
+            4407.969951629639,
+            4431.8108558654785,
+            4597.870826721191,
+            4530.951023101807,
+            4393.849849700928,
+            4435.250759124756
+          ]
+        }
+      },
+      "upstream_tolerance_check": {
+        "atol": 0.01,
+        "equal_nan": true,
+        "evaluation_dtype": "torch.bfloat16 (R5 contract adaptation)",
+        "formula": "torch.testing.assert_close",
+        "reference": "explicit Math SDPA over the same effective BF16 K/V",
+        "result": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "rtol": 0.01,
+        "source_dtype": "torch.float16 in loaded upstream test",
+        "source_test": "flash_attn_triton_amd/test.py"
+      }
+    },
+    {
+      "baseline_math": {
+        "final_bf16_reference_difference": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 1.52587890625e-05,
+          "mismatch_elements": 4,
+          "relative_l2": 3.435199793479754e-05,
+          "rmse": 3.182017354720714e-07
+        },
+        "fp64_reference_difference": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 5.9713395815449294e-05,
+          "mismatch_elements": 2304,
+          "relative_l2": 0.001603187204863525,
+          "rmse": 1.4849084592016061e-05
+        },
+        "note": "fp64_reference_difference is an independent reference delta; it is not a kernel-internal pre-cast output.",
+        "oracle_row_count": 9
+      },
+      "candidate_flash_triton_amd": {
+        "final_bf16_reference_difference": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 0.0001220703125,
+          "mismatch_elements": 969,
+          "relative_l2": 0.002637181687465258,
+          "rmse": 2.4428150912776207e-05
+        },
+        "fp64_reference_difference": {
+          "elements": 2304,
+          "finite": true,
+          "max_abs": 9.1330080668698e-05,
+          "mismatch_elements": 2304,
+          "relative_l2": 0.0023197463487288645,
+          "rmse": 2.1486018388743067e-05
+        },
+        "note": "fp64_reference_difference is an independent reference delta; it is not a kernel-internal pre-cast output.",
+        "oracle_row_count": 9
+      },
+      "case": {
+        "cached_len": 32768,
+        "q_len": 256,
+        "seq_len": 33024
+      },
+      "contract": {
+        "cache": {
+          "block_table_dtype": "torch.int32",
+          "block_table_shape": [
+            1,
+            2064
+          ],
+          "dtype": "torch.uint8",
+          "shape": [
+            2064,
+            16,
+            4,
+            388
+          ]
+        },
+        "causal_rule": "j <= cached_len + query_row",
+        "current": "raw BF16 K/V",
+        "key": {
+          "dtype": "torch.bfloat16",
+          "shape": [
+            33024,
+            4,
+            256
+          ],
+          "stride": [
+            1024,
+            256,
+            1
+          ]
+        },
+        "prefix": "retained K8/V4 SoA cache -> FP16 -> BF16",
+        "prefix_requantization": false,
+        "query": {
+          "dtype": "torch.bfloat16",
+          "shape": [
+            256,
+            24,
+            256
+          ],
+          "stride": [
+            6144,
+            256,
+            1
+          ]
+        },
+        "scale": 0.0625,
+        "value": {
+          "dtype": "torch.bfloat16",
+          "shape": [
+            33024,
+            4,
+            256
+          ],
+          "stride": [
+            1024,
+            256,
+            1
+          ]
+        }
+      },
+      "finite": {
+        "baseline_math_full_output": true,
+        "candidate_flash_triton_amd_full_output": true,
+        "selected_fp64_oracle": true
+      },
+      "input_contract_pass": true,
+      "status": "numeric_pass",
+      "strict_math_ratio_diagnostic": {
+        "margin": 1.1,
+        "max_abs_ratio": 8.0,
+        "note": "Diagnostic only; this failure does not block speed measurement.",
+        "pass": false,
+        "rmse_ratio": 76.76938303474547
+      },
+      "timing": {
+        "attention_flash_triton_amd": {
+          "median_us": 3802.843928337097,
+          "min_us": 3583.909034729004,
+          "p95_us": 3943.17889213562,
+          "samples_us": [
+            3781.799077987671,
+            3851.1290550231934,
+            3764.3089294433594,
+            3845.139980316162,
+            3786.038875579834,
+            3803.8289546966553,
+            3943.17889213562,
+            3782.6390266418457,
+            3583.909034729004,
+            3781.838893890381,
+            3838.989019393921,
+            3799.6490001678467,
+            3819.6089267730713,
+            4167.109966278076,
+            3660.0890159606934,
+            3809.238910675049,
+            3800.658941268921,
+            3914.4890308380127,
+            3801.858901977539,
+            3861.4590167999268
+          ]
+        },
+        "attention_math": {
+          "median_us": 36716.84646606445,
+          "min_us": 35998.24905395508,
+          "p95_us": 36889.774322509766,
+          "samples_us": [
+            36780.37643432617,
+            36107.12814331055,
+            36735.64910888672,
+            36060.943603515625,
+            36641.536712646484,
+            36766.666412353516,
+            36889.774322509766,
+            35998.24905395508,
+            36058.36486816406,
+            36916.629791259766,
+            36718.56689453125,
+            36658.966064453125,
+            36833.641052246094,
+            36715.126037597656,
+            36829.654693603516,
+            36850.486755371094,
+            36260.4866027832,
+            36127.9296875,
+            36789.28756713867,
+            36105.12924194336
+          ]
+        },
+        "continuation_flash_triton_amd": {
+          "median_us": 5261.3420486450195,
+          "min_us": 5045.901775360107,
+          "p95_us": 5370.152950286865,
+          "samples_us": [
+            5368.563175201416,
+            5335.002899169922,
+            5045.901775360107,
+            5393.572807312012,
+            5085.611820220947,
+            5349.953174591064,
+            5116.241931915283,
+            5320.161819458008,
+            5110.372066497803,
+            5370.152950286865,
+            5070.192813873291,
+            5338.031768798828,
+            5106.892108917236,
+            5232.151985168457,
+            5140.721797943115,
+            5312.682151794434,
+            5146.431922912598,
+            5290.532112121582,
+            5136.8818283081055,
+            5362.682819366455
+          ]
+        },
+        "continuation_math": {
+          "median_us": 38099.44725036621,
+          "min_us": 37369.90737915039,
+          "p95_us": 38264.59884643555,
+          "samples_us": [
+            38120.262145996094,
+            38126.75857543945,
+            38095.16143798828,
+            37524.1813659668,
+            37461.10153198242,
+            37432.247161865234,
+            38139.713287353516,
+            38247.63107299805,
+            38267.24624633789,
+            37369.90737915039,
+            38103.73306274414,
+            38264.59884643555,
+            37470.84045410156,
+            37597.33963012695,
+            37511.16180419922,
+            38158.35189819336,
+            37971.60720825195,
+            38079.498291015625,
+            38131.439208984375,
+            38179.691314697266
+          ]
+        }
+      },
+      "upstream_tolerance_check": {
+        "atol": 0.01,
+        "equal_nan": true,
+        "evaluation_dtype": "torch.bfloat16 (R5 contract adaptation)",
+        "formula": "torch.testing.assert_close",
+        "reference": "explicit Math SDPA over the same effective BF16 K/V",
+        "result": {
+          "atol": 0.01,
+          "pass": true,
+          "rtol": 0.01
+        },
+        "rtol": 0.01,
+        "source_dtype": "torch.float16 in loaded upstream test",
+        "source_test": "flash_attn_triton_amd/test.py"
+      }
+    }
+  ],
+  "continuation_speed_gate": {
+    "pass": true,
+    "speedup": 7.241393336169458,
+    "threshold": 1.3
+  },
+  "contract": {
+    "D": 256,
+    "GQA": 6,
+    "Hk": 4,
+    "Hq": 24,
+    "causal": "bottom-right rectangular: j <= cached_len + i",
+    "current": "raw BF16 K/V",
+    "dropout": 0.0,
+    "dtype": "BF16",
+    "prefix": "retained K8/V4 SoA cache -> existing reader FP16 -> BF16",
+    "production_changes": false,
+    "scale": 0.0625
+  },
+  "evaluation": "R5 relaxed upstream-tolerance speed evaluation",
+  "gpu": {
+    "accelerator": "cuda",
+    "device": "cuda"
+  },
+  "hip": "7.14.60850",
+  "measurement_manifest": {
+    "attention_only": "prepared effective BF16 K/V, fixed mask/cu_seqlens, attention output",
+    "cases": [
+      {
+        "cached_len": 4096,
+        "q_len": 256
+      },
+      {
+        "cached_len": 32768,
+        "q_len": 256
+      }
+    ],
+    "continuation": "retained cache decode + FP16->BF16 + raw-current assembly + mask/metadata/output allocation + attention",
+    "flush_mib": 64,
+    "preparation_excluded": "cache allocation, cache store, fixed metadata",
+    "rotating_order": true,
+    "samples": 20,
+    "speed_gate": "32K/q256 continuation speedup >= 1.30x",
+    "warmups": 5
+  },
+  "numeric_gate_summary": {
+    "all_cases_pass": true,
+    "boundary_pass": true,
+    "gate": "finite + input contract + upstream-derived tolerance"
+  },
+  "schema_version": 2,
+  "speed_summary": {
+    "cached32768_q256": {
+      "baseline_continuation_median_us": 38099.44725036621,
+      "candidate_continuation_median_us": 5261.3420486450195,
+      "gate": true,
+      "speedup": 7.241393336169458
+    },
+    "cached4096_q256": {
+      "baseline_continuation_median_us": 4449.870347976685,
+      "candidate_continuation_median_us": 918.5469746589661,
+      "gate": true,
+      "speedup": 4.844466827217859
+    }
+  },
+  "start_commit": "66cd1152ab",
+  "status": "continuation_speed_gate_passed_model_ab_pending",
+  "strict_math_record": "66cd1152ab remains the strict Math-ratio diagnostic; its failure is not overwritten and does not block this speed measurement.",
+  "torch": "2.12.0+rocm7.14.0",
+  "upstream_tolerance_manifest": {
+    "adaptation_note": "The same upstream tolerances are applied to the R5 BF16 contract; this is recorded as an adaptation, not as the upstream FP16 test itself.",
+    "atol": 0.01,
+    "equal_nan": true,
+    "evaluation_dtype": "torch.bfloat16",
+    "evaluation_reference": "explicit Math SDPA over effective BF16 K/V",
+    "rtol": 0.01,
+    "source": "loaded flash_attn_triton_amd/test.py",
+    "source_dtype": "torch.float16",
+    "source_reference": "attention_forward_pytorch_ref_impl"
+  }
+}
