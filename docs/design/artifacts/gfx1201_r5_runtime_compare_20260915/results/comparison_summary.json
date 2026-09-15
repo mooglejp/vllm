@@ -1,0 +1,93 @@
+{
+  "comparison_id": "r5-vllm-vs-production-llama-20260915",
+  "scope": {
+    "production_adoption": false,
+    "kernel_changes": false,
+    "same_model": false,
+    "same_quantization": false,
+    "speed_samples_per_shape": 5,
+    "speed_output_tokens": 256,
+    "speed_prefix_reuse": false,
+    "warmup_excluded": true
+  },
+  "speed": {
+    "metric": "median client-side TTFT seconds",
+    "rows": [
+      {
+        "prompt_tokens": 128,
+        "llama_cpp": 0.514,
+        "vllm_baseline": 0.594,
+        "vllm_candidate": 0.594,
+        "candidate_speedup_vs_baseline": 1.0,
+        "candidate_slowdown_vs_llama": 1.16
+      },
+      {
+        "prompt_tokens": 1024,
+        "llama_cpp": 1.566,
+        "vllm_baseline": 1.972,
+        "vllm_candidate": 1.886,
+        "candidate_speedup_vs_baseline": 1.046,
+        "candidate_slowdown_vs_llama": 1.20
+      },
+      {
+        "prompt_tokens": 4096,
+        "llama_cpp": 4.995,
+        "vllm_baseline": 7.260,
+        "vllm_candidate": 6.090,
+        "candidate_speedup_vs_baseline": 1.192,
+        "candidate_slowdown_vs_llama": 1.22
+      },
+      {
+        "prompt_tokens": 16384,
+        "llama_cpp": 20.052,
+        "vllm_baseline": 44.102,
+        "vllm_candidate": 26.684,
+        "candidate_speedup_vs_baseline": 1.653,
+        "candidate_slowdown_vs_llama": 1.33
+      },
+      {
+        "prompt_tokens": 32768,
+        "llama_cpp": 43.265,
+        "vllm_baseline": 133.370,
+        "vllm_candidate": 61.769,
+        "candidate_speedup_vs_baseline": 2.16,
+        "candidate_slowdown_vs_llama": 1.43
+      }
+    ]
+  },
+  "quality": {
+    "source": "historical vLLM context-suite records paired with current llama.cpp records",
+    "vllm_baseline": {
+      "gsm8k_correct": 36,
+      "mmlu_correct": 65,
+      "humaneval_functional_correct": 138
+    },
+    "vllm_candidate": {
+      "gsm8k_correct": 35,
+      "mmlu_correct": 65,
+      "humaneval_functional_correct": 139
+    },
+    "llama_cpp": {
+      "gsm8k_correct": 62,
+      "mmlu_correct": 23,
+      "humaneval_functional_correct": 128,
+      "reasoning_enabled": true
+    },
+    "caveat": "The vLLM suite used non-thinking requests while the production llama.cpp command retained reasoning on; models, quantization, template, and output behavior therefore differ."
+  },
+  "retention": {
+    "cases": 9,
+    "vllm_baseline_exact": 9,
+    "vllm_candidate_exact": 9,
+    "llama_cpp_exact": 0,
+    "llama_cpp_contains_answer": 9,
+    "caveat": "llama.cpp returned explanations around the answer; strict exact-match and auxiliary contains-answer are both retained."
+  },
+  "sources": {
+    "inventory": "docs/design/artifacts/gfx1201_r5_runtime_compare_20260915/inventory.json",
+    "prepared_manifest": "docs/design/artifacts/gfx1201_r5_runtime_compare_20260915/prepared/manifest.json",
+    "speed_results": "docs/design/artifacts/gfx1201_r5_runtime_compare_20260915/results/",
+    "vllm_historical_quality_archive": "docs/design/artifacts/gfx1201_r5_quality_context_20260914.tar.gz",
+    "vllm_retention": "docs/design/artifacts/gfx1201_r5_retention_32k_20260915_rerun/"
+  }
+}

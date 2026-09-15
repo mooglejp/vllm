@@ -1,0 +1,11 @@
+{
+  "engine": "llama",
+  "kind": "quality",
+  "rows": 308,
+  "request_errors": 0,
+  "stream_errors": 0,
+  "finish_reasons": {
+    "length": 85,
+    "stop": 223
+  }
+}

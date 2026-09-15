@@ -1,0 +1,5900 @@
+{
+  "tasks": {
+    "gsm8k": {
+      "cases": 64,
+      "categories": {
+        "both_correct": 36,
+        "llama_only": 26,
+        "both_incorrect": 2
+      },
+      "vllm_correct": 36,
+      "llama_correct": 62,
+      "vllm_truncated": 0,
+      "llama_truncated": 2,
+      "vllm_syntax_valid": 0,
+      "llama_syntax_valid": 0
+    },
+    "mmlu": {
+      "cases": 80,
+      "categories": {
+        "both_correct": 21,
+        "vllm_only": 44,
+        "both_incorrect": 13,
+        "llama_only": 2
+      },
+      "vllm_correct": 65,
+      "llama_correct": 23,
+      "vllm_truncated": 0,
+      "llama_truncated": 79,
+      "vllm_syntax_valid": 0,
+      "llama_syntax_valid": 0
+    },
+    "humaneval": {
+      "cases": 164,
+      "categories": {
+        "both_incorrect": 164
+      },
+      "vllm_correct": 0,
+      "llama_correct": 0,
+      "vllm_truncated": 1,
+      "llama_truncated": 4,
+      "vllm_syntax_valid": 161,
+      "llama_syntax_valid": 143
+    }
+  },
+  "cases": [
+    {
+      "id": "gsm8k/61",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 258,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/64",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 178,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/71",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 158,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/72",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 184,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "gsm8k/86",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 205,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "gsm8k/109",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 239,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/204",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 206,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "gsm8k/234",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 263,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "gsm8k/273",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 251,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/295",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 192,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "gsm8k/340",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 330,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "gsm8k/364",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 124,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/377",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 184,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "gsm8k/395",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 242,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "gsm8k/396",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 223,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/399",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 230,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/427",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 525,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "gsm8k/433",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 230,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "gsm8k/437",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 194,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/469",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 166,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/494",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 825,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "gsm8k/523",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 175,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/526",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 540,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "gsm8k/533",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 377,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "gsm8k/568",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 152,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/577",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 240,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "gsm8k/613",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 191,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/628",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 211,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/633",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 198,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/638",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 272,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "gsm8k/675",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 1024,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "gsm8k/678",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 186,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/701",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 192,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "gsm8k/714",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 312,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/741",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 149,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/752",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 197,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "gsm8k/767",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 164,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/784",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 248,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/791",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 206,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/795",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 225,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "gsm8k/847",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 421,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "gsm8k/864",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 235,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/872",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 203,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "gsm8k/890",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 728,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/908",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 147,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/919",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 167,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/925",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 213,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/939",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 253,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "gsm8k/942",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 229,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/946",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 148,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/968",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 179,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/1164",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 204,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/1175",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 219,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "gsm8k/1185",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 246,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/1189",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 127,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "gsm8k/1191",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 202,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/1196",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 218,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/1202",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 245,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "gsm8k/1213",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 209,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "gsm8k/1229",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 170,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/1259",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 211,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/1274",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 245,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "gsm8k/1291",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 102,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "gsm8k/1303",
+      "task": "gsm8k",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 1024,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/0",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 591,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/1",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1351,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/2",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 433,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/3",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": false,
+        "finish_reason": "stop",
+        "output_tokens": 329,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/4",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 556,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/5",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 549,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/6",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 582,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/7",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": false,
+        "finish_reason": "stop",
+        "output_tokens": 298,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/8",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 373,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/9",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 540,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/10",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": false,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1016,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/11",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 411,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/12",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 359,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/13",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 394,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/14",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 353,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/15",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 291,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/16",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 291,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/17",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 529,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/18",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 717,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/19",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 495,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/20",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 644,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/21",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 637,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/22",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 611,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/23",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 209,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/24",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 655,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/25",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 733,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/26",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 398,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/27",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 294,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/28",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 236,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/29",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": false,
+        "finish_reason": "stop",
+        "output_tokens": 268,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/30",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": false,
+        "finish_reason": "stop",
+        "output_tokens": 309,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/31",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1218,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/32",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "length",
+        "output_tokens": 2048,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/33",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 632,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/34",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 347,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/35",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 296,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/36",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1106,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/37",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 612,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/38",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": false,
+        "finish_reason": "stop",
+        "output_tokens": 600,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/39",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1303,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/40",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 804,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/41",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": false,
+        "finish_reason": "stop",
+        "output_tokens": 457,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/42",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 341,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/43",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 678,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/44",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 722,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/45",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": false,
+        "finish_reason": "stop",
+        "output_tokens": 198,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/46",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1023,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/47",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1797,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/48",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 398,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/49",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": false,
+        "finish_reason": "stop",
+        "output_tokens": 623,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/50",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": false,
+        "finish_reason": "stop",
+        "output_tokens": 279,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/51",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 521,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/52",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 396,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/53",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 212,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/54",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 551,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/55",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": false,
+        "finish_reason": "stop",
+        "output_tokens": 355,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/56",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": false,
+        "finish_reason": "stop",
+        "output_tokens": 416,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/57",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 639,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/58",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 353,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/59",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 776,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/60",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": false,
+        "finish_reason": "stop",
+        "output_tokens": 334,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/61",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": false,
+        "finish_reason": "stop",
+        "output_tokens": 385,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/62",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 551,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/63",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 920,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/64",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 538,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/65",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1206,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/66",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 408,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/67",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 625,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/68",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 776,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/69",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 545,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/70",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 767,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/71",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 662,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/72",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 527,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/73",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": false,
+        "finish_reason": "stop",
+        "output_tokens": 524,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/74",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 540,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/75",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1071,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/76",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1618,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/77",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1212,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/78",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": false,
+        "finish_reason": "stop",
+        "output_tokens": 383,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/79",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 515,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/80",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 598,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/81",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": false,
+        "finish_reason": "stop",
+        "output_tokens": 969,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/82",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 407,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/83",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1813,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/84",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1132,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/85",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 466,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/86",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 989,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/87",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 826,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/88",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 617,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/89",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 820,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/90",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 594,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/91",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 820,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/92",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1388,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/93",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1014,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/94",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 697,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/95",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 822,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/96",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 864,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/97",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1143,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/98",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 456,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/99",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1084,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/100",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 518,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/101",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 627,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/102",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1640,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/103",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1155,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/104",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 648,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/105",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 635,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/106",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 497,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/107",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 711,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/108",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1112,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/109",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 942,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/110",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 800,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/111",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 806,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/112",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 470,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/113",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 787,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/114",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": false,
+        "finish_reason": "stop",
+        "output_tokens": 570,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/115",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 679,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/116",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1067,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/117",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 894,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/118",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1142,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/119",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 542,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/120",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": false,
+        "finish_reason": "stop",
+        "output_tokens": 780,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/121",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 640,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/122",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 805,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/123",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 810,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/124",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1361,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/125",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 810,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/126",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1023,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/127",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 770,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/128",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 537,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/129",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": false,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": false,
+        "finish_reason": "length",
+        "output_tokens": 2048,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/130",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1536,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/131",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 517,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/132",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1361,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/133",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 487,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/134",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1376,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/135",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 692,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/136",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 608,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/137",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 611,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/138",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 625,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/139",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 428,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/140",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 548,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/141",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 719,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/142",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1278,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/143",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 754,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/144",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": false,
+        "finish_reason": "stop",
+        "output_tokens": 382,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/145",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": false,
+        "finish_reason": "length",
+        "output_tokens": 2048,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/146",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 791,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/147",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": false,
+        "finish_reason": "length",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "length",
+        "output_tokens": 2048,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/148",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 519,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/149",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 583,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/150",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 480,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/151",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 1343,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/152",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 474,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/153",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 580,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/154",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 813,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/155",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 550,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/156",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 703,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/157",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 804,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/158",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 672,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/159",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 528,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/160",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 805,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/161",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 403,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/162",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 438,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "HumanEval/163",
+      "task": "humaneval",
+      "vllm": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": null,
+        "syntax_valid": true,
+        "finish_reason": "stop",
+        "output_tokens": 752,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "mmlu/conceptual_physics/28",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "mmlu/conceptual_physics/66",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/conceptual_physics/67",
+      "task": "mmlu",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "mmlu/conceptual_physics/92",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/conceptual_physics/108",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/conceptual_physics/122",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/conceptual_physics/130",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "mmlu/conceptual_physics/145",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/conceptual_physics/149",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/conceptual_physics/151",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "mmlu/conceptual_physics/171",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/conceptual_physics/175",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": 57,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "mmlu/conceptual_physics/177",
+      "task": "mmlu",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "mmlu/conceptual_physics/216",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/conceptual_physics/222",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/conceptual_physics/225",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/high_school_world_history/13",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "mmlu/high_school_world_history/15",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/high_school_world_history/37",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/high_school_world_history/57",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/high_school_world_history/59",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/high_school_world_history/72",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/high_school_world_history/100",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/high_school_world_history/127",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "mmlu/high_school_world_history/134",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/high_school_world_history/169",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "mmlu/high_school_world_history/177",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "mmlu/high_school_world_history/183",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/high_school_world_history/196",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/high_school_world_history/198",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "mmlu/high_school_world_history/199",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/high_school_world_history/233",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/professional_psychology/23",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "mmlu/professional_psychology/165",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/professional_psychology/253",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/professional_psychology/273",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/professional_psychology/282",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/professional_psychology/324",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "mmlu/professional_psychology/338",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "mmlu/professional_psychology/398",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "mmlu/professional_psychology/456",
+      "task": "mmlu",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "mmlu/professional_psychology/471",
+      "task": "mmlu",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "mmlu/professional_psychology/493",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/professional_psychology/495",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/professional_psychology/499",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/professional_psychology/508",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "mmlu/professional_psychology/546",
+      "task": "mmlu",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "mmlu/professional_psychology/598",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "mmlu/business_ethics/12",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/business_ethics/19",
+      "task": "mmlu",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "mmlu/business_ethics/21",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/business_ethics/23",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/business_ethics/25",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "mmlu/business_ethics/36",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/business_ethics/38",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/business_ethics/39",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/business_ethics/54",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/business_ethics/70",
+      "task": "mmlu",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "mmlu/business_ethics/71",
+      "task": "mmlu",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "mmlu/business_ethics/73",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/business_ethics/79",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/business_ethics/82",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/business_ethics/86",
+      "task": "mmlu",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "mmlu/business_ethics/87",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "mmlu/college_computer_science/1",
+      "task": "mmlu",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "mmlu/college_computer_science/3",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/college_computer_science/10",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/college_computer_science/17",
+      "task": "mmlu",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "mmlu/college_computer_science/18",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "mmlu/college_computer_science/19",
+      "task": "mmlu",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "mmlu/college_computer_science/23",
+      "task": "mmlu",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "llama_only"
+    },
+    {
+      "id": "mmlu/college_computer_science/46",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/college_computer_science/54",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "mmlu/college_computer_science/60",
+      "task": "mmlu",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "mmlu/college_computer_science/67",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/college_computer_science/77",
+      "task": "mmlu",
+      "vllm": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_incorrect"
+    },
+    {
+      "id": "mmlu/college_computer_science/83",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "mmlu/college_computer_science/86",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "both_correct"
+    },
+    {
+      "id": "mmlu/college_computer_science/97",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    },
+    {
+      "id": "mmlu/college_computer_science/99",
+      "task": "mmlu",
+      "vllm": {
+        "correct": true,
+        "syntax_valid": null,
+        "finish_reason": "stop",
+        "output_tokens": null,
+        "error": null
+      },
+      "llama": {
+        "correct": false,
+        "syntax_valid": null,
+        "finish_reason": "length",
+        "output_tokens": 64,
+        "error": null
+      },
+      "category": "vllm_only"
+    }
+  ],
+  "comparison_only": true
+}

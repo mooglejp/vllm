@@ -1,0 +1,106 @@
+{
+  "cases": 9,
+  "categories": {
+    "vllm_only": 9
+  },
+  "vllm_correct": 9,
+  "llama_correct": 0,
+  "by_position": {
+    "early": {
+      "vllm_correct": 3,
+      "llama_correct": 0
+    },
+    "middle": {
+      "vllm_correct": 3,
+      "llama_correct": 0
+    },
+    "late": {
+      "vllm_correct": 3,
+      "llama_correct": 0
+    }
+  },
+  "paired": [
+    {
+      "id": "archive_lantern-early",
+      "position": "early",
+      "category": "vllm_only",
+      "vllm_exact": true,
+      "llama_exact": false,
+      "vllm_finish_reason": "stop",
+      "llama_finish_reason": "stop"
+    },
+    {
+      "id": "archive_lantern-middle",
+      "position": "middle",
+      "category": "vllm_only",
+      "vllm_exact": true,
+      "llama_exact": false,
+      "vllm_finish_reason": "stop",
+      "llama_finish_reason": "stop"
+    },
+    {
+      "id": "archive_lantern-late",
+      "position": "late",
+      "category": "vllm_only",
+      "vllm_exact": true,
+      "llama_exact": false,
+      "vllm_finish_reason": "stop",
+      "llama_finish_reason": "stop"
+    },
+    {
+      "id": "moss_circuit-early",
+      "position": "early",
+      "category": "vllm_only",
+      "vllm_exact": true,
+      "llama_exact": false,
+      "vllm_finish_reason": "stop",
+      "llama_finish_reason": "stop"
+    },
+    {
+      "id": "moss_circuit-middle",
+      "position": "middle",
+      "category": "vllm_only",
+      "vllm_exact": true,
+      "llama_exact": false,
+      "vllm_finish_reason": "stop",
+      "llama_finish_reason": "stop"
+    },
+    {
+      "id": "moss_circuit-late",
+      "position": "late",
+      "category": "vllm_only",
+      "vllm_exact": true,
+      "llama_exact": false,
+      "vllm_finish_reason": "stop",
+      "llama_finish_reason": "stop"
+    },
+    {
+      "id": "orbit_kestrel-early",
+      "position": "early",
+      "category": "vllm_only",
+      "vllm_exact": true,
+      "llama_exact": false,
+      "vllm_finish_reason": "stop",
+      "llama_finish_reason": "stop"
+    },
+    {
+      "id": "orbit_kestrel-middle",
+      "position": "middle",
+      "category": "vllm_only",
+      "vllm_exact": true,
+      "llama_exact": false,
+      "vllm_finish_reason": "stop",
+      "llama_finish_reason": "stop"
+    },
+    {
+      "id": "orbit_kestrel-late",
+      "position": "late",
+      "category": "vllm_only",
+      "vllm_exact": true,
+      "llama_exact": false,
+      "vllm_finish_reason": "stop",
+      "llama_finish_reason": "stop"
+    }
+  ],
+  "comparison_only": true
+}

@@ -1,0 +1,828 @@
+{
+  "summary": {
+    "passed": 128,
+    "cases": 164
+  },
+  "cases": [
+    {
+      "id": "HumanEval/0",
+      "passed": false,
+      "detail": "Traceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\nNameError: name 'List' is not defined. Did you mean: 'list'?\n"
+    },
+    {
+      "id": "HumanEval/1",
+      "passed": false,
+      "detail": "Traceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\nNameError: name 'List' is not defined. Did you mean: 'list'?\n"
+    },
+    {
+      "id": "HumanEval/2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/3",
+      "passed": false,
+      "detail": "  File \"<stdin>\", line 11\n    - [1, 2, 3]: balance goes 1, 3, 6 \u2192 never below zero \u2192 False \u2713\n                                      ^\nSyntaxError: invalid character '\u2192' (U+2192)\n"
+    },
+    {
+      "id": "HumanEval/4",
+      "passed": false,
+      "detail": "Traceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\nNameError: name 'List' is not defined. Did you mean: 'list'?\n"
+    },
+    {
+      "id": "HumanEval/5",
+      "passed": false,
+      "detail": "Traceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\nNameError: name 'List' is not defined. Did you mean: 'list'?\n"
+    },
+    {
+      "id": "HumanEval/6",
+      "passed": false,
+      "detail": "Traceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\nNameError: name 'List' is not defined. Did you mean: 'list'?\n"
+    },
+    {
+      "id": "HumanEval/7",
+      "passed": false,
+      "detail": "  File \"<stdin>\", line 9\n    - `['abc', 'bacd', 'cde', 'array']` with substring `'a'` returns `['abc', 'bacd', 'array']` (note: 'cde' doesn't contain 'a')\n                                                                                                                               ^\nSyntaxError: unterminated string literal (detected at line 9)\n"
+    },
+    {
+      "id": "HumanEval/8",
+      "passed": false,
+      "detail": "Traceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\nNameError: name 'List' is not defined. Did you mean: 'list'?\n"
+    },
+    {
+      "id": "HumanEval/9",
+      "passed": false,
+      "detail": "Traceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\nNameError: name 'List' is not defined. Did you mean: 'list'?\n"
+    },
+    {
+      "id": "HumanEval/10",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/11",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/12",
+      "passed": false,
+      "detail": "Traceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\nNameError: name 'List' is not defined. Did you mean: 'list'?\n"
+    },
+    {
+      "id": "HumanEval/13",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/14",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/15",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/16",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/17",
+      "passed": false,
+      "detail": "Traceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\nNameError: name 'List' is not defined. Did you mean: 'list'?\n"
+    },
+    {
+      "id": "HumanEval/18",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/19",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/20",
+      "passed": false,
+      "detail": "Traceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\nNameError: name 'List' is not defined. Did you mean: 'list'?\n"
+    },
+    {
+      "id": "HumanEval/21",
+      "passed": false,
+      "detail": "Traceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\nNameError: name 'List' is not defined. Did you mean: 'list'?\n"
+    },
+    {
+      "id": "HumanEval/22",
+      "passed": false,
+      "detail": "Traceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\nNameError: name 'List' is not defined. Did you mean: 'list'?\n"
+    },
+    {
+      "id": "HumanEval/23",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/24",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/25",
+      "passed": false,
+      "detail": "Traceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\nNameError: name 'List' is not defined. Did you mean: 'list'?\n"
+    },
+    {
+      "id": "HumanEval/26",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/27",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/28",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/29",
+      "passed": false,
+      "detail": "  File \"<stdin>\", line 4\n    METADATA = {\n    ^^^^^^^^\nIndentationError: expected an indented block after function definition on line 1\n"
+    },
+    {
+      "id": "HumanEval/30",
+      "passed": false,
+      "detail": "  File \"<stdin>\", line 1\n    The task is to complete a Python function that returns only positive numbers from a list. Looking at the examples:\n        ^^^^\nSyntaxError: invalid syntax\n"
+    },
+    {
+      "id": "HumanEval/31",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/32",
+      "passed": false,
+      "detail": "Traceback (most recent call last):\n  File \"<stdin>\", line 63, in <module>\n  File \"<stdin>\", line 59, in check\n  File \"<stdin>\", line 16, in find_zero\n  File \"<stdin>\", line 6, in poly_val\n  File \"<stdin>\", line 6, in <genexpr>\nNameError: name 'math' is not defined. Did you forget to import 'math'?\n"
+    },
+    {
+      "id": "HumanEval/33",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/34",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/35",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/36",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/37",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/38",
+      "passed": false,
+      "detail": "  File \"<stdin>\", line 15\n    - Encode \"abc\" \u2192 group is \"abc\", cycle gives \"bca\"\n                   ^\nSyntaxError: invalid character '\u2192' (U+2192)\n"
+    },
+    {
+      "id": "HumanEval/39",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/40",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/41",
+      "passed": false,
+      "detail": "  File \"<stdin>\", line 13\n    - Each left-to-right car will cross paths with each right-to-left car exactly once (since they're moving toward each other).\n                                                                                                  ^\nSyntaxError: unterminated string literal (detected at line 13)\n"
+    },
+    {
+      "id": "HumanEval/42",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/43",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/44",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/45",
+      "passed": false,
+      "detail": "  File \"<stdin>\", line 7\n    - (1/2) * 5 * 3 = 7.5 \u2713\n                          ^\nSyntaxError: invalid character '\u2713' (U+2713)\n"
+    },
+    {
+      "id": "HumanEval/46",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/47",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/48",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/49",
+      "passed": false,
+      "detail": "  File \"<stdin>\", line 5\n    - The hint says \"be aware of numerics\" which suggests we should use Python's built-in `pow` with three arguments for modular exponentiation, which is efficient even for very large n.\n                                                                              ^\nSyntaxError: unterminated string literal (detected at line 5)\n"
+    },
+    {
+      "id": "HumanEval/50",
+      "passed": false,
+      "detail": "  File \"<stdin>\", line 14\n    Let me use the `-5` version since it's the direct inverse and more readable.\n                                        ^\nSyntaxError: unterminated string literal (detected at line 14)\n"
+    },
+    {
+      "id": "HumanEval/51",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/52",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/53",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/54",
+      "passed": false,
+      "detail": "  File \"<stdin>\", line 19\nSyntaxError: 'return' outside function\n"
+    },
+    {
+      "id": "HumanEval/55",
+      "passed": false,
+      "detail": "  File \"<stdin>\", line 21\n    I'll write a simple iterative implementation. The instruction says to return only executable Python source code without Markdown fences or explanation.\n     ^\nSyntaxError: unterminated string literal (detected at line 21)\n"
+    },
+    {
+      "id": "HumanEval/56",
+      "passed": false,
+      "detail": "  File \"<stdin>\", line 16\n    - \"<\" \u2192 depth goes to 1, end: depth=1, return False \u2713\n          ^\nSyntaxError: invalid character '\u2192' (U+2192)\n"
+    },
+    {
+      "id": "HumanEval/57",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/58",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/59",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/60",
+      "passed": false,
+      "detail": "  File \"<stdin>\", line 6\n    - sum_to_n(30) = 30*31//2 = 465 \u2713\n                                    ^\nSyntaxError: invalid character '\u2713' (U+2713)\n"
+    },
+    {
+      "id": "HumanEval/61",
+      "passed": false,
+      "detail": "  File \"<stdin>\", line 6\n    - If it's \"(\", increment the counter\n           ^\nSyntaxError: unterminated string literal (detected at line 6)\n"
+    },
+    {
+      "id": "HumanEval/62",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/63",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/64",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/65",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/66",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/67",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/68",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/69",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/70",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/71",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/72",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/73",
+      "passed": false,
+      "detail": "  File \"<stdin>\", line 3\n    A palindromic array reads the same forwards and backwards. So for each pair (arr[i], arr[n-1-i]), they need to be equal. If they're not equal, we need to change one of them (one change fixes one pair).\n                                                                                                                                    ^\nSyntaxError: unterminated string literal (detected at line 3)\n"
+    },
+    {
+      "id": "HumanEval/74",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/75",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/76",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/77",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/78",
+      "passed": false,
+      "detail": "  File \"<stdin>\", line 14\n    - \"AB\": A is not prime, B is prime \u2192 1 \u2713\n                                       ^\nSyntaxError: invalid character '\u2192' (U+2192)\n"
+    },
+    {
+      "id": "HumanEval/79",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/80",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/81",
+      "passed": false,
+      "detail": "  File \"<stdin>\", line 4\n    - 4.0 \u2192 A+\n          ^\nSyntaxError: invalid character '\u2192' (U+2192)\n"
+    },
+    {
+      "id": "HumanEval/82",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/83",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/84",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/85",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/86",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/87",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/88",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/89",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/90",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/91",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/92",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/93",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/94",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/95",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/96",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/97",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/98",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/99",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/100",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/101",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/102",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/103",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/104",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/105",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/106",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/107",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/108",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/109",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/110",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/111",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/112",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/113",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/114",
+      "passed": false,
+      "detail": "  File \"<stdin>\", line 3\n    This is a classic problem that can be solved using Kadane's algorithm (modified for minimum instead of maximum).\n                                                             ^\nSyntaxError: unterminated string literal (detected at line 3)\n"
+    },
+    {
+      "id": "HumanEval/115",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/116",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/117",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/118",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/119",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/120",
+      "passed": false,
+      "detail": "  File \"<stdin>\", line 12\n    The simplest approach: sort the array, take the last k elements (which are the largest k), and they'll already be in sorted order.\n                                                                                                       ^\nSyntaxError: unterminated string literal (detected at line 12)\n"
+    },
+    {
+      "id": "HumanEval/121",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/122",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/123",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/124",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/125",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/126",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/127",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/128",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/129",
+      "passed": false,
+      "detail": "  File \"<stdin>\", line 32\n    1 100\n      ^^^\nSyntaxError: invalid syntax\n"
+    },
+    {
+      "id": "HumanEval/130",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/131",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/132",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/133",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/134",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/135",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/136",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/137",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/138",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/139",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/140",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/141",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/142",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/143",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/144",
+      "passed": false,
+      "detail": "  File \"<stdin>\", line 13\n    - simplify(\"1/5\", \"5/1\"): (1*5) / (5*1) = 5/5 = 1 \u2192 True \u2713\n                                                      ^\nSyntaxError: invalid character '\u2192' (U+2192)\n"
+    },
+    {
+      "id": "HumanEval/145",
+      "passed": false,
+      "detail": "  File \"<stdin>\", line 42\n    Wait, that doesn't seem right. Let me re-sort:\n                    ^\nSyntaxError: unterminated string literal (detected at line 42)\n"
+    },
+    {
+      "id": "HumanEval/146",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/147",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/148",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/149",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/150",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/151",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/152",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/153",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/154",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/155",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/156",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/157",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/158",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/159",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/160",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/161",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/162",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "id": "HumanEval/163",
+      "passed": true,
+      "detail": ""
+    }
+  ]
+}
