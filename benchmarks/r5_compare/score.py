@@ -16,7 +16,12 @@ import regex as re
 
 def _load(path: Path) -> dict[str, dict[str, Any]]:
     rows = [json.loads(line) for line in path.read_text().splitlines() if line]
-    result = {row["case_id"]: row for row in rows}
+    result = {}
+    for row in rows:
+        case_id = row.get("case_id", row.get("id"))
+        if case_id is None:
+            raise ValueError(f"missing case id in {path}")
+        result[case_id] = row
     if len(result) != len(rows):
         raise ValueError(f"duplicate case IDs in {path}")
     return result
