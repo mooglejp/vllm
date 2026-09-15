@@ -109,7 +109,10 @@ def request(
         "ignore_eos": args.kind == "speed",
     }
     if args.engine == "vllm":
-        body["cache_salt"] = f"r5-compare-{run_id}"
+        # vLLM rejects slash characters in cache_salt.  Keep each run/case
+        # isolated while mapping the readable run id to the API contract.
+        cache_salt = run_id.replace("/", "_")
+        body["cache_salt"] = f"r5-compare-{cache_salt}"
         body["chat_template_kwargs"] = {"enable_thinking": False}
     else:
         body["cache_prompt"] = False
