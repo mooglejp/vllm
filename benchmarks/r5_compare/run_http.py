@@ -211,8 +211,15 @@ def main() -> None:
     parser.add_argument(
         "--hook-mode", choices=("baseline", "candidate"), default="candidate"
     )
+    parser.add_argument("--case-id", action="append")
     args = parser.parse_args()
     rows = [json.loads(line) for line in args.suite.read_text().splitlines() if line]
+    if args.case_id:
+        wanted = set(args.case_id)
+        rows = [row for row in rows if row["id"] in wanted]
+        if len(rows) != len(wanted):
+            missing = sorted(wanted - {row["id"] for row in rows})
+            raise ValueError(f"unknown case IDs: {missing}")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     warmup_path = args.output.with_name(args.output.stem + ".warmup.jsonl")
     output_rows = []
