@@ -1,0 +1,256 @@
+{
+  "comparison_id": "r5-vllm-vs-production-llama-20260914",
+  "captured_by": "benchmarks/r5_compare/capture_inventory.py",
+  "vllm": {
+    "repo": ".",
+    "commit": "63d9f801974bb065f8a8caef276b24e10e3b2342",
+    "status": "?? benchmarks/r5_compare/\n?? docs/design/artifacts/gfx1201_r5_runtime_compare_20260915/",
+    "model": {
+      "path": "/srv/ai/models/llm/hf/amd-Qwen3.8-27B-Quark-AWQ-MXFP4/model.safetensors.index.json",
+      "exists": false
+    },
+    "tokenizer": {
+      "tokenizer.json": {
+        "path": "/srv/ai/models/llm/hf/amd-Qwen3.8-27B-Quark-AWQ-MXFP4/tokenizer.json",
+        "exists": true,
+        "size_bytes": 12809320,
+        "sha256": "0997f410c57a1f4e53b09e4be8f4a172d90edd9564368fb0847030937229b9f3"
+      },
+      "tokenizer_config.json": {
+        "path": "/srv/ai/models/llm/hf/amd-Qwen3.8-27B-Quark-AWQ-MXFP4/tokenizer_config.json",
+        "exists": true,
+        "size_bytes": 17928,
+        "sha256": "b11349aafa7cdc6a320767cf7ceb29ed82f7eda5d65e8e0819e76f0ce947bf27"
+      },
+      "chat_template.jinja": {
+        "path": "/srv/ai/models/llm/hf/amd-Qwen3.8-27B-Quark-AWQ-MXFP4/chat_template.jinja",
+        "exists": true,
+        "size_bytes": 8952,
+        "sha256": "c3cf9e34abf4f9e36c2d72165aa9c132d3e2a725b6c2586aaa3a8af9d7a81041"
+      }
+    },
+    "configuration": {
+      "target_device": "rocm",
+      "arch": "gfx1201",
+      "tp": 1,
+      "kv": "TurboQuant K8/V4",
+      "mtp": 2,
+      "adaptive_verification": false,
+      "compilation_mode": 0,
+      "cudagraph_mode": "FULL_DECODE_ONLY",
+      "max_num_seqs": 1,
+      "max_num_batched_tokens": 256,
+      "prefix_caching": true,
+      "r5_continuation_hook": "diagnostic only"
+    }
+  },
+  "llama_cpp_production_reference": {
+    "container": "ai-llama",
+    "container_state": {
+      "Status": "exited",
+      "Running": false,
+      "Paused": false,
+      "Restarting": false,
+      "OOMKilled": false,
+      "Dead": false,
+      "Pid": 0,
+      "ExitCode": 0,
+      "Error": "",
+      "StartedAt": "2026-09-11T08:14:58.331417627Z",
+      "FinishedAt": "2026-09-11T10:00:06.252921936Z",
+      "Health": {
+        "Status": "unhealthy",
+        "FailingStreak": 0,
+        "Log": [
+          {
+            "Start": "2026-09-11T09:58:01.6266217Z",
+            "End": "2026-09-11T09:58:01.664577483Z",
+            "ExitCode": 0,
+            "Output": ""
+          },
+          {
+            "Start": "2026-09-11T09:58:31.665495178Z",
+            "End": "2026-09-11T09:58:31.703084113Z",
+            "ExitCode": 0,
+            "Output": ""
+          },
+          {
+            "Start": "2026-09-11T09:59:01.704370512Z",
+            "End": "2026-09-11T09:59:01.741265293Z",
+            "ExitCode": 0,
+            "Output": ""
+          },
+          {
+            "Start": "2026-09-11T09:59:31.741778891Z",
+            "End": "2026-09-11T09:59:31.777648626Z",
+            "ExitCode": 0,
+            "Output": ""
+          },
+          {
+            "Start": "2026-09-11T10:00:01.779013668Z",
+            "End": "2026-09-11T10:00:01.815971538Z",
+            "ExitCode": 0,
+            "Output": ""
+          }
+        ]
+      }
+    },
+    "config": {
+      "User": "1000:1000",
+      "Entrypoint": [
+        "/phase97/bin/llama-server"
+      ],
+      "Cmd": [
+        "-m",
+        "/models/huihui-ud/Huihui-Qwen3.8-27B-abliterated-UD-Q4_K_XL.gguf",
+        "--alias",
+        "huihui-qwen3.8-27b",
+        "--mmproj",
+        "/models/huihui-ud/mmproj-model-bf16.gguf",
+        "-c",
+        "393216",
+        "-b",
+        "512",
+        "-ub",
+        "512",
+        "-np",
+        "3",
+        "-ngl",
+        "999",
+        "-fa",
+        "on",
+        "-ctk",
+        "q8_0",
+        "-ctv",
+        "q4_0",
+        "--fit",
+        "off",
+        "--jinja",
+        "--reasoning",
+        "on",
+        "--reasoning-effort",
+        "medium",
+        "--spec-type",
+        "draft-mtp",
+        "--spec-draft-n-max",
+        "2",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8080",
+        "--backend-sampling"
+      ],
+      "WorkingDir": "/phase97",
+      "Image": "phase97-candidate-complete:20260906",
+      "Env_names": [
+        "HOME",
+        "LD_LIBRARY_PATH",
+        "MESA_SHADER_CACHE_DIR",
+        "PATH",
+        "RADV_DEBUG",
+        "container"
+      ]
+    },
+    "host_config": {
+      "Binds": [
+        "/srv/ai/models/llm/gguf/qwen38-official:/models/qwen38:ro",
+        "/srv/ai/models/llm/gguf/qwen38-unsloth:/models/qwen38-unsloth:ro",
+        "/srv/ai/models/llm/gguf/huihui-qwen38-ud:/models/huihui-ud:ro",
+        "/srv/ai/models/llm/gguf/ornith15:/models/ornith15:ro"
+      ],
+      "Devices": [
+        {
+          "PathOnHost": "/dev/dri/renderD129",
+          "PathInContainer": "/dev/dri/renderD129",
+          "CgroupPermissions": "rwm"
+        }
+      ],
+      "GroupAdd": [
+        "991"
+      ],
+      "NetworkMode": "ai-stack",
+      "PortBindings": {
+        "8080/tcp": [
+          {
+            "HostIp": "0.0.0.0",
+            "HostPort": "8080"
+          }
+        ]
+      },
+      "ReadonlyRootfs": true,
+      "SecurityOpt": [
+        "no-new-privileges:true"
+      ],
+      "ShmSize": 1073741824,
+      "Tmpfs": {
+        "/run": "rw,nosuid,nodev,size=64m",
+        "/tmp": "rw,nosuid,nodev,size=2g"
+      },
+      "Memory": 0,
+      "MemorySwap": 0
+    },
+    "image_repo_digests": [
+      "phase97-candidate-complete@sha256:0f233e8ba2cd58fee59544a13742aae4bba81c0ed5daf924440e8199cd2dce76"
+    ],
+    "image_labels": {
+      "ai.llama.binary.provenance": "phase91-build-r2-ui-relinked-build0-unknown",
+      "ai.llama.purpose": "phase97-complete-candidate",
+      "ai.llama.shader.sha256": "7b9736481116b9fd361f18fbd91136826bbe7b4a6c188def97940a9bcbe21343",
+      "ai.llama.ui.sha256": "826bb9bffa45ccd828bce3572b24a6d339962ab966a53bf573b915de8628f1a9",
+      "ai.llama.ui.version": "b10775",
+      "io.buildah.version": "1.43.2",
+      "license": "MIT",
+      "name": "fedora-minimal",
+      "org.opencontainers.image.license": "MIT",
+      "org.opencontainers.image.licenses": "MIT",
+      "org.opencontainers.image.name": "fedora-minimal",
+      "org.opencontainers.image.revision": "67a17c17caa95742186f8b1ecadd1b5abd6d5ebb",
+      "org.opencontainers.image.title": "fedora-minimal",
+      "org.opencontainers.image.url": "https://fedoraproject.org/",
+      "org.opencontainers.image.vendor": "Fedora Project",
+      "org.opencontainers.image.version": "b10775",
+      "vendor": "Fedora Project",
+      "version": "43"
+    },
+    "binary_sha256": "055ebdc323ee48e201f0dbb09e83898ebbb2b5fa016aaa3a36edb940cc617568",
+    "version": "version: 0.3.0-dev (build 0, commit unknown)\nbuilt with GNU 15.3.1 for Linux x86_64",
+    "model": {
+      "path": "/srv/ai/models/llm/gguf/huihui-qwen38-ud/Huihui-Qwen3.8-27B-abliterated-UD-Q4_K_XL.gguf",
+      "exists": true,
+      "size_bytes": 17378626464,
+      "sha256": "ebbc66b45cf36bf47dc052d560337ff047a8b4eef851c8919d83d623703b6aa4"
+    },
+    "mmproj": {
+      "path": "/srv/ai/models/llm/gguf/huihui-qwen38-ud/mmproj-model-bf16.gguf",
+      "exists": true,
+      "size_bytes": 931145888,
+      "sha256": "c9a09064683620bea3d3bfed5d4462e1a97a7d2fff7e5045d6862a0a85eeb5b5"
+    },
+    "draft_model": {
+      "path": "/srv/ai/models/llm/gguf/huihui-qwen38-ud/Qwen3.8-27B-DFlash2-Q4_K_M.gguf",
+      "exists": true,
+      "size_bytes": 1143006816,
+      "sha256": "1a25c56858e1ebe93f2718ac1d49d1151f9323325c1bbfd6209370f4db131ebd"
+    },
+    "source_provenance": {
+      "binary_source": "container image; source commit not embedded",
+      "image_upstream_revision": "67a17c17caa95742186f8b1ecadd1b5abd6d5ebb",
+      "observed_source_tree": {
+        "path": "/home/emmett/src/llama.cpp-phase0-profile",
+        "commit": "bd7a43fc3d27915238384f3f74b67ef93cd1555e",
+        "status": "M ggml/src/ggml-cuda/mmq-vec-dot.cuh\n M ggml/src/ggml-cuda/mmq.cu\n M ggml/src/ggml-vulkan/vulkan-shaders/flash_attn_cm1.comp\n?? docs/dev/",
+        "matches_binary": false
+      }
+    }
+  },
+  "gpu": {
+    "rocm_smi": "======================================== ROCm System Management Interface ========================================\n================================================== Concise Info ==================================================\nDevice  Node  IDs              Temp    Power  Partitions          SCLK  MCLK   Fan    Perf  PwrCap  VRAM%  GPU%  \n\u001b[3m              (DID,     GUID)  (Edge)  (Avg)  (Mem, Compute, ID)                                                 \u001b[0m\n==================================================================================================================\n0       1     0x7551,   29587  44.0°C  10.0W  N/A, N/A, 0         0Mhz  96Mhz  14.9%  auto  270.0W  0%     0%    \n==================================================================================================================\n============================================== End of ROCm SMI Log ===============================================",
+    "nvidia_smi": "Tue Sep 15 00:04:32 2026       \n+-----------------------------------------------------------------------------------------+\n| NVIDIA-SMI 595.71.05              Driver Version: 595.71.05      CUDA Version: 13.2     |\n+-----------------------------------------+------------------------+----------------------+\n| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |\n| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |\n|                                         |                        |               MIG M. |\n|=========================================+========================+======================|\n|   0  NVIDIA GeForce RTX 3070        Off |   00000000:04:00.0 Off |                  N/A |\n| 47%   59C    P2             50W /  100W |    2949MiB /   8192MiB |      5%      Default |\n|                                         |                        |                  N/A |\n+-----------------------------------------+------------------------+----------------------+\n\n+-----------------------------------------------------------------------------------------+\n| Processes:                                                                              |\n|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |\n|        ID   ID                                                               Usage      |\n|=========================================================================================|\n|    0   N/A  N/A            3270      C   python                                  634MiB |\n|    0   N/A  N/A         2890317      C   /app/llama-server                      2300MiB |\n+-----------------------------------------------------------------------------------------+"
+  },
+  "comparison_constraints": {
+    "same_model": false,
+    "same_quantization": false,
+    "production_service_modified": false,
+    "simultaneous_model_load": false
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "comparison_id": "r5-vllm-vs-production-llama-20260914",
+  "vllm_commit": "63d9f801974bb065f8a8caef276b24e10e3b2342",
+  "model_path": "/srv/ai/models/llm/hf/amd-Qwen3.8-27B-Quark-AWQ-MXFP4",
+  "tokenizer": {
+    "tokenizer_json_sha256": "0997f410c57a1f4e53b09e4be8f4a172d90edd9564368fb0847030937229b9f3",
+    "tokenizer_config_sha256": "b11349aafa7cdc6a320767cf7ceb29ed82f7eda5d65e8e0819e76f0ce947bf27",
+    "chat_template_sha256": "c3cf9e34abf4f9e36c2d72165aa9c132d3e2a725b6c2586aaa3a8af9d7a81041"
+  },
+  "source_suites": {
+    "context": {
+      "path": "docs/design/artifacts/gfx1201_r5_quality_context_20260914.jsonl",
+      "sha256": "0df298d4bf625a93246ada772c07fe4e5b721eb2f26ccedddc043bf340bda1de"
+    },
+    "retention": {
+      "path": "docs/design/artifacts/gfx1201_r5_retention_32k_20260915.jsonl",
+      "sha256": "49a70721080202893a316267f5708685edc3f2edb3c31033aafed762839b7ae3"
+    }
+  },
+  "generated_suites": {
+    "speed": {
+      "path": "docs/design/artifacts/gfx1201_r5_runtime_compare_20260915/prepared/speed.jsonl",
+      "sha256": "11944c2adc71ae72f31bea6f8766f987d011b4142cf720877179d6df9061b47a",
+      "cases": 5
+    },
+    "quality": {
+      "path": "docs/design/artifacts/gfx1201_r5_runtime_compare_20260915/prepared/quality.jsonl",
+      "sha256": "1209f9c090ba6de8b114430d1d36a26e008914b60bb90ad83910ac730908574b",
+      "cases": 308
+    },
+    "retention": {
+      "path": "docs/design/artifacts/gfx1201_r5_runtime_compare_20260915/prepared/retention.jsonl",
+      "sha256": "6ba4487e3e0b2741d1d2415db03ba8e0949e83d4cdf24672de8c0c4de071b43d",
+      "cases": 9
+    }
+  },
+  "speed": {
+    "targets": [
+      128,
+      1024,
+      4096,
+      16384,
+      32768
+    ],
+    "samples_per_target": 5,
+    "max_tokens": 256,
+    "ignore_eos": true,
+    "prefix_reuse": false,
+    "warmup_excluded": true
+  },
+  "quality": {
+    "counts": {
+      "gsm8k": 64,
+      "mmlu": 80,
+      "humaneval": 164
+    },
+    "max_tokens": {
+      "gsm8k": 1024,
+      "mmlu": 64,
+      "humaneval": 2048
+    },
+    "thinking": "vLLM non-thinking request; llama.cpp production reasoning setting retained and recorded",
+    "sampling": {
+      "temperature": 0,
+      "seed": 1201,
+      "normal_eos": true
+    }
+  },
+  "retention": {
+    "cases": 9,
+    "positions": [
+      "early",
+      "middle",
+      "late"
+    ],
+    "max_tokens": 128,
+    "exact_match": "strip leading/trailing whitespace only"
+  },
+  "comparison_limits": {
+    "same_model": false,
+    "same_quantization": false,
+    "production_adoption": false,
+    "kernel_changes": false
+  }
+}
