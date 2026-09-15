@@ -154,6 +154,11 @@ def request(
                 if piece:
                     first_content = first_content or time.perf_counter()
                     pieces.append(piece)
+                # Some vLLM streaming responses leave the HTTP connection
+                # open after the terminal chunk.  The terminal finish reason
+                # is sufficient for a bounded client-side measurement.
+                if args.engine == "vllm" and finish_reason is not None:
+                    break
     except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as error:
         request_error = str(error)
     finished = time.perf_counter()
@@ -161,6 +166,8 @@ def request(
     output_tokens = None
     if usage:
         output_tokens = usage.get("completion_tokens")
+    if output_tokens is None and finish_reason == "length":
+        output_tokens = row["max_tokens"]
     generation_seconds = None if first_content is None else finished - first_content
     result = {
         "run_id": run_id,
